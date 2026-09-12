@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>La Bodega · Encuesta de satisfacción</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     LA BODEGA - Encuesta de satisfacción (premium build)
+     Tokens fieles al handoff. Movimiento motivado + reduced-motion.
+     ============================================================ */
+  :root{
+    --ground:#0B0906;
+    --grad-1:#1C160F; --grad-2:#0F0B08; --grad-3:#0B0906;
+    --card:rgba(9,7,5,0.6);
+    --input:rgba(247,242,231,0.04);
+    --gold:#D9A94A; --gold-hi:#EFC77E; --gold-accent:#E0B45C;
+    --ink-on-gold:#12100C;
+    --cream:#F7F2E7; --body:#D6C9AE; --muted:#B4A382; --label:#8E8267; --placeholder:#6F6350;
+    --hair-card:rgba(217,169,74,0.5);
+    --hair-chip:rgba(217,169,74,0.35);
+    --hair-track:rgba(217,169,74,0.22);
+    --hair-div:rgba(245,239,227,0.12);
+    --hair-ghost:rgba(245,239,227,0.28);
+    --ease:cubic-bezier(0.22,1,0.36,1);      /* ease-out expo-ish, para entradas */
+    --ease-in:cubic-bezier(0.4,0,1,1);
+    --sans:'Barlow Condensed','Helvetica Neue',Helvetica,sans-serif;
+    --serif:'Cormorant Garamond',Georgia,serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--ground);}
+  body{
+    min-height:100dvh;
+    background:radial-gradient(110% 70% at 50% -10%, var(--grad-1) 0%, var(--grad-2) 55%, var(--grad-3) 100%);
+    color:var(--cream);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 20px 64px;
+    overflow-x:hidden;
+  }
+  a{color:var(--gold);} a:hover{color:var(--gold-hi);}
+  input,textarea,button{font:inherit;}
+  ::placeholder{color:var(--placeholder);}
+  ::selection{background:rgba(217,169,74,0.28); color:var(--cream);}
+
+  /* Ambient film grain - textura premium, fija, no interfiere con scroll */
+  .grain{
+    position:fixed; inset:0; z-index:0; pointer-events:none; opacity:0.04; mix-blend-mode:screen;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  /* Vignette + brasa cálida que respira lentamente detrás de la tarjeta */
+  .ember{
+    position:fixed; left:50%; top:-4%; width:min(120vw,1100px); height:640px; z-index:0;
+    transform:translateX(-50%);
+    background:radial-gradient(50% 50% at 50% 40%, rgba(217,169,74,0.10), rgba(217,169,74,0.03) 45%, transparent 70%);
+    pointer-events:none;
+    animation:breathe 11s var(--ease) infinite;
+  }
+  @keyframes breathe{
+    0%,100%{opacity:0.65; transform:translateX(-50%) scale(1);}
+    50%{opacity:1; transform:translateX(-50%) scale(1.06);}
+  }
+
+  .stage{position:relative; z-index:1; width:100%; max-width:760px; display:flex; flex-direction:column; align-items:center;}
+
+  /* ---- Brand lockup ---- */
+  .brand{display:flex; flex-direction:column; align-items:center; gap:10px; width:100%;}
+  .monogram{
+    width:48px; height:48px; border:1px solid var(--gold); display:flex; align-items:center; justify-content:center;
+    font-family:var(--serif); font-size:26px; color:var(--gold); line-height:1;
+    position:relative;
+  }
+  .wordmark{font-family:var(--serif); font-size:22px; letter-spacing:0.4em; text-transform:uppercase; line-height:1; padding-left:0.4em;}
+  .tagline{font-size:12px; letter-spacing:0.36em; text-transform:uppercase; color:var(--muted); padding-left:0.36em;}
+
+  /* ---- Progress ---- */
+  .progress{width:100%; margin-top:34px; display:flex; align-items:center; gap:16px;}
+  .track{flex:1; height:1px; background:var(--hair-track); position:relative; overflow:hidden;}
+  .fill{position:absolute; left:0; top:0; height:1px; background:var(--gold); width:0%; transition:width 0.7s var(--ease);}
+  .fill::after{ /* barrido de brillo cuando avanza */
+    content:""; position:absolute; right:0; top:-2px; width:26px; height:5px;
+    background:radial-gradient(closest-side, var(--gold-hi), transparent);
+    opacity:0; transform:translateX(6px);
+  }
+  .fill.advancing::after{animation:sweep 0.7s var(--ease);}
+  @keyframes sweep{0%{opacity:0;} 40%{opacity:0.9;} 100%{opacity:0; transform:translateX(10px);}}
+  .steplabel{font-size:12px; letter-spacing:0.3em; text-transform:uppercase; color:var(--muted); white-space:nowrap; transition:opacity 0.35s var(--ease);}
+
+  /* ---- Card ---- */
+  .card{
+    width:100%; margin-top:38px;
+    border-top:1px solid var(--hair-card); border-bottom:1px solid var(--hair-card);
+    background:var(--card);
+    padding:44px 44px 40px;
+    position:relative;
+  }
+  /* Los hairlines de la tarjeta se "dibujan" desde el centro en la entrada */
+  .card::before,.card::after{
+    content:""; position:absolute; left:0; right:0; height:1px; background:var(--gold);
+    transform:scaleX(0); transform-origin:center; opacity:0.55;
+  }
+  .card::before{top:-1px;} .card::after{bottom:-1px;}
+  body.ready .card::before,body.ready .card::after{transform:scaleX(1); transition:transform 1.1s var(--ease) 0.25s;}
+
+  .viewport{overflow:hidden; transition:height 0.5s var(--ease);}
+  .step{display:flex; flex-direction:column; gap:28px;}
+  .step.leaving{opacity:0; transform:translateY(-8px); transition:opacity 0.18s var(--ease-in), transform 0.18s var(--ease-in);}
+  .step.entering{opacity:0;}
+  .step.entering.in{opacity:1; transition:opacity 0.4s var(--ease);}
+
+  /* Stagger de hijos al entrar */
+  .step > *{opacity:0; transform:translateY(14px);}
+  .step.in > *{opacity:1; transform:translateY(0); transition:opacity 0.55s var(--ease), transform 0.55s var(--ease);}
+  .step.in > *:nth-child(1){transition-delay:0.02s;}
+  .step.in > *:nth-child(2){transition-delay:0.09s;}
+  .step.in > *:nth-child(3){transition-delay:0.16s;}
+  .step.in > *:nth-child(4){transition-delay:0.23s;}
+  .step.in > *:nth-child(5){transition-delay:0.30s;}
+  .step.in > *:nth-child(6){transition-delay:0.37s;}
+
+  /* ---- Typography blocks ---- */
+  .eyebrow-serif{font-family:var(--serif); font-style:italic; font-size:24px; color:var(--gold-accent);}
+  .eyebrow{font-size:12px; letter-spacing:0.36em; text-transform:uppercase; color:var(--muted);}
+  .headline{font-weight:600; font-size:58px; line-height:0.92; letter-spacing:0.04em; text-transform:uppercase; text-wrap:balance; margin:0;}
+  .title{font-weight:600; font-size:42px; line-height:1; letter-spacing:0.04em; text-transform:uppercase; margin:0;}
+  .body{font-size:19px; line-height:1.5; color:var(--body); max-width:52ch; text-wrap:pretty;}
+  .grouplabel{font-size:13px; letter-spacing:0.28em; text-transform:uppercase; color:var(--label);}
+
+  /* ---- Buttons: primary / ghost ---- */
+  .btn{border:1px solid var(--gold); background:var(--gold); color:var(--ink-on-gold); font-weight:600;
+    letter-spacing:0.24em; text-transform:uppercase; cursor:pointer; position:relative; overflow:hidden;
+    transition:background 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.12s var(--ease);}
+  .btn.lg{padding:15px 40px; font-size:16px;}
+  .btn.md{padding:14px 36px; font-size:15px;}
+  .btn:hover{background:var(--gold-hi); border-color:var(--gold-hi);}
+  .btn:active{transform:translateY(1px);}
+  .btn::after{ /* barrido de luz al hover */
+    content:""; position:absolute; top:0; left:-120%; width:60%; height:100%;
+    background:linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent);
+    transform:skewX(-18deg);}
+  .btn:hover::after{animation:shine 0.7s var(--ease);}
+  @keyframes shine{to{left:130%;}}
+
+  .ghost{background:transparent; border:1px solid var(--hair-ghost); color:var(--body);
+    letter-spacing:0.24em; text-transform:uppercase; cursor:pointer; padding:13px 28px; font-size:14px;
+    transition:border-color 0.3s var(--ease), color 0.3s var(--ease), transform 0.12s var(--ease);}
+  .ghost:hover{border-color:var(--gold); color:var(--gold-accent);}
+  .ghost:active{transform:translateY(1px);}
+
+  .aside{font-family:var(--serif); font-style:italic; font-size:18px; color:var(--muted);}
+  .intro-row{margin-top:6px; display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+
+  /* ---- Rating scale (overall + aspects): meter cumulativo premium ---- */
+  .scale{display:flex; gap:14px; flex-wrap:wrap;}
+  .rating-btn{
+    border:1px solid var(--hair-chip); background:transparent; color:var(--body); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; font-family:var(--serif);
+    position:relative; overflow:hidden;
+    transition:border-color 0.28s var(--ease), color 0.28s var(--ease), transform 0.14s var(--ease), background 0.28s var(--ease);
+  }
+  .rating-btn .num{position:relative; z-index:2; line-height:1;}
+  .rating-btn::before{ /* relleno oro que sube desde abajo */
+    content:""; position:absolute; inset:0; background:var(--gold); z-index:1;
+    transform:translateY(101%); transition:transform 0.34s var(--ease);
+  }
+  .rating-btn:hover{border-color:var(--gold); transform:translateY(-2px);}
+  .rating-btn.preview{border-color:var(--gold);}
+  .rating-btn.preview::before{transform:translateY(70%); opacity:0.35;}
+  .rating-btn.filled{border-color:var(--gold); color:var(--ink-on-gold);}
+  .rating-btn.filled::before{transform:translateY(0);}
+  .rating-btn.pop{animation:pop 0.34s var(--ease);}
+  @keyframes pop{0%{transform:scale(0.9);} 55%{transform:scale(1.06);} 100%{transform:scale(1);}}
+
+  .scale.overall .rating-btn{width:88px; height:88px; font-size:30px;}
+  .scale-ends{display:flex; justify-content:space-between; font-size:13px; letter-spacing:0.2em; text-transform:uppercase; color:var(--label); max-width:492px;}
+  .live-line{font-family:var(--serif); font-style:italic; font-size:22px; color:var(--gold-accent); min-height:1.4em; transition:opacity 0.3s var(--ease);}
+
+  /* ---- Chips (single + multi select) ---- */
+  .chips{display:flex; gap:12px; flex-wrap:wrap;}
+  .chip{
+    border:1px solid var(--hair-chip); background:transparent; color:var(--body); cursor:pointer;
+    text-transform:uppercase; position:relative; overflow:hidden;
+    transition:border-color 0.28s var(--ease), color 0.28s var(--ease), transform 0.14s var(--ease);
+  }
+  .chip span{position:relative; z-index:2;}
+  .chip::before{content:""; position:absolute; inset:0; background:var(--gold); z-index:1; transform:translateX(-101%); transition:transform 0.32s var(--ease);}
+  .chip:hover{border-color:var(--gold); transform:translateY(-1px);}
+  .chip.on{border-color:var(--gold); color:var(--ink-on-gold);}
+  .chip.on::before{transform:translateX(0);}
+  .chip.branch{padding:13px 26px; font-size:16px; letter-spacing:0.14em;}
+  .chip.topic{padding:11px 22px; font-size:15px; letter-spacing:0.12em;}
+
+  .field-group{display:flex; flex-direction:column; gap:12px;}
+  .aspect-list{display:flex; flex-direction:column;}
+  .aspect-row{display:flex; align-items:center; justify-content:space-between; gap:20px; padding:18px 0; border-top:1px solid var(--hair-div); flex-wrap:wrap;}
+  .aspect-name{font-size:22px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase;}
+  .aspect-hint{font-family:var(--serif); font-style:italic; font-size:17px; color:var(--muted);}
+  .scale.dots{gap:8px;}
+  .scale.dots .rating-btn{width:38px; height:38px; font-size:15px; font-family:var(--sans);}
+
+  /* ---- Inputs ---- */
+  .field{display:flex; flex-direction:column; gap:8px;}
+  .input-wrap{position:relative;}
+  .field textarea,.field input{
+    width:100%; box-sizing:border-box; background:var(--input); border:1px solid var(--hair-chip);
+    color:var(--cream); outline:none; line-height:1.5;
+    transition:border-color 0.3s var(--ease), background 0.3s var(--ease);
+  }
+  .field textarea{padding:16px 18px; font-size:18px; resize:vertical;}
+  .field input{padding:14px 16px; font-size:18px;}
+  .field textarea:focus,.field input:focus{border-color:var(--gold); background:rgba(247,242,231,0.06);}
+  .underline{position:absolute; left:0; bottom:0; height:1px; width:100%; background:var(--gold); transform:scaleX(0); transform-origin:left; transition:transform 0.4s var(--ease);}
+  .field textarea:focus ~ .underline,.field input:focus ~ .underline{transform:scaleX(1);}
+  .field:focus-within .grouplabel{color:var(--gold-accent); transition:color 0.3s var(--ease);}
+  .contact-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:18px;}
+
+  /* ---- Nav ---- */
+  .nav{margin-top:6px; padding-top:24px; border-top:1px solid var(--hair-div); display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+
+  /* ---- Done ---- */
+  .done{display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; padding:20px 0 10px;}
+  .done .seal{position:relative; width:66px; height:66px; display:flex; align-items:center; justify-content:center;}
+  .done .seal .box{width:66px; height:66px; border:1px solid var(--gold); display:flex; align-items:center; justify-content:center; font-family:var(--serif); font-size:34px; color:var(--gold);}
+  .done .seal .ring{position:absolute; inset:0; border:1px solid var(--gold); opacity:0;}
+  .step.in .done .seal .ring{animation:ring-pulse 2.4s var(--ease) 0.5s infinite;}
+  @keyframes ring-pulse{0%{opacity:0.5; transform:scale(1);} 70%{opacity:0;} 100%{opacity:0; transform:scale(1.9);}}
+  .done .big{font-weight:600; font-size:50px; line-height:0.95; letter-spacing:0.04em; text-transform:uppercase;}
+
+  /* ---- Footer ---- */
+  .footer{width:100%; margin-top:26px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; font-size:14px; letter-spacing:0.16em; text-transform:uppercase; color:var(--label);}
+
+  /* ---- Shell entrance stagger ---- */
+  .stage > *{opacity:0; transform:translateY(16px);}
+  body.ready .stage > *{opacity:1; transform:translateY(0); transition:opacity 0.7s var(--ease), transform 0.7s var(--ease);}
+  body.ready .brand{transition-delay:0.05s;}
+  body.ready .progress{transition-delay:0.15s;}
+  body.ready .card{transition-delay:0.22s;}
+  body.ready .footer{transition-delay:0.32s;}
+
+  /* ---- Focus (a11y) ---- */
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px;}
+  .visually-hidden{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;}
+
+  /* ---- Responsive ---- */
+  @media (max-width:560px){
+    body{padding:28px 14px 40px;}
+    .card{padding:28px 20px 26px;}
+    .headline{font-size:clamp(40px,12vw,58px);}
+    .title{font-size:34px;}
+    .scale.overall .rating-btn{width:64px; height:64px; font-size:26px;}
+    .aspect-row{flex-direction:column; align-items:flex-start; gap:12px;}
+  }
+
+  /* ---- Reduced motion: todo instantáneo pero funcional ---- */
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none !important; transition:none !important;}
+    .stage > *,.step > *,.step{opacity:1 !important; transform:none !important;}
+    body.ready .card::before,body.ready .card::after{transform:scaleX(1);}
+    .viewport{transition:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="ember" aria-hidden="true"></div>
+
+  <div class="stage">
+    <!-- Brand -->
+    <header class="brand">
+      <div class="monogram" aria-hidden="true">B</div>
+      <div class="wordmark">La Bodega</div>
+      <div class="tagline">Restaurante · Panadería</div>
+    </header>
+
+    <!-- Progress -->
+    <div class="progress">
+      <div class="track"><div class="fill" id="fill"></div></div>
+      <div class="steplabel" id="steplabel" aria-hidden="true">Paso 1 de 5</div>
+    </div>
+
+    <!-- Card -->
+    <main class="card">
+      <div class="viewport" id="viewport">
+        <div class="step" id="step"><!-- render dinámico --></div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Puerto Ordaz · Venezuela</span>
+      <span>Encuesta de satisfacción</span>
+    </footer>
+  </div>
+
+  <div class="visually-hidden" role="status" aria-live="polite" id="announce"></div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  var STEPS = ['intro','overall','visit','aspects','issues','contact','done'];
+  var OVERALL_LABELS = {
+    1:'Lo sentimos. Cuéntanos qué pasó.',
+    2:'Podemos hacerlo mucho mejor.',
+    3:'Bien, pero con detalles por pulir.',
+    4:'Nos alegra. Casi perfecto.',
+    5:'Gracias. Así queremos que sea siempre.'
+  };
+  var ASPECTS = [
+    {key:'comida',   label:'La comida',            hint:'Sabor, punto, temperatura'},
+    {key:'servicio', label:'El servicio',          hint:'Atención y trato del equipo'},
+    {key:'ambiente', label:'El ambiente',          hint:'Música, luz, limpieza'},
+    {key:'tiempo',   label:'El tiempo de espera',  hint:'Desde el pedido hasta la mesa'}
+  ];
+  var SUCURSALES = ['Bodega 1','Bodega 2','Bodega 3'];
+  var MOMENTOS   = ['Desayuno','Almuerzo','Cena','Para llevar'];
+  var TEMAS      = ['Sabor','Espera','Atención','Precio','Limpieza','Pedido equivocado','Ruido','Nada, todo bien'];
+
+  var state = {
+    step:0, overall:0, sucursal:'', momento:'',
+    aspects:{comida:0,servicio:0,ambiente:0,tiempo:0},
+    temas:[], comentario:'', nombre:'', contacto:''
+  };
+
+  var el = {
+    viewport: document.getElementById('viewport'),
+    step:     document.getElementById('step'),
+    fill:     document.getElementById('fill'),
+    steplabel:document.getElementById('steplabel'),
+    announce: document.getElementById('announce')
+  };
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* ---------- Templates por paso ---------- */
+  function tpl(name){
+    switch(name){
+      case 'intro': return ''
+        + '<div class="eyebrow-serif">Gracias por acompañarnos</div>'
+        + '<h1 class="headline">¿Cómo estuvo<br>tu visita?</h1>'
+        + '<p class="body">Seis preguntas, menos de dos minutos. Lo que nos cuentes lo lee el equipo de sala y cocina cada semana.</p>'
+        + '<div class="intro-row">'
+        +   '<button type="button" class="btn lg" data-act="next">Comenzar</button>'
+        +   '<span class="aside">Anónimo si así lo prefieres</span>'
+        + '</div>';
+
+      case 'overall': return ''
+        + '<div class="eyebrow">Paso uno</div>'
+        + '<h2 class="title">Satisfacción general</h2>'
+        + '<div class="scale overall" role="radiogroup" aria-label="Satisfacción general, de 1 a 5" data-rate="overall">' + ratingBtns(state.overall) + '</div>'
+        + '<div class="scale-ends"><span>Mala</span><span>Excelente</span></div>'
+        + '<div class="live-line" id="liveline">' + esc(OVERALL_LABELS[state.overall] || '') + '</div>';
+
+      case 'visit': return ''
+        + '<div class="eyebrow">Paso dos</div>'
+        + '<h2 class="title">Tu visita</h2>'
+        + '<div class="field-group">'
+        +   '<div class="grouplabel">Sucursal</div>'
+        +   '<div class="chips" role="radiogroup" aria-label="Sucursal">' + chipBtns(SUCURSALES,'sucursal','branch',false) + '</div>'
+        + '</div>'
+        + '<div class="field-group">'
+        +   '<div class="grouplabel">Momento</div>'
+        +   '<div class="chips" role="radiogroup" aria-label="Momento">' + chipBtns(MOMENTOS,'momento','branch',false) + '</div>'
+        + '</div>';
+
+      case 'aspects': return ''
+        + '<div class="eyebrow">Paso tres</div>'
+        + '<h2 class="title">Lo que evaluamos</h2>'
+        + '<div class="aspect-list">' + ASPECTS.map(function(a){
+            return '<div class="aspect-row">'
+              + '<div><div class="aspect-name">' + esc(a.label) + '</div><div class="aspect-hint">' + esc(a.hint) + '</div></div>'
+              + '<div class="scale dots" role="radiogroup" aria-label="' + esc(a.label) + ', de 1 a 5" data-rate="aspect" data-key="' + a.key + '">' + ratingBtns(state.aspects[a.key]) + '</div>'
+              + '</div>';
+          }).join('') + '</div>';
+
+      case 'issues': return ''
+        + '<div class="eyebrow">Paso cuatro</div>'
+        + '<h2 class="title">¿Algo que mejorar?</h2>'
+        + '<div class="chips" role="group" aria-label="Temas a mejorar">' + chipBtns(TEMAS,'temas','topic',true) + '</div>'
+        + '<div class="field">'
+        +   '<label class="grouplabel" for="comentario">Cuéntanos con tus palabras</label>'
+        +   '<div class="input-wrap"><textarea id="comentario" rows="5" placeholder="Lo que pasó, lo que te gustó, lo que esperabas…" data-input="comentario">' + esc(state.comentario) + '</textarea><span class="underline"></span></div>'
+        + '</div>';
+
+      case 'contact': return ''
+        + '<div class="eyebrow">Paso cinco</div>'
+        + '<h2 class="title">¿Te contactamos?</h2>'
+        + '<p class="body">Opcional. Si dejas tus datos, un encargado te escribe personalmente.</p>'
+        + '<div class="contact-grid">'
+        +   '<div class="field"><label class="grouplabel" for="nombre">Nombre</label><div class="input-wrap"><input id="nombre" type="text" autocomplete="name" placeholder="Tu nombre" value="' + esc(state.nombre) + '" data-input="nombre"><span class="underline"></span></div></div>'
+        +   '<div class="field"><label class="grouplabel" for="contacto">Teléfono o correo</label><div class="input-wrap"><input id="contacto" type="text" autocomplete="email" placeholder="+58 ··· / tu@correo" value="' + esc(state.contacto) + '" data-input="contacto"><span class="underline"></span></div></div>'
+        + '</div>';
+
+      case 'done': return ''
+        + '<div class="done">'
+        +   '<div class="seal"><span class="ring" aria-hidden="true"></span><span class="box">B</span></div>'
+        +   '<div class="big">Gracias</div>'
+        +   '<div class="eyebrow-serif">Tu opinión ya está con el equipo</div>'
+        +   '<p class="body" style="max-width:46ch">Si dejaste tus datos, te escribimos en las próximas 48 horas.</p>'
+        +   '<button type="button" class="ghost" data-act="restart" style="margin-top:8px; letter-spacing:0.24em; color:var(--gold-accent); border-color:rgba(217,169,74,0.6)">Enviar otra respuesta</button>'
+        + '</div>';
+    }
+    return '';
+  }
+
+  function ratingBtns(value){
+    var out = '';
+    for(var n=1;n<=5;n++){
+      out += '<button type="button" class="rating-btn' + (n<=value?' filled':'') + '" role="radio" aria-checked="' + (n===value) + '" aria-label="' + n + ' de 5" data-n="' + n + '"><span class="num">' + n + '</span></button>';
+    }
+    return out;
+  }
+  function chipBtns(list,field,klass,multi){
+    return list.map(function(label){
+      var on = multi ? state[field].indexOf(label)!==-1 : state[field]===label;
+      var role = multi ? 'aria-pressed="'+on+'"' : 'role="radio" aria-checked="'+on+'"';
+      return '<button type="button" class="chip ' + klass + (on?' on':'') + '" ' + role + ' data-chip="' + esc(label) + '">'
+        + '<span>' + esc(label) + '</span></button>';
+    }).join('');
+  }
+
+  function navHTML(name){
+    if(name==='intro' || name==='done') return '';
+    var nextLabel = name==='contact' ? 'Enviar' : 'Siguiente';
+    return '<div class="nav">'
+      + '<button type="button" class="ghost" data-act="back">Atrás</button>'
+      + '<button type="button" class="btn md" data-act="next">' + nextLabel + '</button>'
+      + '</div>';
+  }
+
+  /* ---------- Render + transición de paso ---------- */
+  var animating = false;
+  function render(dir){
+    var name = STEPS[state.step];
+    var html = tpl(name) + navHTML(name);
+
+    updateProgress(dir);
+
+    if(reduce){
+      el.step.innerHTML = html;
+      el.step.className = 'step';
+      bindStep();
+      el.viewport.style.height = 'auto';
+      announce(name);
+      return;
+    }
+
+    var fromH = el.viewport.offsetHeight;
+    var old = el.step;
+    old.classList.add('leaving');
+
+    setTimeout(function(){
+      el.step.innerHTML = html;
+      el.step.className = 'step entering';
+      bindStep();
+
+      // morph de altura
+      el.viewport.style.height = 'auto';
+      var toH = el.viewport.offsetHeight;
+      el.viewport.style.height = fromH + 'px';
+      void el.viewport.offsetHeight; // reflow
+      el.viewport.style.height = toH + 'px';
+
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          el.step.classList.add('in');
+        });
+      });
+
+      var done = function(){ el.viewport.style.height = 'auto'; el.viewport.removeEventListener('transitionend', done); };
+      el.viewport.addEventListener('transitionend', done);
+      announce(name);
+    }, 180);
+  }
+
+  function updateProgress(dir){
+    var pct = Math.round((Math.min(state.step,5)/5)*100);
+    el.fill.style.width = pct + '%';
+    if(dir === 1){ el.fill.classList.remove('advancing'); void el.fill.offsetWidth; el.fill.classList.add('advancing'); }
+    var name = STEPS[state.step];
+    var label = name==='done' ? 'Completado' : 'Paso ' + Math.max(1,state.step) + ' de 5';
+    el.steplabel.style.opacity = 0;
+    setTimeout(function(){ el.steplabel.textContent = label; el.steplabel.style.opacity = 1; }, reduce?0:170);
+  }
+
+  function announce(name){
+    var titles = {intro:'Bienvenida', overall:'Paso 1 de 5, satisfacción general', visit:'Paso 2 de 5, tu visita', aspects:'Paso 3 de 5, lo que evaluamos', issues:'Paso 4 de 5, algo que mejorar', contact:'Paso 5 de 5, contacto', done:'Encuesta completada, gracias'};
+    el.announce.textContent = titles[name] || '';
+  }
+
+  /* ---------- Bindings del paso activo ---------- */
+  function bindStep(){
+    // acciones nav / intro / done
+    el.step.querySelectorAll('[data-act]').forEach(function(b){
+      b.addEventListener('click', function(){
+        var a = b.getAttribute('data-act');
+        if(a==='next') go(1);
+        else if(a==='back') go(-1);
+        else if(a==='restart') restart();
+      });
+    });
+
+    // rating groups (overall + aspects) con hover-preview cumulativo + teclado
+    el.step.querySelectorAll('[data-rate]').forEach(function(group){
+      var kind = group.getAttribute('data-rate');
+      var key = group.getAttribute('data-key');
+      var btns = Array.prototype.slice.call(group.querySelectorAll('.rating-btn'));
+      var current = function(){ return kind==='overall' ? state.overall : state.aspects[key]; };
+
+      function paint(preview){
+        var val = current();
+        btns.forEach(function(btn,i){
+          var n = i+1;
+          btn.classList.toggle('filled', n<=val);
+          btn.classList.toggle('preview', preview>0 && n<=preview && n>val);
+          btn.setAttribute('aria-checked', n===val);
+        });
+      }
+      btns.forEach(function(btn,i){
+        var n = i+1;
+        btn.addEventListener('mouseenter', function(){ paint(n); });
+        btn.addEventListener('click', function(){
+          if(kind==='overall') state.overall = n; else state.aspects[key] = n;
+          btn.classList.add('pop');
+          setTimeout(function(){ btn.classList.remove('pop'); }, 340);
+          paint(0);
+          var live = document.getElementById('liveline');
+          if(live){ live.style.opacity=0; setTimeout(function(){ live.textContent = OVERALL_LABELS[state.overall]||''; live.style.opacity=1; }, 150); }
+        });
+        // teclado: flechas mueven la selección
+        btn.addEventListener('keydown', function(e){
+          var d = (e.key==='ArrowRight'||e.key==='ArrowUp')?1:(e.key==='ArrowLeft'||e.key==='ArrowDown')?-1:0;
+          if(!d) return;
+          e.preventDefault();
+          var target = Math.min(4, Math.max(0, i + d));
+          btns[target].focus(); btns[target].click();
+        });
+      });
+      group.addEventListener('mouseleave', function(){ paint(0); });
+    });
+
+    // chips single / multi
+    el.step.querySelectorAll('[data-chip]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var label = btn.getAttribute('data-chip');
+        var parent = btn.parentNode;
+        var multi = btn.classList.contains('topic');
+        if(multi){
+          var idx = state.temas.indexOf(label);
+          if(idx===-1) state.temas.push(label); else state.temas.splice(idx,1);
+          btn.classList.toggle('on');
+          btn.setAttribute('aria-pressed', btn.classList.contains('on'));
+        } else {
+          // determinar campo por el grupo
+          var field = parent.getAttribute('aria-label')==='Sucursal' ? 'sucursal' : 'momento';
+          state[field] = label;
+          parent.querySelectorAll('.chip').forEach(function(c){
+            var on = c===btn; c.classList.toggle('on',on); c.setAttribute('aria-checked',on);
+          });
+        }
+      });
+    });
+
+    // inputs de texto
+    el.step.querySelectorAll('[data-input]').forEach(function(inp){
+      inp.addEventListener('input', function(){ state[inp.getAttribute('data-input')] = inp.value; });
+    });
+  }
+
+  /* ---------- Navegación ---------- */
+  function go(delta){
+    var target = Math.min(STEPS.length-1, Math.max(0, state.step + delta));
+    if(target===state.step) return;
+    state.step = target;
+    render(delta);
+    try{ window.scrollTo({top:0, behavior: reduce?'auto':'smooth'}); }catch(e){ window.scrollTo(0,0); }
+  }
+  function restart(){
+    state = {step:0, overall:0, sucursal:'', momento:'', aspects:{comida:0,servicio:0,ambiente:0,tiempo:0}, temas:[], comentario:'', nombre:'', contacto:''};
+    render(-1);
+    try{ window.scrollTo({top:0, behavior: reduce?'auto':'smooth'}); }catch(e){}
+  }
+
+  /* ---------- Init ---------- */
+  // Deep-link opcional: #overall, #aspects, etc. permite abrir/compartir un paso concreto.
+  var hash = (location.hash || '').replace('#','');
+  if(STEPS.indexOf(hash) !== -1) state.step = STEPS.indexOf(hash);
+  el.step.innerHTML = tpl(STEPS[state.step]) + navHTML(STEPS[state.step]);
+  el.step.className = 'step';
+  bindStep();
+  el.fill.style.width = '0%';
+  requestAnimationFrame(function(){
+    document.body.classList.add('ready');
+    setTimeout(function(){ el.step.classList.add('in'); el.viewport.style.height='auto'; }, reduce?0:120);
+    updateProgress(0);
+  });
+})();
+</script>
+</body>
+</html>

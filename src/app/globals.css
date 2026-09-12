@@ -1,26 +1,441 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   LA BODEGA — design tokens (fieles al handoff, alta fidelidad)
+   Tema único, nocturno. La separación viene de hairlines + valor,
+   nunca de sombras. Radius 0 en todas partes.
+   ============================================================ */
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-serif);
+  --font-heading: var(--font-sans);
+
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* La Bodega brand ramp exposed as Tailwind color utilities */
+  --color-gold: var(--lb-gold);
+  --color-gold-hi: var(--lb-gold-hi);
+  --color-gold-accent: var(--lb-gold-accent);
+  --color-ink: var(--lb-ink-on-gold);
+  --color-cream: var(--lb-cream);
+  --color-body: var(--lb-body);
+  --color-muted-ink: var(--lb-muted);
+  --color-label: var(--lb-label);
+  --color-placeholder: var(--lb-placeholder);
+  --color-hair-card: var(--lb-hair-card);
+  --color-hair-chip: var(--lb-hair-chip);
+  --color-hair-track: var(--lb-hair-track);
+  --color-hair-div: var(--lb-hair-div);
+  --color-hair-ghost: var(--lb-hair-ghost);
+
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  /* fonts (variables set in layout.tsx via next/font) */
+  --font-sans: var(--font-barlow), "Helvetica Neue", Helvetica, sans-serif;
+  --font-serif: var(--font-cormorant), Georgia, serif;
+
+  /* raw brand tokens */
+  --lb-ground: #0b0906;
+  --lb-grad-1: #1c160f;
+  --lb-grad-2: #0f0b08;
+  --lb-grad-3: #0b0906;
+  --lb-card: rgba(9, 7, 5, 0.6);
+  --lb-input: rgba(247, 242, 231, 0.04);
+  --lb-gold: #d9a94a;
+  --lb-gold-hi: #efc77e;
+  --lb-gold-accent: #e0b45c;
+  --lb-ink-on-gold: #12100c;
+  --lb-cream: #f7f2e7;
+  --lb-body: #d6c9ae;
+  --lb-muted: #b4a382;
+  --lb-label: #8e8267;
+  --lb-placeholder: #6f6350;
+  --lb-hair-card: rgba(217, 169, 74, 0.5);
+  --lb-hair-chip: rgba(217, 169, 74, 0.35);
+  --lb-hair-track: rgba(217, 169, 74, 0.22);
+  --lb-hair-div: rgba(245, 239, 227, 0.12);
+  --lb-hair-ghost: rgba(245, 239, 227, 0.28);
+
+  /* shadcn semantic tokens mapped onto the brand */
+  --background: var(--lb-ground);
+  --foreground: var(--lb-cream);
+  --card: var(--lb-card);
+  --card-foreground: var(--lb-cream);
+  --popover: var(--lb-grad-2);
+  --popover-foreground: var(--lb-cream);
+  --primary: var(--lb-gold);
+  --primary-foreground: var(--lb-ink-on-gold);
+  --secondary: var(--lb-input);
+  --secondary-foreground: var(--lb-cream);
+  --muted: var(--lb-input);
+  --muted-foreground: var(--lb-muted);
+  --accent: rgba(217, 169, 74, 0.12);
+  --accent-foreground: var(--lb-gold-hi);
+  --destructive: #c8543a;
+  --border: var(--lb-hair-chip);
+  --input: var(--lb-hair-chip);
+  --ring: var(--lb-gold);
+  --radius: 0px;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    min-height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100dvh;
+    background: radial-gradient(
+      110% 70% at 50% -10%,
+      var(--lb-grad-1) 0%,
+      var(--lb-grad-2) 55%,
+      var(--lb-grad-3) 100%
+    );
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  ::placeholder {
+    color: var(--lb-placeholder);
+  }
+  ::selection {
+    background: rgba(217, 169, 74, 0.28);
+    color: var(--lb-cream);
+  }
+  :focus-visible {
+    outline: 2px solid var(--lb-gold);
+    outline-offset: 3px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---- Ambient texture: film grain + breathing ember ---- */
+@layer components {
+  .lb-grain {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: screen;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  .lb-ember {
+    position: fixed;
+    left: 50%;
+    top: -4%;
+    width: min(120vw, 1100px);
+    height: 640px;
+    z-index: 0;
+    transform: translateX(-50%);
+    background: radial-gradient(
+      50% 50% at 50% 40%,
+      rgba(217, 169, 74, 0.1),
+      rgba(217, 169, 74, 0.03) 45%,
+      transparent 70%
+    );
+    pointer-events: none;
+    animation: lb-breathe 11s var(--ease-brand) infinite;
+  }
+}
+
+@keyframes lb-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.06);
+  }
+}
+
+/* ---- Bespoke micro-interactions (ported faithfully from the handoff) ---- */
+@layer components {
+  /* Gold light-sweep on primary buttons */
+  .lb-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .lb-shine::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -120%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      100deg,
+      transparent,
+      rgba(255, 255, 255, 0.45),
+      transparent
+    );
+    transform: skewX(-18deg);
+    pointer-events: none;
+  }
+  .lb-shine:hover::after {
+    animation: lb-shine 0.7s var(--ease-brand);
+  }
+
+  /* Rating square: gold rises from the bottom */
+  .lb-rate {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--lb-hair-chip);
+    background: transparent;
+    color: var(--lb-body);
+    cursor: pointer;
+    font-family: var(--font-serif);
+    transition:
+      border-color 0.28s var(--ease-brand),
+      color 0.28s var(--ease-brand),
+      transform 0.14s var(--ease-brand);
+  }
+  .lb-rate__fill {
+    position: absolute;
+    inset: 0;
+    background: var(--lb-gold);
+    z-index: 1;
+    transform: translateY(101%);
+    transition: transform 0.34s var(--ease-brand);
+  }
+  .lb-rate__num {
+    position: relative;
+    z-index: 2;
+    line-height: 1;
+  }
+  .lb-rate:hover {
+    border-color: var(--lb-gold);
+    transform: translateY(-2px);
+  }
+  .lb-rate[data-preview="true"] {
+    border-color: var(--lb-gold);
+  }
+  .lb-rate[data-preview="true"] .lb-rate__fill {
+    transform: translateY(70%);
+    opacity: 0.35;
+  }
+  .lb-rate[data-filled="true"] {
+    border-color: var(--lb-gold);
+    color: var(--lb-ink-on-gold);
+  }
+  .lb-rate[data-filled="true"] .lb-rate__fill {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  /* Chip: gold sweeps in from the left */
+  .lb-chip {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--lb-hair-chip);
+    background: transparent;
+    color: var(--lb-body);
+    cursor: pointer;
+    text-transform: uppercase;
+    transition:
+      border-color 0.28s var(--ease-brand),
+      color 0.28s var(--ease-brand),
+      transform 0.14s var(--ease-brand);
+  }
+  .lb-chip__label {
+    position: relative;
+    z-index: 2;
+  }
+  .lb-chip__fill {
+    position: absolute;
+    inset: 0;
+    background: var(--lb-gold);
+    z-index: 1;
+    transform: translateX(-101%);
+    transition: transform 0.32s var(--ease-brand);
+  }
+  .lb-chip:hover {
+    border-color: var(--lb-gold);
+    transform: translateY(-1px);
+  }
+  .lb-chip[data-on="true"] {
+    border-color: var(--lb-gold);
+    color: var(--lb-ink-on-gold);
+  }
+  .lb-chip[data-on="true"] .lb-chip__fill {
+    transform: translateX(0);
+  }
+
+  /* Field underline drawing left→right on focus */
+  .lb-underline {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 1px;
+    width: 100%;
+    background: var(--lb-gold);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.4s var(--ease-brand);
+  }
+  .lb-field:focus-within .lb-underline {
+    transform: scaleX(1);
+  }
+
+  /* Progress fill + advance sweep */
+  .lb-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 1px;
+    background: var(--lb-gold);
+    transition: width 0.7s var(--ease-brand);
+  }
+  .lb-fill::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -2px;
+    width: 26px;
+    height: 5px;
+    background: radial-gradient(closest-side, var(--lb-gold-hi), transparent);
+    opacity: 0;
+    transform: translateX(6px);
+  }
+  .lb-fill[data-advancing="true"]::after {
+    animation: lb-sweep 0.7s var(--ease-brand);
+  }
+
+  .lb-rate.lb-pop {
+    animation: lb-pop 0.34s var(--ease-brand);
+  }
+
+  /* Thank-you seal ring pulse */
+  .lb-seal-ring {
+    animation: lb-ring 2.4s var(--ease-brand) 0.5s infinite;
+  }
+}
+
+@keyframes lb-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  55% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes lb-shine {
+  to {
+    left: 130%;
+  }
+}
+@keyframes lb-sweep {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+}
+@keyframes lb-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+/* ---- Cartel QR imprimible ---- */
+@media print {
+  /* Fuera texturas ambientales y controles de pantalla: solo el cartel. */
+  .lb-grain,
+  .lb-ember,
+  .lb-no-print {
+    display: none !important;
+  }
+  /* Página blanca para no gastar tinta en el fondo. */
+  html,
+  body {
+    background: #fff !important;
+  }
+  /* El cartel conserva su fondo oscuro + oro como una tarjeta recortable. */
+  .lb-qr-poster,
+  .lb-qr-poster * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .lb-qr-poster {
+    margin: 0 auto;
+    break-inside: avoid;
+  }
+  @page {
+    margin: 14mm;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-ember,
+  .lb-shine:hover::after,
+  .lb-fill[data-advancing="true"]::after,
+  .lb-seal-ring,
+  .lb-rate.lb-pop {
+    animation: none;
+  }
+  .lb-rate,
+  .lb-rate__fill,
+  .lb-chip,
+  .lb-chip__fill,
+  .lb-underline,
+  .lb-fill {
+    transition: none;
+  }
 }
