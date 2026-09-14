@@ -37,7 +37,7 @@ export function SurveyQR({
         position: "relative",
         display: "inline-block",
         lineHeight: 0,
-        background: "var(--lb-cream)",
+        background: "#f7f2e7",
         padding: pad,
       }}
     >

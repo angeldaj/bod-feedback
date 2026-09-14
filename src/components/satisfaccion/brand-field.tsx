@@ -5,10 +5,9 @@ import { cn } from "cn";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+// Reset shadcn/base-ui styles and hand over to the .pop-input look.
 const inputReset =
-  "rounded-none border-hair-chip bg-[color:var(--lb-input)] text-cream " +
-  "focus-visible:ring-0 focus-visible:border-gold " +
-  "focus-visible:bg-[rgba(247,242,231,0.06)] md:text-[18px]";
+  "pop-input border-0 focus-visible:ring-0 text-cream md:text-[17px]";
 
 type BaseProps = {
   label: string;
@@ -24,28 +23,31 @@ export function BrandTextField({
   placeholder,
   autoComplete,
   type = "text",
-}: BaseProps & { autoComplete?: string; type?: string }) {
+  inputMode,
+}: BaseProps & {
+  autoComplete?: string;
+  type?: string;
+  inputMode?: "text" | "tel" | "email" | "numeric";
+}) {
   const id = useId();
   return (
-    <div className="lb-field group flex flex-col gap-2">
+    <div className="group flex flex-col gap-2">
       <label
         htmlFor={id}
-        className="text-[13px] uppercase tracking-[0.28em] text-label transition-colors group-focus-within:text-gold-accent"
+        className="text-[13px] font-medium uppercase tracking-[0.14em] text-label transition-colors group-focus-within:text-coral"
       >
         {label}
       </label>
-      <div className="relative">
-        <Input
-          id={id}
-          type={type}
-          autoComplete={autoComplete}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(inputReset, "h-auto px-4 py-[14px] text-[18px] leading-normal")}
-        />
-        <span className="lb-underline" aria-hidden="true" />
-      </div>
+      <Input
+        id={id}
+        type={type}
+        inputMode={inputMode}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(inputReset, "h-auto px-4 py-[13px] text-[17px] leading-normal")}
+      />
     </div>
   );
 }
@@ -59,27 +61,24 @@ export function BrandTextArea({
 }: BaseProps & { rows?: number }) {
   const id = useId();
   return (
-    <div className="lb-field group flex flex-col gap-2">
+    <div className="group flex flex-col gap-2">
       <label
         htmlFor={id}
-        className="text-[13px] uppercase tracking-[0.28em] text-label transition-colors group-focus-within:text-gold-accent"
+        className="text-[13px] font-medium uppercase tracking-[0.14em] text-label transition-colors group-focus-within:text-coral"
       >
         {label}
       </label>
-      <div className="relative">
-        <Textarea
-          id={id}
-          rows={rows}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            inputReset,
-            "min-h-0 resize-y px-[18px] py-4 text-[18px] leading-[1.5] [field-sizing:fixed]",
-          )}
-        />
-        <span className="lb-underline" aria-hidden="true" />
-      </div>
+      <Textarea
+        id={id}
+        rows={rows}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={cn(
+          inputReset,
+          "min-h-0 resize-y px-4 py-3.5 text-[17px] leading-[1.5] [field-sizing:fixed]",
+        )}
+      />
     </div>
   );
 }

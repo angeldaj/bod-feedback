@@ -39,3 +39,26 @@ export const shellContainer: Variants = {
   hidden: {},
   enter: { transition: { staggerChildren: 0.1, delayChildren: 0.05 } },
 };
+
+// ---- Pop layer: springier, more playful motion ----
+export const springSoft: Transition = { type: "spring", stiffness: 320, damping: 26 };
+export const springBouncy: Transition = { type: "spring", stiffness: 480, damping: 20 };
+
+// Paso pop: los hijos entran con un pequeño rebote y stagger.
+export const popStepContainer: Variants = {
+  hidden: { opacity: 0 },
+  enter: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06, delayChildren: 0.02 },
+  },
+  leaving: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.16, ease: EASE_IN },
+  },
+};
+
+export const popStepItem: Variants = {
+  hidden: { opacity: 0, y: 18 },
+  enter: { opacity: 1, y: 0, transition: springSoft },
+};

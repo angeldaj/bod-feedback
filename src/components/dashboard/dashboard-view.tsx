@@ -119,7 +119,7 @@ export function DashboardView() {
               </div>
             </div>
             <Link
-              href="/satisfaccion"
+              href="/feedback"
               className="hidden items-center gap-1.5 border border-hair-ghost px-4 py-2.5 text-[12px] font-medium uppercase tracking-[0.16em] text-body transition-colors hover:border-gold hover:text-gold-accent active:scale-[0.97] sm:inline-flex"
             >
               Ver encuesta

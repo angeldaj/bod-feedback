@@ -39,6 +39,11 @@
   --color-gold: var(--lb-gold);
   --color-gold-hi: var(--lb-gold-hi);
   --color-gold-accent: var(--lb-gold-accent);
+  /* Pop accent — coral/ember. Doubles as the urgency color for /reportar. */
+  --color-coral: var(--lb-coral);
+  --color-coral-hi: var(--lb-coral-hi);
+  --color-coral-deep: var(--lb-coral-deep);
+  --color-coral-soft: var(--lb-coral-soft);
   --color-ink: var(--lb-ink-on-gold);
   --color-cream: var(--lb-cream);
   --color-body: var(--lb-body);
@@ -76,6 +81,12 @@
   --lb-gold: #d9a94a;
   --lb-gold-hi: #efc77e;
   --lb-gold-accent: #e0b45c;
+  /* Pop accent ramp — vibrant coral/ember, tuned to sit next to gold on the
+     warm-dark ground. Same hue family carries the /reportar urgency semantics. */
+  --lb-coral: #ff6a3d;
+  --lb-coral-hi: #ff8a5f;
+  --lb-coral-deep: #e2492a;
+  --lb-coral-soft: rgba(255, 106, 61, 0.14);
   --lb-ink-on-gold: #12100c;
   --lb-cream: #f7f2e7;
   --lb-body: #d6c9ae;
@@ -391,6 +402,1013 @@
   100% {
     opacity: 0;
     transform: scale(1.9);
+  }
+}
+
+/* ============================================================
+   POP LAYER — youthful/contemporary system for /satisfaccion and
+   /reportar. Scoped via .pop-* classes so the dashboard keeps its
+   original austere look untouched. Warm-dark + gold identity is
+   preserved; coral adds the energy and carries urgency semantics.
+   ============================================================ */
+@layer components {
+  /* Ambient colored glow field behind the card (scoped, not global). */
+  .pop-scene {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  /* Full-page ambient glow for the /feedback shell. `inset:0` makes it exactly
+     as tall as the document (body is position:relative), so it adds NO extra
+     scroll height — an explicit height (e.g. 125vh) created an empty "second
+     page" below short content. The gradients are sized in vh/vw so the glow
+     stays a top-anchored blob regardless of page length: warm up top, fully
+     transparent below (no floating falloff edge, scrolls away with content).
+     Full width (no card-container clip). Two variants (warm ↔ urgent) crossfade
+     by opacity as the tab changes. */
+  /* Uniform dark base for the /feedback shell. Covers the global body radial
+     gradient (whose full-width warm-top → dark fade read as a horizontal
+     section boundary / "second page" on long forms). With a flat base, the ONLY
+     ambient light is the centered pool below, which is fully under our control. */
+  .pop-page-base {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: var(--lb-ground);
+  }
+  .pop-page-glow {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    transition: opacity 0.6s var(--ease-brand);
+  }
+  /* A soft pool of light centered at the TOP-CENTER (behind the header/card),
+     fading to transparent in ALL directions — crucially horizontally too, so the
+     side gutters stay uniformly dark and no full-width horizontal band (i.e. no
+     "section" boundary) can form on a long form. */
+  .pop-page-glow--warm {
+    background-image:
+      radial-gradient(58vw 70vh at 50% 0vh, rgba(217, 169, 74, 0.13), rgba(217, 169, 74, 0.035) 42%, transparent 72%),
+      radial-gradient(34vw 46vh at 50% -6vh, rgba(255, 106, 61, 0.1), transparent 66%);
+  }
+  .pop-page-glow--urgent {
+    background-image:
+      radial-gradient(58vw 70vh at 50% 0vh, rgba(255, 106, 61, 0.14), rgba(255, 106, 61, 0.04) 42%, transparent 72%),
+      radial-gradient(34vw 46vh at 50% -6vh, rgba(255, 138, 95, 0.11), transparent 66%);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pop-page-glow {
+      transition: none;
+    }
+  }
+  .pop-blob {
+    position: absolute;
+    border-radius: 999px;
+    filter: blur(60px);
+    opacity: 0.5;
+    will-change: transform;
+  }
+  .pop-blob--coral {
+    background: radial-gradient(circle, rgba(255, 106, 61, 0.55), transparent 68%);
+    animation: pop-float 15s var(--ease-brand) infinite;
+  }
+  .pop-blob--gold {
+    background: radial-gradient(circle, rgba(217, 169, 74, 0.5), transparent 68%);
+    animation: pop-float 18s var(--ease-brand) infinite reverse;
+  }
+  .pop-blob--ember {
+    background: radial-gradient(circle, rgba(255, 138, 95, 0.4), transparent 70%);
+    animation: pop-float 21s var(--ease-brand) infinite;
+  }
+
+  /* Rounded, warm card surface with an inner top highlight (no outer
+     drop-shadow — the glow lives on the blobs behind it). */
+  /* Opaque surface (not translucent): a translucent card over the full-page
+     glow dims the glow only inside its box, which reads as vertical seams down
+     the column. Solid ground + a soft warm halo (colored box-shadow) blends the
+     card edge into the surrounding ambient glow instead of stepping. */
+  .pop-card {
+    position: relative;
+    border-radius: 28px;
+    background:
+      linear-gradient(180deg, rgba(247, 242, 231, 0.06), rgba(247, 242, 231, 0.02)),
+      #0f0b08;
+    border: 1px solid rgba(247, 239, 227, 0.12);
+    box-shadow:
+      inset 0 1px 0 rgba(247, 242, 231, 0.12),
+      0 40px 90px -30px rgba(0, 0, 0, 0.7),
+      0 0 130px 6px rgba(255, 145, 95, 0.08);
+  }
+
+  /* Rating tiles — sentiment color rises with the score. The group sets
+     --sent; filled tiles pick it up. */
+  .pop-rate {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 18px;
+    border: 1.5px solid rgba(247, 239, 227, 0.14);
+    background: rgba(247, 242, 231, 0.04);
+    color: var(--lb-body);
+    cursor: pointer;
+    font-family: var(--font-serif);
+    line-height: 1;
+    transition:
+      border-color 0.25s var(--ease-brand),
+      background-color 0.25s var(--ease-brand),
+      color 0.25s var(--ease-brand),
+      box-shadow 0.25s var(--ease-brand);
+  }
+  .pop-rate:hover {
+    border-color: var(--sent, var(--lb-coral));
+    background: color-mix(in oklab, var(--sent, var(--lb-coral)) 16%, transparent);
+    color: var(--lb-cream);
+  }
+  .pop-rate[data-preview="true"] {
+    border-color: var(--sent, var(--lb-coral));
+  }
+  .pop-rate[data-filled="true"] {
+    border-color: transparent;
+    background: var(--sent, var(--lb-gold));
+    color: var(--lb-ink-on-gold);
+    box-shadow: 0 8px 22px -8px var(--sent, var(--lb-gold));
+  }
+
+  /* Pill chips — springy scale handled in JS; color here. */
+  .pop-chip {
+    position: relative;
+    border-radius: 999px;
+    border: 1.5px solid rgba(247, 239, 227, 0.16);
+    background: rgba(247, 242, 231, 0.04);
+    color: var(--lb-body);
+    cursor: pointer;
+    transition:
+      border-color 0.22s var(--ease-brand),
+      background-color 0.22s var(--ease-brand),
+      color 0.22s var(--ease-brand),
+      box-shadow 0.22s var(--ease-brand);
+  }
+  .pop-chip:hover {
+    border-color: rgba(217, 169, 74, 0.7);
+    color: var(--lb-cream);
+  }
+  .pop-chip[data-on="true"] {
+    border-color: transparent;
+    background: linear-gradient(105deg, var(--lb-gold-hi), var(--lb-gold));
+    color: var(--lb-ink-on-gold);
+    box-shadow: 0 8px 20px -8px rgba(217, 169, 74, 0.7);
+  }
+  .pop-chip--danger:hover {
+    border-color: var(--lb-coral);
+  }
+  .pop-chip--danger[data-on="true"] {
+    background: linear-gradient(105deg, var(--lb-coral-hi), var(--lb-coral));
+    box-shadow: 0 8px 20px -8px rgba(255, 106, 61, 0.7);
+    color: #2a0f07;
+  }
+
+  /* Gradient/solid pill buttons */
+  .pop-btn-gold {
+    background: linear-gradient(100deg, var(--lb-gold-hi), var(--lb-gold) 55%, var(--lb-coral));
+    color: var(--lb-ink-on-gold);
+  }
+  .pop-btn-coral {
+    /* Deeper red so white label clears WCAG AA on the lightest stop too. */
+    background: linear-gradient(100deg, var(--lb-coral-deep), #c2381f);
+    color: #fff;
+  }
+
+  /* Rounded inputs with a soft coral focus ring */
+  .pop-input {
+    border-radius: 16px;
+    border: 1.5px solid rgba(247, 239, 227, 0.14);
+    background: rgba(247, 242, 231, 0.045);
+    color: var(--lb-cream);
+    transition:
+      border-color 0.2s var(--ease-brand),
+      box-shadow 0.2s var(--ease-brand),
+      background-color 0.2s var(--ease-brand);
+  }
+  .pop-input:focus,
+  .pop-input:focus-visible {
+    outline: none;
+    border-color: var(--lb-coral);
+    background: rgba(247, 242, 231, 0.07);
+    box-shadow: 0 0 0 4px rgba(255, 106, 61, 0.16);
+  }
+
+  /* Upload dropzone */
+  .pop-dropzone {
+    border-radius: 20px;
+    border: 1.5px dashed rgba(247, 239, 227, 0.22);
+    background: rgba(247, 242, 231, 0.03);
+    transition:
+      border-color 0.2s var(--ease-brand),
+      background-color 0.2s var(--ease-brand);
+  }
+  .pop-dropzone[data-drag="true"],
+  .pop-dropzone:hover {
+    border-color: var(--lb-coral);
+    background: var(--lb-coral-soft);
+  }
+
+  /* Sticker-style badge */
+  .pop-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  /* Recording pulse ring */
+  .pop-rec-ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    border: 2px solid var(--lb-coral);
+    animation: pop-rec 1.6s var(--ease-brand) infinite;
+  }
+
+  /* Progress fill (gradient, rounded) */
+  .pop-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--lb-coral), var(--lb-gold-hi));
+    box-shadow: 0 0 14px -2px rgba(255, 138, 95, 0.7);
+    transition: width 0.7s var(--ease-brand);
+  }
+}
+
+@keyframes pop-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6%, -5%) scale(1.08); }
+  66% { transform: translate(-5%, 4%) scale(0.96); }
+}
+@keyframes pop-rec {
+  0% { opacity: 0.9; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.6); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pop-blob--coral,
+  .pop-blob--gold,
+  .pop-blob--ember,
+  .pop-rec-ring::after {
+    animation: none;
+  }
+  .pop-rate,
+  .pop-chip,
+  .pop-input,
+  .pop-dropzone,
+  .pop-fill {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   DAY LAYER — "Panadería de día". A light, warm, appetite-first
+   theme scoped under `.day` (only the /feedback experience opts in).
+   It works by re-pointing the brand tokens (--lb-*) to dark-on-light
+   values so every token-driven component flips automatically, plus a
+   handful of .pop-* surface overrides where colors were hardcoded.
+   The dark dashboard never sees `.day`, so it stays untouched.
+   ============================================================ */
+.day {
+  color-scheme: light;
+
+  /* page ground */
+  --lb-ground: #fff3e4;
+
+  /* text ramp — warm dark on cream (all WCAG AA on the cream ground) */
+  --lb-cream: #2a1a11; /* headings / primary text */
+  --lb-body: #6a5142; /* body copy */
+  --lb-muted: #7e6150; /* muted-ink / hints */
+  --lb-label: #7a5c49; /* small uppercase labels */
+  --lb-placeholder: #a2836f;
+
+  /* brand accents. Fills keep the bright ramp; the TEXT-facing tokens
+     (coral, gold-accent) go deep so they clear AA on cream. */
+  --lb-gold: #d9a94a;
+  --lb-gold-hi: #f0c274;
+  --lb-gold-accent: #a9761a; /* gold-as-text -> deep */
+  --lb-coral: #c8391a; /* coral-as-text/accent -> deep */
+  --lb-coral-hi: #ff6a3d; /* bright coral for fills/glows */
+  --lb-coral-deep: #9e2c10;
+  --lb-coral-soft: rgba(200, 57, 27, 0.12);
+
+  /* hairlines / faint surfaces flipped to warm-dark-on-light */
+  --lb-hair-card: rgba(74, 43, 22, 0.14);
+  --lb-hair-chip: rgba(74, 43, 22, 0.16);
+  --lb-hair-track: rgba(74, 43, 22, 0.12);
+  --lb-hair-div: rgba(74, 43, 22, 0.13);
+  --lb-hair-ghost: rgba(74, 43, 22, 0.28);
+  --lb-input: rgba(120, 72, 40, 0.05);
+}
+
+@layer components {
+  /* Shell background: cream base + a soft warm pool of light up top. */
+  .day .pop-page-base {
+    background:
+      radial-gradient(120% 80% at 50% -12%, #fff7ec 0%, #ffefdd 46%, #ffe8cf 100%);
+  }
+  .day .pop-page-glow--warm {
+    background-image:
+      radial-gradient(58vw 66vh at 50% -2vh, rgba(255, 168, 92, 0.32), rgba(255, 168, 92, 0.08) 44%, transparent 72%),
+      radial-gradient(34vw 44vh at 50% -8vh, rgba(217, 169, 74, 0.22), transparent 66%);
+  }
+  .day .pop-page-glow--urgent {
+    background-image:
+      radial-gradient(58vw 66vh at 50% -2vh, rgba(255, 118, 78, 0.34), rgba(255, 118, 78, 0.09) 44%, transparent 72%),
+      radial-gradient(34vw 44vh at 50% -8vh, rgba(226, 84, 54, 0.2), transparent 66%);
+  }
+
+  /* Card: bright warm surface, soft warm-tinted shadow (no glow blast). */
+  .day .pop-card {
+    background: linear-gradient(180deg, #ffffff, #fffaf1);
+    border: 1px solid rgba(74, 43, 22, 0.1);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 28px 64px -34px rgba(120, 60, 20, 0.4),
+      0 0 120px 8px rgba(255, 150, 90, 0.08);
+  }
+
+  .day .pop-rate {
+    border-color: rgba(74, 43, 22, 0.16);
+    background: #fffaf1;
+  }
+  .day .pop-rate:hover {
+    color: #2a1a11;
+  }
+  /* Re-assert the stateful looks: the `.day .pop-rate` base above shares
+     specificity with `.pop-rate[data-*]` and, coming later, would otherwise
+     clobber the filled/preview fill. */
+  .day .pop-rate[data-preview="true"] {
+    border-color: var(--sent, var(--lb-coral));
+    background: #fffaf1;
+  }
+  .day .pop-rate[data-filled="true"] {
+    border-color: transparent;
+    background: var(--sent, var(--lb-gold));
+    color: var(--lb-ink-on-gold);
+    box-shadow: 0 8px 22px -8px var(--sent, var(--lb-gold));
+  }
+
+  .day .pop-chip {
+    border-color: rgba(74, 43, 22, 0.18);
+    background: #fffaf1;
+  }
+  .day .pop-chip:hover {
+    border-color: rgba(217, 169, 74, 0.95);
+    color: #2a1a11;
+  }
+  .day .pop-chip[data-on="true"] {
+    border-color: transparent;
+    background: linear-gradient(105deg, var(--lb-gold-hi), var(--lb-gold));
+    color: var(--lb-ink-on-gold);
+    box-shadow: 0 8px 20px -8px rgba(217, 169, 74, 0.7);
+  }
+  .day .pop-chip--danger[data-on="true"] {
+    background: linear-gradient(105deg, #ff8a5f, #ef5a2c);
+    box-shadow: 0 8px 20px -8px rgba(255, 106, 61, 0.7);
+    color: #2a0f07;
+  }
+
+  .day .pop-input {
+    border-color: rgba(74, 43, 22, 0.24);
+    background: #fff7ea;
+    color: #2a1a11;
+    box-shadow: inset 0 1px 2px rgba(74, 43, 22, 0.05);
+  }
+  .day .pop-input:focus,
+  .day .pop-input:focus-visible {
+    border-color: var(--lb-coral-hi);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(255, 106, 61, 0.18);
+  }
+
+  .day .pop-dropzone {
+    border-color: rgba(74, 43, 22, 0.26);
+    background: #fffaf1;
+  }
+  .day .pop-dropzone[data-drag="true"],
+  .day .pop-dropzone:hover {
+    border-color: var(--lb-coral-hi);
+    background: rgba(255, 106, 61, 0.08);
+  }
+
+  /* Blobs read as gentle color washes on a light ground, not neon blasts. */
+  .day .pop-blob {
+    opacity: 0.4;
+    filter: blur(72px);
+  }
+
+  /* Coral "sticker" surfaces: keep BRIGHT coral fill in both themes so the
+     dark ink label always clears AA (deep-coral fill + dark ink would not). */
+  .pop-badge-coral {
+    background: var(--lb-coral-hi);
+    color: #2a0f07;
+  }
+
+  /* Editorial food hero at the top of the shell. The photo carries a dark
+     scrim at the bottom so the white brand lockup stays legible over it, and
+     a warm gradient sits underneath as a graceful fallback if the stock photo
+     is slow or unavailable. */
+  .day-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    background: linear-gradient(135deg, #f6b45a, #e2492a);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 26px 60px -32px rgba(120, 50, 15, 0.5);
+  }
+  .day-hero__img {
+    object-fit: cover;
+  }
+  .day-hero__scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(30, 12, 4, 0.05) 0%, rgba(30, 12, 4, 0.12) 42%, rgba(28, 10, 3, 0.72) 100%),
+      linear-gradient(90deg, rgba(28, 10, 3, 0.35), transparent 55%);
+    pointer-events: none;
+  }
+}
+
+/* ============================================================
+   LANDING — helpers for the La Bodega marketing page (light, warm).
+   ============================================================ */
+@layer components {
+  /* Seamless kinetic marquee: duplicate the content twice inside the track. */
+  .lp-marquee {
+    display: flex;
+    width: max-content;
+    animation: lp-marquee 34s linear infinite;
+  }
+  .lp-marquee-group {
+    display: flex;
+    align-items: center;
+  }
+  .lp-marquee-wrap:hover .lp-marquee {
+    animation-play-state: paused;
+  }
+
+  /* Theme-aware landing surfaces (dark base + `.day` light override) for the
+     few spots that can't ride the token flip because their fill is bespoke. */
+  .lp-nav {
+    background: rgba(17, 12, 8, 0.82);
+  }
+  .day .lp-nav {
+    background: rgba(255, 243, 228, 0.82);
+  }
+  .lp-band {
+    background:
+      linear-gradient(160deg, rgba(247, 242, 231, 0.05), rgba(247, 242, 231, 0.015)),
+      #100b07;
+  }
+  .day .lp-band {
+    background: linear-gradient(160deg, #fff9ef, #ffe9d2);
+  }
+  .lp-band-card {
+    background: rgba(247, 242, 231, 0.05);
+  }
+  .day .lp-band-card {
+    background: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Soft fade at both horizontal ends (used on the marquee ribbon). */
+  .edge-fade-x {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent);
+  }
+  /* Full-bleed hero photo: fade ONLY the part that bleeds past the max-w-7xl
+     (80rem) content column, so anything inside that column stays fully opaque
+     and the hero text never sits on a faded/low-contrast area. On viewports
+     narrower than 80rem the fade is 0 (nothing bleeds). */
+  .hero-edge-fade {
+    --edge: max(0px, calc((100vw - 80rem) / 2));
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--edge),
+      #000 calc(100% - var(--edge)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--edge),
+      #000 calc(100% - var(--edge)),
+      transparent 100%
+    );
+  }
+
+  /* Spotlight sheen used on the feedback CTA band. */
+  .lp-sheen {
+    background:
+      radial-gradient(60% 120% at 15% 20%, rgba(255, 200, 140, 0.35), transparent 60%),
+      radial-gradient(60% 120% at 85% 80%, rgba(255, 106, 61, 0.35), transparent 60%),
+      linear-gradient(120deg, #ffb15a, #ff6a3d 55%, #e2492a);
+  }
+}
+
+@keyframes lp-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-marquee {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ============================================================
+   BODEGA CLUB — loyalty landing. The existing brand palette is
+   preserved; coral owns conversion and gold identifies rewards.
+   ============================================================ */
+@layer components {
+  .club-page {
+    color-scheme: dark;
+    background: var(--lb-ground);
+  }
+  .club-page.day {
+    color-scheme: light;
+  }
+  .club-page-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(70rem 40rem at 8% 8%, rgba(217, 169, 74, 0.1), transparent 68%),
+      radial-gradient(58rem 32rem at 92% 34%, rgba(255, 106, 61, 0.07), transparent 70%),
+      var(--lb-ground);
+  }
+  .day .club-page-background {
+    background:
+      radial-gradient(70rem 40rem at 8% 8%, rgba(217, 169, 74, 0.15), transparent 68%),
+      radial-gradient(58rem 32rem at 92% 34%, rgba(255, 106, 61, 0.1), transparent 70%),
+      var(--lb-ground);
+  }
+  .club-skip-link {
+    position: fixed;
+    left: 1rem;
+    top: 0.75rem;
+    z-index: 60;
+    transform: translateY(-160%);
+    border-radius: 999px;
+    background: var(--lb-coral-deep);
+    color: #fff;
+    padding: 0.65rem 1rem;
+    font-weight: 600;
+    transition: transform 180ms var(--ease-brand);
+  }
+  .club-skip-link:focus {
+    transform: translateY(0);
+  }
+  .club-nav {
+    background: rgba(11, 9, 6, 0.86);
+    backdrop-filter: blur(18px) saturate(135%);
+  }
+  .day .club-nav {
+    background: rgba(255, 243, 228, 0.88);
+  }
+  .club-nav-link {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0 0.9rem;
+    color: var(--lb-body);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: color 180ms var(--ease-brand), background-color 180ms var(--ease-brand);
+  }
+  .club-nav-link:hover {
+    color: var(--lb-cream);
+    background: color-mix(in oklab, var(--lb-cream) 7%, transparent);
+  }
+  .club-nav-link.is-active {
+    color: var(--lb-coral);
+  }
+  .club-icon-button {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--lb-hair-div);
+    border-radius: 999px;
+    color: var(--lb-body);
+    transition: border-color 180ms var(--ease-brand), color 180ms var(--ease-brand), transform 100ms ease-out;
+  }
+  .club-icon-button:hover {
+    border-color: var(--lb-coral);
+    color: var(--lb-cream);
+  }
+  .club-icon-button:active {
+    transform: translateY(1px);
+  }
+  .club-icon-button svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+  .club-hero-media {
+    background: #1a120b;
+  }
+  .club-hero-scrim {
+    background:
+      linear-gradient(180deg, rgba(20, 9, 3, 0.04) 45%, rgba(20, 9, 3, 0.52) 100%),
+      linear-gradient(90deg, rgba(20, 9, 3, 0.16), transparent 44%);
+  }
+  .club-member-ticket {
+    background: rgba(25, 13, 7, 0.82);
+    color: #fff6ec;
+    backdrop-filter: blur(14px) saturate(120%);
+    box-shadow: 0 8px 8px rgba(43, 18, 4, 0.18);
+  }
+  .club-steps-section {
+    background: color-mix(in oklab, var(--lb-cream) 2.5%, transparent);
+  }
+  /* Hero fact chips */
+  .club-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--lb-hair-chip);
+    border-radius: 999px;
+    padding: 0.4rem 0.8rem;
+    color: var(--lb-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  /* Stats band — the club in big numbers */
+  .club-stats-band {
+    padding-block: clamp(1.75rem, 3.5vw, 2.75rem);
+    border-block: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3%, transparent);
+  }
+  .club-stat {
+    padding: 0.5rem clamp(0.75rem, 2vw, 1.75rem);
+  }
+  .club-stat-icon {
+    color: var(--lb-coral);
+  }
+  .club-stat-value {
+    margin-top: 0.6rem;
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: clamp(3rem, 6vw, 4.25rem);
+    font-weight: 600;
+    line-height: 0.9;
+    letter-spacing: -0.01em;
+    color: var(--lb-gold-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .club-stat-suffix {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--lb-label);
+  }
+  .club-stat-label {
+    margin-top: 0.6rem;
+    max-width: 22rem;
+    color: var(--lb-body);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  /* Hairline dividers between columns (4-up on lg, 2-up on md). */
+  @media (min-width: 768px) {
+    .club-stat:not(:nth-child(2n + 1)) {
+      border-left: 1px solid var(--lb-hair-div);
+    }
+  }
+  @media (min-width: 1024px) {
+    .club-stat {
+      border-left: 1px solid var(--lb-hair-div);
+    }
+    .club-stat:nth-child(4n + 1) {
+      border-left: 0;
+    }
+  }
+
+  /* How it works — photo step cards */
+  .club-step-media {
+    background: #1a120b;
+  }
+  .club-step-scrim {
+    background: linear-gradient(180deg, rgba(20, 9, 3, 0.15) 40%, rgba(20, 9, 3, 0.68) 100%);
+  }
+  .club-step-index {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.85rem;
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 3.25rem;
+    font-weight: 600;
+    line-height: 1;
+    color: rgba(255, 246, 236, 0.9);
+    text-shadow: 0 2px 12px rgba(20, 9, 3, 0.5);
+  }
+  .club-step-icon {
+    z-index: 1;
+    border: 1px solid rgba(255, 246, 236, 0.25);
+    background: var(--lb-coral);
+    color: #2a0f07;
+    box-shadow: 0 6px 16px rgba(20, 9, 3, 0.35);
+  }
+
+  /* Rewards chart frame + photo badge */
+  .club-chart-frame {
+    border: 1px solid var(--lb-hair-div);
+    border-radius: 1rem;
+    background: color-mix(in oklab, var(--lb-cream) 3.5%, transparent);
+    padding: 1.25rem 1rem 1rem;
+  }
+  .club-reward-photo-badge {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 999px;
+    padding: 0.6rem 1rem 0.6rem 0.85rem;
+    background: rgba(25, 13, 7, 0.82);
+    backdrop-filter: blur(12px) saturate(120%);
+  }
+  .club-benefit-grid > :nth-child(1) {
+    grid-column: span 7;
+    min-height: 25rem;
+  }
+  .club-benefit-grid > :nth-child(2) {
+    grid-column: span 5;
+    min-height: 25rem;
+  }
+  .club-benefit-grid > :nth-child(3) {
+    grid-column: span 4;
+    min-height: 21rem;
+  }
+  .club-benefit-grid > :nth-child(4) {
+    grid-column: span 8;
+    min-height: 21rem;
+  }
+  .club-benefit {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3.5%, transparent);
+    color: var(--lb-cream);
+  }
+  .club-benefit p {
+    color: var(--lb-body);
+  }
+  .club-benefit[data-tone="coral"] {
+    border-color: transparent;
+    background: #f46842;
+    color: #2a0f07;
+  }
+  .club-benefit[data-tone="coral"] p {
+    color: #59200f;
+  }
+  .club-benefit[data-tone="gold"] {
+    border-color: transparent;
+    background: #e4b45a;
+    color: #241608;
+  }
+  .club-benefit[data-tone="gold"] p {
+    color: #503612;
+  }
+  .club-benefit[data-tone="photo"] {
+    border-color: transparent;
+    color: #fff6ec;
+  }
+  .club-benefit[data-tone="photo"] p {
+    color: rgba(255, 246, 236, 0.86);
+  }
+  .club-benefit-scrim {
+    background: linear-gradient(180deg, rgba(20, 9, 3, 0.1) 28%, rgba(20, 9, 3, 0.82) 100%);
+  }
+  .club-community-scrim {
+    background:
+      linear-gradient(180deg, transparent 25%, rgba(24, 10, 4, 0.78) 100%),
+      linear-gradient(90deg, rgba(24, 10, 4, 0.3), transparent 68%);
+  }
+  .club-faq [data-slot="accordion-trigger-icon"] {
+    color: var(--lb-coral);
+  }
+  .club-closing {
+    background: #f46842;
+  }
+  .club-dialog {
+    color-scheme: dark;
+    /* The shadcn Popup applies bg-popover/text-popover-foreground utilities,
+       which win over this component layer. Remap the popover tokens so those
+       utilities resolve to the club surface in both themes (the .day class on
+       this element flips --lb-ground / --lb-cream to their light values). */
+    --popover: var(--lb-ground);
+    --popover-foreground: var(--lb-cream);
+    border: 1px solid var(--lb-hair-div);
+    border-radius: 1rem;
+    background: var(--lb-ground);
+    color: var(--lb-cream);
+    box-shadow: none;
+    scrollbar-width: thin;
+    scrollbar-color: var(--lb-hair-chip) transparent;
+  }
+  .club-dialog.day,
+  .club-select-content.day {
+    color-scheme: light;
+  }
+  .club-dialog [data-slot="dialog-close"] {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    color: var(--lb-body);
+  }
+  .club-dialog [data-slot="dialog-close"]:hover {
+    background: color-mix(in oklab, var(--lb-cream) 8%, transparent);
+    color: var(--lb-cream);
+  }
+  .club-field-label {
+    color: var(--lb-cream);
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  .club-form-control {
+    height: 3rem;
+    border: 1px solid var(--lb-hair-chip);
+    border-radius: 0.75rem;
+    background: var(--lb-input);
+    color: var(--lb-cream);
+    padding-inline: 0.9rem;
+    font-size: 1rem;
+  }
+  .club-form-control::placeholder {
+    color: var(--lb-muted);
+    opacity: 1;
+  }
+  .club-form-control:focus-visible {
+    border-color: var(--lb-coral);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--lb-coral) 20%, transparent);
+  }
+  .club-field-error {
+    color: #ff8b70;
+  }
+  .day .club-field-error {
+    color: #a92e15;
+  }
+  .club-select-content {
+    /* Same popover-token remap as .club-dialog: the Select Popup carries
+       bg-popover/text-popover-foreground utilities that would otherwise stay
+       dark under the .day theme. */
+    --popover: var(--lb-ground);
+    --popover-foreground: var(--lb-cream);
+    border: 1px solid var(--lb-hair-div);
+    border-radius: 0.75rem;
+    background: var(--lb-ground);
+    color: var(--lb-cream);
+    box-shadow: 0 8px 8px rgba(20, 8, 2, 0.16);
+  }
+  .club-select-item {
+    min-height: 2.75rem;
+    border-radius: 0.5rem;
+    padding-inline: 0.75rem 2.25rem;
+    color: var(--lb-body);
+  }
+  .club-select-item:focus {
+    background: color-mix(in oklab, var(--lb-coral) 12%, transparent);
+    color: var(--lb-cream);
+  }
+  .club-preference {
+    display: inline-flex;
+    min-height: 2.75rem;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--lb-hair-chip);
+    border-radius: 999px;
+    padding: 0.55rem 0.9rem;
+    color: var(--lb-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    transition: border-color 180ms var(--ease-brand), background-color 180ms var(--ease-brand), color 180ms var(--ease-brand);
+  }
+  .club-preference svg {
+    display: none;
+  }
+  .club-preference[data-checked="true"] {
+    border-color: var(--lb-gold);
+    background: var(--lb-gold);
+    color: var(--lb-ink-on-gold);
+  }
+  .club-preference[data-checked="true"] svg {
+    display: block;
+  }
+  .club-preference:has(:focus-visible) {
+    outline: 2px solid var(--lb-coral);
+    outline-offset: 2px;
+  }
+  .club-consent {
+    display: grid;
+    grid-template-columns: 1rem 1fr;
+    align-items: start;
+    gap: 0.75rem;
+    cursor: pointer;
+    color: var(--lb-body);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+  }
+  .club-consent [data-slot="checkbox"] {
+    margin-top: 0.15rem;
+  }
+  .club-consent[data-error="true"] {
+    color: #ffab98;
+  }
+  .day .club-consent[data-error="true"] {
+    color: #8f2812;
+  }
+  .club-submit-error {
+    border: 1px solid color-mix(in oklab, var(--lb-coral) 45%, transparent);
+    background: color-mix(in oklab, var(--lb-coral) 10%, transparent);
+    color: var(--lb-cream);
+  }
+  .club-success-mark {
+    background: var(--lb-coral);
+    color: #2a0f07;
+  }
+  .club-points-seal {
+    color: var(--lb-gold-accent);
+  }
+}
+
+@media (max-width: 767px) {
+  .club-benefit-grid > :nth-child(n) {
+    grid-column: 1 / -1;
+    min-height: 19rem;
+  }
+  .club-hero {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .club-nav [data-slot="button"] {
+    padding-inline: 0.9rem;
+    font-size: 0.8125rem;
+  }
+  .club-hero {
+    padding-top: 2rem;
+  }
+  .club-hero-media {
+    min-height: 22rem;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .club-nav {
+    background: var(--lb-ground);
+    backdrop-filter: none;
+  }
+  .club-member-ticket {
+    background: #1a0f08;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .club-page *,
+  .club-dialog * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

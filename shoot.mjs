@@ -21,7 +21,7 @@ async function shoot(width, height, tag) {
   page.on("pageerror", (e) => errors.push(String(e)));
 
   for (const [s, heading] of Object.entries(steps)) {
-    await page.goto(`http://localhost:3000/satisfaccion#${s}`, { waitUntil: "networkidle" });
+    await page.goto(`http://localhost:3000/feedback#${s}`, { waitUntil: "networkidle" });
     try { await page.getByText(heading, { exact: false }).first().waitFor({ timeout: 8000 }); } catch {}
     try {
       if (s === "overall") await page.getByRole("radio", { name: "4 de 5" }).click({ timeout: 4000 });

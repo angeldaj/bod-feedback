@@ -1,7 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
-import { stepItem } from "./motion";
+import {
+  ArrowRight,
+  Armchair,
+  Clock,
+  HandPlatter,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
+import { popStepItem } from "./motion";
 import { RatingScale } from "./rating-scale";
 import { ChipGroup } from "./chip-group";
 import { BrandTextField, BrandTextArea } from "./brand-field";
@@ -17,16 +26,34 @@ import {
   type SurveyState,
 } from "./survey-data";
 
-// ---- Shared typographic blocks ----
+// ---- Shared typographic blocks (pop register) ----
 const cls = {
-  eyebrow: "text-[12px] uppercase tracking-[0.36em] text-muted-ink",
-  eyebrowSerif: "font-serif italic text-[24px] text-gold-accent",
+  eyebrow: "text-[12px] font-semibold uppercase tracking-[0.2em] text-coral",
+  eyebrowSerif: "font-serif italic text-[22px] text-gold-accent",
   title:
-    "m-0 text-[42px] font-semibold uppercase leading-none tracking-[0.04em] max-[560px]:text-[34px]",
+    "m-0 text-[40px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream text-balance max-[560px]:text-[32px]",
   headline:
-    "m-0 text-[58px] font-semibold uppercase leading-[0.92] tracking-[0.04em] text-balance max-[560px]:text-[clamp(40px,12vw,58px)]",
-  body: "text-[19px] leading-[1.5] text-body max-w-[52ch] text-pretty",
-  groupLabel: "text-[13px] uppercase tracking-[0.28em] text-label",
+    "m-0 text-[54px] font-semibold uppercase leading-[0.9] tracking-[0.01em] text-balance text-cream max-[560px]:text-[clamp(38px,11vw,54px)]",
+  body: "text-[18px] leading-[1.55] text-body max-w-[52ch] text-pretty",
+  groupLabel: "text-[13px] font-medium uppercase tracking-[0.14em] text-label",
+};
+
+// Un icono por aspecto evaluado (deleite y lectura rápida).
+const ASPECT_ICON: Record<AspectKey, LucideIcon> = {
+  comida: UtensilsCrossed,
+  servicio: HandPlatter,
+  ambiente: Armchair,
+  tiempo: Clock,
+};
+
+// Color del texto de reacción, ligado a la nota. Tonos profundos que leen
+// sobre la crema del tema de día (y siguen legibles sobre oscuro).
+const SENT_TEXT: Record<number, string> = {
+  1: "#c8391a",
+  2: "#cf4a1c",
+  3: "#b57611",
+  4: "#a9761a",
+  5: "#b0710f",
 };
 
 function Item({
@@ -37,7 +64,7 @@ function Item({
   className?: string;
 }) {
   return (
-    <motion.div variants={stepItem} className={className}>
+    <motion.div variants={popStepItem} className={className}>
       {children}
     </motion.div>
   );
@@ -73,21 +100,22 @@ export function IntroStep({ actions }: { actions: StepActions }) {
           equipo de sala y cocina cada semana.
         </p>
       </Item>
-      <Item className="mt-1.5 flex flex-wrap items-center gap-[18px]">
-        <Button variant="brand" size="brandLg" onClick={actions.next}>
+      <Item className="mt-1 flex flex-wrap items-center gap-4">
+        <Button variant="pop" size="popLg" onClick={actions.next} className="gap-2">
           Comenzar
+          <ArrowRight aria-hidden="true" />
         </Button>
         <span className="font-serif text-[18px] italic text-muted-ink">
           Anónimo si así lo prefieres
         </span>
       </Item>
-      <Item className="mt-1.5 flex flex-wrap items-center gap-5 border-t border-hair-div pt-6">
-        <SurveyQR size={104} />
+      <Item className="mt-1 flex flex-wrap items-center gap-5 border-t border-hair-div pt-6">
+        <div className="overflow-hidden rounded-2xl">
+          <SurveyQR size={98} />
+        </div>
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] uppercase tracking-[0.28em] text-label">
-            ¿Prefieres tu teléfono?
-          </span>
-          <span className="font-serif text-[19px] italic text-muted-ink">
+          <span className={cls.groupLabel}>¿Prefieres tu teléfono?</span>
+          <span className="font-serif text-[18px] italic text-muted-ink">
             Escanea el código para abrir la encuesta.
           </span>
         </div>
@@ -118,20 +146,21 @@ export function OverallStep({
           ariaLabel="Satisfacción general, de 1 a 5"
         />
       </Item>
-      <Item className="flex max-w-[492px] justify-between text-[13px] uppercase tracking-[0.2em] text-label">
+      <Item className="flex max-w-[430px] justify-between text-[13px] font-medium uppercase tracking-[0.12em] text-label">
         <span>Mala</span>
         <span>Excelente</span>
       </Item>
-      <Item className="min-h-[1.4em] font-serif text-[22px] italic text-gold-accent">
+      <Item className="min-h-[1.5em] font-serif text-[22px] italic">
         <AnimatePresence mode="wait">
           <motion.span
             key={state.overall}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.3 }}
+            style={{ color: SENT_TEXT[state.overall] ?? "var(--lb-gold-accent)" }}
           >
-            {OVERALL_LABELS[state.overall] ?? " "}
+            {OVERALL_LABELS[state.overall] ?? " "}
           </motion.span>
         </AnimatePresence>
       </Item>
@@ -191,28 +220,36 @@ export function AspectsStep({
       <Item>
         <h2 className={cls.title}>Lo que evaluamos</h2>
       </Item>
-      <Item className="flex flex-col">
-        {ASPECTS.map((a) => (
-          <div
-            key={a.key}
-            className="flex flex-wrap items-center justify-between gap-5 border-t border-hair-div py-[18px] max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-3"
-          >
-            <div>
-              <div className="text-[22px] font-semibold uppercase tracking-[0.1em]">
-                {a.label}
+      <Item className="flex flex-col gap-1">
+        {ASPECTS.map((a) => {
+          const Icon = ASPECT_ICON[a.key];
+          return (
+            <div
+              key={a.key}
+              className="flex flex-wrap items-center justify-between gap-4 border-t border-hair-div py-4 first:border-t-0 max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-2.5"
+            >
+              <div className="flex items-center gap-3.5">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--lb-input)] text-gold-accent">
+                  <Icon size={20} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                <div>
+                  <div className="text-[21px] font-semibold uppercase tracking-[0.02em] text-cream">
+                    {a.label}
+                  </div>
+                  <div className="font-serif text-[16px] italic text-muted-ink">
+                    {a.hint}
+                  </div>
+                </div>
               </div>
-              <div className="font-serif text-[17px] italic text-muted-ink">
-                {a.hint}
-              </div>
+              <RatingScale
+                variant="dots"
+                value={state.aspects[a.key]}
+                onChange={(n) => actions.setAspect(a.key, n)}
+                ariaLabel={`${a.label}, de 1 a 5`}
+              />
             </div>
-            <RatingScale
-              variant="dots"
-              value={state.aspects[a.key]}
-              onChange={(n) => actions.setAspect(a.key, n)}
-              ariaLabel={`${a.label}, de 1 a 5`}
-            />
-          </div>
-        ))}
+          );
+        })}
       </Item>
     </>
   );
@@ -226,12 +263,43 @@ export function IssuesStep({
   state: SurveyState;
   actions: StepActions;
 }) {
+  const lowScore = state.overall > 0 && state.overall <= 2;
   return (
     <>
       <Item className={cls.eyebrow}>Paso cuatro</Item>
       <Item>
         <h2 className={cls.title}>¿Algo que mejorar?</h2>
       </Item>
+
+      {lowScore && (
+        <Item>
+          <div className="flex flex-col gap-3 rounded-2xl border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] p-4">
+            <div className="flex items-center gap-2">
+              <span className="pop-badge pop-badge-coral text-[12px] uppercase tracking-[0.06em]">
+                Urgente
+              </span>
+              <span className="text-[15px] font-semibold text-cream">
+                ¿Fue algo grave?
+              </span>
+            </div>
+            <p className="text-[15px] leading-[1.5] text-body">
+              Si encontraste comida en mal estado, fría, cruda o un objeto
+              extraño, no llenes toda la encuesta: repórtalo con foto y lo
+              atendemos de inmediato.
+            </p>
+            <div>
+              <Button
+                variant="popCoral"
+                size="popSm"
+                render={<Link href="/feedback?tab=urgente" />}
+              >
+                Reportar urgencia
+              </Button>
+            </div>
+          </div>
+        </Item>
+      )}
+
       <Item>
         <ChipGroup
           variant="topic"
@@ -273,7 +341,7 @@ export function ContactStep({
           Opcional. Si dejas tus datos, un encargado te escribe personalmente.
         </p>
       </Item>
-      <Item className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[18px]">
+      <Item className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
         <BrandTextField
           label="Nombre"
           autoComplete="name"
@@ -284,6 +352,7 @@ export function ContactStep({
         <BrandTextField
           label="Teléfono o correo"
           autoComplete="email"
+          inputMode="email"
           placeholder="+58 ··· / tu@correo"
           value={state.contacto}
           onChange={(v) => actions.setField("contacto", v)}
@@ -296,28 +365,32 @@ export function ContactStep({
 // ---- Step 6: Gracias ----
 export function DoneStep({ actions }: { actions: StepActions }) {
   return (
-    <Item className="flex flex-col items-center gap-5 py-[20px] pb-2.5 text-center">
-      <div className="relative flex h-[66px] w-[66px] items-center justify-center">
-        <span
-          className="lb-seal-ring absolute inset-0 border border-gold opacity-0"
-          aria-hidden="true"
-        />
-        <span className="flex h-[66px] w-[66px] items-center justify-center border border-gold font-serif text-[34px] text-gold">
+    <Item className="flex flex-col items-center gap-5 py-5 pb-2 text-center">
+      <motion.div
+        initial={{ scale: 0.7, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 380, damping: 18 }}
+        className="relative flex h-[74px] w-[74px] items-center justify-center rounded-full"
+        style={{
+          background: "linear-gradient(135deg, var(--lb-gold-hi), var(--lb-coral))",
+        }}
+      >
+        <span className="flex h-[74px] w-[74px] items-center justify-center font-serif text-[36px] text-[#2a0f07]">
           B
         </span>
-      </div>
-      <div className="text-[50px] font-semibold uppercase leading-[0.95] tracking-[0.04em]">
-        Gracias
+      </motion.div>
+      <div className="text-[48px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream">
+        ¡Gracias!
       </div>
       <div className={cls.eyebrowSerif}>Tu opinión ya está con el equipo</div>
-      <p className="max-w-[46ch] text-[18px] leading-[1.5] text-body">
+      <p className="max-w-[46ch] text-[17px] leading-[1.5] text-body">
         Si dejaste tus datos, te escribimos en las próximas 48 horas.
       </p>
       <Button
-        variant="brandGhost"
-        size="brandGhost"
+        variant="popGhost"
+        size="popMd"
         onClick={actions.restart}
-        className="mt-2 border-[rgba(217,169,74,0.6)] text-gold-accent"
+        className="mt-1"
       >
         Enviar otra respuesta
       </Button>

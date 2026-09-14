@@ -22,6 +22,13 @@ const buttonVariants = cva(
           "lb-shine border-gold bg-gold font-semibold uppercase tracking-[0.24em] text-ink hover:border-gold-hi hover:bg-gold-hi",
         brandGhost:
           "border-hair-ghost bg-transparent uppercase tracking-[0.24em] text-body hover:border-gold hover:text-gold-accent",
+        // Pop variants — rounded pills, warm energy
+        pop:
+          "lb-shine pop-btn-gold rounded-full font-semibold tracking-[0.02em] shadow-[0_10px_30px_-10px_rgba(217,169,74,0.7)] hover:brightness-105",
+        popCoral:
+          "lb-shine pop-btn-coral rounded-full font-semibold tracking-[0.02em] shadow-[0_10px_30px_-10px_rgba(255,106,61,0.75)] hover:brightness-105",
+        popGhost:
+          "rounded-full border-[1.5px] border-hair-ghost bg-transparent font-medium tracking-[0.01em] text-body hover:border-coral hover:text-cream",
       },
       size: {
         default:
@@ -29,6 +36,10 @@ const buttonVariants = cva(
         brandLg: "h-auto px-10 py-[15px] text-base",
         brandMd: "h-auto px-9 py-[14px] text-[15px]",
         brandGhost: "h-auto px-7 py-[13px] text-sm",
+        // Pop pill sizes
+        popLg: "h-auto px-9 py-[16px] text-[17px]",
+        popMd: "h-auto px-7 py-[13px] text-[15px]",
+        popSm: "h-auto px-5 py-[10px] text-[14px]",
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
@@ -51,11 +62,17 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  render,
+  nativeButton,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      render={render}
+      // When rendered as a non-<button> (e.g. an <a>/<Link> via `render`), tell
+      // Base UI so it applies link semantics instead of expecting a native button.
+      nativeButton={nativeButton ?? (render ? false : undefined)}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

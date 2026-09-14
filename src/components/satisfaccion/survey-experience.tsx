@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   AnimatePresence,
   motion,
   MotionConfig,
   useReducedMotion,
 } from "motion/react";
+import { ArrowLeft, ArrowRight, Send } from "lucide-react";
 import {
   initialSurvey,
   STEPS,
@@ -15,7 +17,7 @@ import {
   type StepName,
   type SurveyState,
 } from "./survey-data";
-import { shellContainer, shellItem, stepContainer, stepItem } from "./motion";
+import { shellContainer, shellItem, popStepContainer, popStepItem } from "./motion";
 import {
   AspectsStep,
   ContactStep,
@@ -28,6 +30,7 @@ import {
 } from "./steps";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "./brand-logo";
+import { PopScene } from "@/components/pop-scene";
 
 function stepFromHash(): number {
   if (typeof window === "undefined") return 0;
@@ -36,7 +39,16 @@ function stepFromHash(): number {
   return i === -1 ? 0 : i;
 }
 
-export function SurveyExperience() {
+export function SurveyExperience({
+  embedded = false,
+  onUrgent,
+}: {
+  /** Rendered inside the /feedback tab shell: drops its own page chrome
+   *  (main wrapper, background glow, brand header, page footer). */
+  embedded?: boolean;
+  /** When embedded, the "algo urgente" nudge switches tabs instead of navigating. */
+  onUrgent?: () => void;
+} = {}) {
   const reduce = useReducedMotion();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState<1 | -1>(1);
@@ -53,9 +65,6 @@ export function SurveyExperience() {
   }, []);
 
   // Morph de altura de la tarjeta al cambiar de paso.
-  // Callback ref: AnimatePresence mode="wait" desmonta el paso anterior antes
-  // de montar el nuevo, así que medimos y observamos siempre el elemento vivo.
-  // (Un ResizeObserver que capturara el elemento anterior mediría 0 al salir.)
   const setContentRef = useCallback((node: HTMLDivElement | null) => {
     if (roRef.current) {
       roRef.current.disconnect();
@@ -75,7 +84,6 @@ export function SurveyExperience() {
 
   const name = STEPS[step];
 
-  // Anuncio para lectores de pantalla.
   useEffect(() => {
     if (announceRef.current) announceRef.current.textContent = STEP_ANNOUNCE[name];
   }, [name]);
@@ -125,7 +133,7 @@ export function SurveyExperience() {
   };
 
   const pct = Math.round((Math.min(step, 5) / 5) * 100);
-  const stepLabel = name === "done" ? "Completado" : `Paso ${Math.max(1, step)} de 5`;
+  const stepLabel = name === "done" ? "¡Listo!" : `Paso ${Math.max(1, step)} de 5`;
   const showNav = step >= 1 && step <= 5;
   const nextLabel = name === "contact" ? "Enviar" : "Siguiente";
 
@@ -148,116 +156,142 @@ export function SurveyExperience() {
     }
   }
 
+  const urgentCta =
+    embedded && onUrgent ? (
+      <button
+        type="button"
+        onClick={onUrgent}
+        className="group inline-flex items-center gap-2 rounded-full border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] px-4 py-2 text-[13px] font-semibold text-coral transition-colors hover:border-coral hover:bg-[rgba(255,106,61,0.18)]"
+      >
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 rounded-full bg-coral shadow-[0_0_8px_2px_rgba(255,106,61,0.7)]"
+        />
+        ¿Algo urgente ahora mismo? Repórtalo aquí
+      </button>
+    ) : (
+      <Link
+        href="/reportar"
+        className="group inline-flex items-center gap-2 rounded-full border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] px-4 py-2 text-[13px] font-semibold text-coral transition-colors hover:border-coral hover:bg-[rgba(255,106,61,0.18)]"
+      >
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 rounded-full bg-coral shadow-[0_0_8px_2px_rgba(255,106,61,0.7)]"
+        />
+        ¿Algo urgente ahora mismo? Repórtalo aquí
+      </Link>
+    );
+
+  const body = (
+    <motion.div
+      variants={shellContainer}
+      initial="hidden"
+      animate="enter"
+      className="relative z-[1] flex w-full flex-col items-center"
+    >
+      {/* Brand lockup — only when standalone; the /feedback shell owns it. */}
+      {!embedded && (
+        <motion.header
+          variants={shellItem}
+          className="flex w-full flex-col items-center gap-3"
+        >
+          <BrandLogo width={132} />
+          <div className="pl-[0.28em] text-[11px] font-medium uppercase tracking-[0.28em] text-muted-ink">
+            Restaurante · Panadería
+          </div>
+        </motion.header>
+      )}
+
+      {/* Progress */}
+      <motion.div
+        variants={shellItem}
+        className={
+          (embedded ? "" : "mt-7 ") + "flex w-full items-center gap-4"
+        }
+      >
+        <div className="relative h-2 flex-1 overflow-hidden rounded-full bg-[var(--lb-hair-track)]">
+          <div className="pop-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="text-[12px] font-medium whitespace-nowrap uppercase tracking-[0.2em] text-muted-ink">
+          {stepLabel}
+        </div>
+      </motion.div>
+
+      {/* Card */}
+      <motion.section
+        variants={shellItem}
+        className="pop-card relative mt-6 w-full px-9 pt-9 pb-8 max-[560px]:px-5 max-[560px]:pt-7 max-[560px]:pb-6"
+      >
+        <motion.div
+          className="overflow-hidden"
+          animate={{ height }}
+          transition={reduce ? { duration: 0 } : { duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={name}
+              ref={setContentRef}
+              variants={popStepContainer}
+              initial="hidden"
+              animate="enter"
+              exit="leaving"
+              className="flex flex-col gap-6"
+            >
+              {renderStep()}
+
+              {showNav && (
+                <motion.div
+                  variants={popStepItem}
+                  className="mt-1 flex flex-wrap items-center justify-between gap-3 border-t border-hair-div pt-6"
+                >
+                  <Button variant="popGhost" size="popMd" onClick={actions.back} className="gap-2">
+                    <ArrowLeft aria-hidden="true" />
+                    Atrás
+                  </Button>
+                  <Button variant="pop" size="popMd" onClick={actions.next} className="gap-2">
+                    {nextLabel}
+                    {name === "contact" ? (
+                      <Send aria-hidden="true" />
+                    ) : (
+                      <ArrowRight aria-hidden="true" />
+                    )}
+                  </Button>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </motion.div>
+      </motion.section>
+
+      {/* Footer + urgent link */}
+      <motion.footer
+        variants={shellItem}
+        className="mt-6 flex w-full flex-col items-center gap-3 text-center"
+      >
+        {urgentCta}
+        {!embedded && (
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[13px] uppercase tracking-[0.12em] text-label">
+            <span>Puerto Ordaz · Venezuela</span>
+          </div>
+        )}
+      </motion.footer>
+    </motion.div>
+  );
+
   return (
     <MotionConfig reducedMotion="user">
-      <main className="relative z-[1] flex w-full flex-col items-center px-5 pt-10 pb-16 max-[560px]:px-3.5 max-[560px]:pt-7 max-[560px]:pb-10">
-        <motion.div
-          variants={shellContainer}
-          initial="hidden"
-          animate="enter"
-          className="flex w-full max-w-[760px] flex-col items-center"
-        >
-          {/* Brand lockup */}
-          <motion.header
-            variants={shellItem}
-            className="flex w-full flex-col items-center gap-3"
-          >
-            <BrandLogo width={150} />
-            <div className="pl-[0.36em] text-[12px] uppercase tracking-[0.36em] text-muted-ink">
-              Restaurante · Panadería
-            </div>
-          </motion.header>
+      {embedded ? (
+        body
+      ) : (
+        <main className="relative z-[1] flex w-full flex-col items-center px-5 pt-9 pb-16 max-[560px]:px-3.5 max-[560px]:pt-6 max-[560px]:pb-10">
+          <div className="relative w-full max-w-[720px]">
+            <PopScene tone="warm" />
+            {body}
+          </div>
+        </main>
+      )}
 
-          {/* Progress */}
-          <motion.div
-            variants={shellItem}
-            className="mt-[34px] flex w-full items-center gap-4"
-          >
-            <div className="relative h-px flex-1 overflow-hidden bg-hair-track">
-              <div
-                className="lb-fill"
-                style={{ width: `${pct}%` }}
-                data-advancing={dir === 1}
-              />
-            </div>
-            <div className="text-[12px] whitespace-nowrap uppercase tracking-[0.3em] text-muted-ink">
-              {stepLabel}
-            </div>
-          </motion.div>
-
-          {/* Card */}
-          <motion.section
-            variants={shellItem}
-            className="relative mt-[38px] w-full border-y border-hair-card bg-card px-11 pt-11 pb-10 max-[560px]:px-5 max-[560px]:pt-7 max-[560px]:pb-[26px]"
-          >
-            {/* hairlines que se dibujan desde el centro */}
-            <motion.span
-              aria-hidden="true"
-              className="absolute inset-x-0 -top-px h-px origin-center bg-gold opacity-55"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
-            />
-            <motion.span
-              aria-hidden="true"
-              className="absolute inset-x-0 -bottom-px h-px origin-center bg-gold opacity-55"
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.25 }}
-            />
-
-            <motion.div
-              className="overflow-hidden"
-              animate={{ height }}
-              transition={reduce ? { duration: 0 } : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.div
-                  key={name}
-                  ref={setContentRef}
-                  variants={stepContainer}
-                  initial="hidden"
-                  animate="enter"
-                  exit="leaving"
-                  className="flex flex-col gap-7"
-                >
-                  {renderStep()}
-
-                  {showNav && (
-                    <motion.div
-                      variants={stepItem}
-                      className="mt-1.5 flex flex-wrap items-center justify-between gap-4 border-t border-hair-div pt-6"
-                    >
-                      <Button variant="brandGhost" size="brandGhost" onClick={actions.back}>
-                        Atrás
-                      </Button>
-                      <Button variant="brand" size="brandMd" onClick={actions.next}>
-                        {nextLabel}
-                      </Button>
-                    </motion.div>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </motion.section>
-
-          {/* Footer */}
-          <motion.footer
-            variants={shellItem}
-            className="mt-[26px] flex w-full flex-wrap items-center justify-between gap-4 text-[14px] uppercase tracking-[0.16em] text-label"
-          >
-            <span>Puerto Ordaz · Venezuela</span>
-            <span>Encuesta de satisfacción</span>
-          </motion.footer>
-        </motion.div>
-      </main>
-
-      <div
-        ref={announceRef}
-        role="status"
-        aria-live="polite"
-        className="sr-only"
-      />
+      <div ref={announceRef} role="status" aria-live="polite" className="sr-only" />
     </MotionConfig>
   );
 }

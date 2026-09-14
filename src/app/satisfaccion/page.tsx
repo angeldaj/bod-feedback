@@ -1,12 +1,7 @@
-import type { Metadata } from "next";
-import { SurveyExperience } from "@/components/satisfaccion/survey-experience";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Encuesta de satisfacción",
-  description:
-    "Cuéntanos cómo estuvo tu visita a La Bodega. Seis preguntas, menos de dos minutos.",
-};
-
+// La encuesta vive ahora en /feedback (pestaña por defecto). Mantenemos esta
+// ruta como redirección para no romper enlaces/QR antiguos.
 export default function SatisfaccionPage() {
-  return <SurveyExperience />;
+  redirect("/feedback");
 }
