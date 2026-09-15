@@ -88,6 +88,18 @@ export function SurveyExperience({
     if (announceRef.current) announceRef.current.textContent = STEP_ANNOUNCE[name];
   }, [name]);
 
+  // Standalone (full-page) the survey resets scroll on each step so the card
+  // top is in view. Embedded in the /feedback split the survey is only part of
+  // the page, so we keep the reader's scroll position instead of yanking to top.
+  const resetScroll = useCallback(() => {
+    if (embedded) return;
+    try {
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    } catch {
+      window.scrollTo(0, 0);
+    }
+  }, [embedded, reduce]);
+
   const goto = useCallback(
     (delta: number) => {
       setStep((s) => {
@@ -95,13 +107,9 @@ export function SurveyExperience({
         if (target !== s) setDir(delta >= 0 ? 1 : -1);
         return target;
       });
-      try {
-        window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-      } catch {
-        window.scrollTo(0, 0);
-      }
+      resetScroll();
     },
-    [reduce],
+    [resetScroll],
   );
 
   const actions: StepActions = {
@@ -111,11 +119,7 @@ export function SurveyExperience({
       setState(initialSurvey);
       setDir(-1);
       setStep(0);
-      try {
-        window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
-      } catch {
-        window.scrollTo(0, 0);
-      }
+      resetScroll();
     },
     setOverall: (n) => setState((s) => ({ ...s, overall: n })),
     setSucursal: (v) => setState((s) => ({ ...s, sucursal: v })),
@@ -167,7 +171,7 @@ export function SurveyExperience({
           aria-hidden="true"
           className="h-1.5 w-1.5 rounded-full bg-coral shadow-[0_0_8px_2px_rgba(255,106,61,0.7)]"
         />
-        ¿Algo urgente ahora mismo? Repórtalo aquí
+        ¿Tienes una queja? Cuéntanosla aquí
       </button>
     ) : (
       <Link
@@ -178,7 +182,7 @@ export function SurveyExperience({
           aria-hidden="true"
           className="h-1.5 w-1.5 rounded-full bg-coral shadow-[0_0_8px_2px_rgba(255,106,61,0.7)]"
         />
-        ¿Algo urgente ahora mismo? Repórtalo aquí
+        ¿Tienes una queja? Cuéntanosla aquí
       </Link>
     );
 

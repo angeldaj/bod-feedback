@@ -647,6 +647,11 @@
     box-shadow: 0 0 14px -2px rgba(255, 138, 95, 0.7);
     transition: width 0.7s var(--ease-brand);
   }
+  /* Urgency variant: coral-dominant, to match the report wizard. */
+  .pop-fill--coral {
+    background: linear-gradient(90deg, var(--lb-coral-deep), var(--lb-coral-hi));
+    box-shadow: 0 0 14px -2px rgba(255, 106, 61, 0.7);
+  }
 }
 
 @keyframes pop-float {
@@ -843,6 +848,349 @@
       linear-gradient(180deg, rgba(30, 12, 4, 0.05) 0%, rgba(30, 12, 4, 0.12) 42%, rgba(28, 10, 3, 0.72) 100%),
       linear-gradient(90deg, rgba(28, 10, 3, 0.35), transparent 55%);
     pointer-events: none;
+  }
+}
+
+/* ============================================================
+   FEEDBACK SPLIT SELECTOR — one big div cut in two: pick "encuesta"
+   or "urgencia". The layout stays a 2-column split (Hyper-S style):
+   choosing one keeps it as a tall accent panel and opens the form
+   BESIDE it, in the slot the other button used to fill. On mobile it
+   falls back to stacked (banner on top, form below).
+   No photos: each panel is a brand-gradient placeholder with a slow
+   drifting sheen for movement. Reads in both the dark base and `.day`.
+   ============================================================ */
+@layer components {
+  .fb-split {
+    display: flex;
+    gap: 14px;
+    width: 100%;
+    align-items: stretch;
+  }
+  @media (max-width: 640px) {
+    .fb-split {
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Keep the chosen accent panel above the form regardless of which side was
+       picked. Urgencia lives in the 2nd slot, so reverse the column for it. */
+    .fb-split[data-open="urgencia"] {
+      flex-direction: column-reverse;
+    }
+  }
+
+  .fb-slot {
+    position: relative;
+    min-width: 0;
+    /* Row layout default: equal 50/50 columns. */
+    flex: 1 1 0;
+  }
+  .fb-slot[data-role="panel"] {
+    /* The chosen half shrinks to a slim accent rail so the form gets the room. */
+    flex: 0 0 clamp(196px, 24%, 268px);
+  }
+  @media (max-width: 640px) {
+    .fb-split .fb-slot,
+    .fb-split .fb-slot[data-role="panel"],
+    .fb-split .fb-slot[data-role="form"] {
+      flex: 0 0 auto;
+    }
+  }
+
+  /* --- Shared brand-gradient placeholder surface (cover + side panel) --- */
+  .fb-photo {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 26px;
+    color: #fff4e8;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 26px 60px -34px rgba(60, 24, 8, 0.7);
+  }
+  .fb-photo--warm {
+    background: linear-gradient(150deg, #f6b45a, #e2492a);
+  }
+  .fb-photo--urgent {
+    background: linear-gradient(150deg, #ff8a5f, #9e2c10);
+  }
+  /* Real photo (optional). Fills the surface behind the sheen + scrim, which
+     darken the lower area so the white copy stays legible. */
+  .fb-photo__img {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 42%;
+    pointer-events: none;
+  }
+  .fb-photo__sheen {
+    position: absolute;
+    inset: -25%;
+    z-index: 0;
+    pointer-events: none;
+    background: radial-gradient(42% 42% at 32% 26%, rgba(255, 244, 232, 0.55), transparent 62%);
+    mix-blend-mode: soft-light;
+    animation: fb-sheen 13s ease-in-out infinite alternate;
+  }
+  .fb-photo--urgent .fb-photo__sheen {
+    animation-duration: 11s;
+    animation-delay: -3s;
+  }
+  .fb-photo__scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(
+      175deg,
+      rgba(24, 9, 3, 0.06) 0%,
+      rgba(24, 9, 3, 0.32) 46%,
+      rgba(18, 6, 2, 0.82) 100%
+    );
+  }
+
+  /* Faint "image goes here" marker so the handoff reads as a placeholder. */
+  .fb-ph-tag {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 244, 232, 0.9);
+    background: rgba(24, 10, 4, 0.28);
+    border: 1px dashed rgba(255, 244, 232, 0.5);
+    backdrop-filter: blur(6px);
+  }
+
+  /* --- Full cover (choice state): oversized 3D tap target --- */
+  .fb-cover {
+    --fb-edge: rgba(0, 0, 0, 0.4);
+    display: flex;
+    width: 100%;
+    min-height: clamp(520px, 68vh, 668px);
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 40px;
+    text-align: left;
+    cursor: pointer;
+    transform: translateY(0);
+    /* Solid colored bottom edge + soft drop = the button reads as a raised
+       physical block, not a flat card. */
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 13px 0 -2px var(--fb-edge),
+      0 34px 66px -30px rgba(60, 24, 8, 0.72);
+    transition:
+      transform 0.34s var(--ease-brand),
+      box-shadow 0.34s var(--ease-brand),
+      filter 0.3s var(--ease-brand);
+  }
+  .fb-cover--warm {
+    --fb-edge: #9a3512;
+  }
+  .fb-cover--urgent {
+    --fb-edge: #6f1d08;
+  }
+  @media (hover: hover) {
+    .fb-cover:hover {
+      transform: translateY(-9px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 22px 0 -2px var(--fb-edge),
+        0 54px 92px -34px rgba(60, 24, 8, 0.85);
+      filter: brightness(1.04) saturate(1.05);
+    }
+    .fb-cover:hover .fb-cover__chevron {
+      background: rgba(24, 10, 4, 0.48);
+      border-color: rgba(255, 244, 232, 0.6);
+    }
+  }
+  .fb-cover:active {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 5px 0 -2px var(--fb-edge),
+      0 14px 30px -18px rgba(60, 24, 8, 0.7);
+    transition-duration: 0.11s;
+  }
+  .fb-cover:focus-visible {
+    outline: 3px solid rgba(255, 244, 232, 0.92);
+    outline-offset: 4px;
+  }
+  @media (max-width: 640px) {
+    .fb-cover {
+      min-height: clamp(404px, 56vh, 500px);
+      padding: 28px;
+    }
+  }
+  .fb-cover__body {
+    position: relative;
+    z-index: 2;
+    will-change: transform;
+  }
+
+  /* Chevron notch pointing toward the seam, echoing the reference. Anchored a
+     fixed distance from the top so it always sits in the empty upper zone,
+     clear of the bottom-anchored copy (no collision as the card grows). */
+  .fb-cover__chevron {
+    position: absolute;
+    top: 96px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    border-radius: 999px;
+    color: #fff4e8;
+    background: rgba(24, 10, 4, 0.32);
+    border: 1px solid rgba(255, 244, 232, 0.4);
+    backdrop-filter: blur(6px);
+    animation: fb-nudge 2.6s var(--ease-brand) infinite;
+    transition:
+      background-color 0.3s var(--ease-brand),
+      border-color 0.3s var(--ease-brand);
+  }
+  .fb-cover--warm .fb-cover__chevron {
+    right: 18px;
+  }
+  .fb-cover--urgent .fb-cover__chevron {
+    left: 18px;
+    animation-name: fb-nudge-rev;
+  }
+  @media (max-width: 640px) {
+    .fb-cover__chevron {
+      display: none;
+    }
+  }
+
+  /* --- Chosen accent panel: tall rail on desktop, slim banner on mobile --- */
+  .fb-side {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    flex-direction: column;
+    /* Ancla el bloque abajo, en la zona oscura del scrim (como el cover). */
+    justify-content: flex-end;
+    gap: 20px;
+    padding: 26px;
+  }
+  .fb-side__full {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 22px;
+  }
+  .fb-side__bar {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .fb-side {
+      height: auto;
+      min-height: 0;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 16px 0 20px;
+      height: 88px;
+    }
+    .fb-side__full {
+      display: none;
+    }
+    .fb-side__bar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+  }
+
+  .fb-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 42px;
+    padding: 0 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff4e8;
+    background: rgba(24, 10, 4, 0.34);
+    border: 1px solid rgba(255, 244, 232, 0.42);
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s var(--ease-brand), background-color 0.2s var(--ease-brand);
+  }
+  .fb-back:hover {
+    background: rgba(24, 10, 4, 0.5);
+  }
+  .fb-back:active {
+    transform: scale(0.96);
+  }
+
+  /* Form beside the accent panel. */
+  .fb-formwrap {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    padding: 2px;
+  }
+  .fb-formwrap > * {
+    width: 100%;
+    max-width: 560px;
+  }
+  @media (max-width: 640px) {
+    .fb-formwrap {
+      padding-top: 4px;
+    }
+  }
+
+  @keyframes fb-sheen {
+    from {
+      transform: translate3d(-10%, -5%, 0) scale(1.02);
+    }
+    to {
+      transform: translate3d(10%, 7%, 0) scale(1.12);
+    }
+  }
+  @keyframes fb-nudge {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+  }
+  @keyframes fb-nudge-rev {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(-4px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fb-photo__sheen,
+    .fb-cover__chevron {
+      animation: none;
+    }
   }
 }
 
@@ -1455,5 +1803,563 @@
   .lb-underline,
   .lb-fill {
     transition: none;
+  }
+}
+
+/* ============================================================
+   MEMBER AREA — /login and /mi-club. A member-facing dashboard on
+   the same warm-dark La Bodega identity (day/night via `.day`).
+   Gold owns rewards, coral owns primary actions. Adds a tactile 3D
+   push-button, a holographic membership card, and dashboard panels.
+   ============================================================ */
+@layer components {
+  .mc-page {
+    color-scheme: dark;
+    background: var(--lb-ground);
+  }
+  .mc-page.day {
+    color-scheme: light;
+  }
+  /* Ambient light pools behind the shell (scoped, adds no scroll height). */
+  .mc-page-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(58rem 34rem at 82% -4%, rgba(217, 169, 74, 0.12), transparent 66%),
+      radial-gradient(48rem 30rem at 6% 6%, rgba(255, 106, 61, 0.08), transparent 70%),
+      var(--lb-ground);
+  }
+  .day .mc-page-background {
+    background:
+      radial-gradient(58rem 34rem at 82% -4%, rgba(255, 168, 92, 0.28), transparent 66%),
+      radial-gradient(48rem 30rem at 6% 6%, rgba(226, 84, 54, 0.12), transparent 70%),
+      var(--lb-ground);
+  }
+
+  /* -------- Tactile 3D push button -------- */
+  .btn3d {
+    --edge: rgba(0, 0, 0, 0.4);
+    --lift: 6px;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    padding: 0.85rem 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    cursor: pointer;
+    transform: translateY(0);
+    box-shadow:
+      0 var(--lift) 0 0 var(--edge),
+      0 calc(var(--lift) + 10px) 22px -8px rgba(24, 10, 4, 0.55);
+    transition:
+      transform 0.12s var(--ease-brand),
+      box-shadow 0.12s var(--ease-brand),
+      filter 0.2s var(--ease-brand);
+  }
+  .btn3d:hover {
+    filter: brightness(1.05);
+  }
+  .btn3d:active {
+    transform: translateY(calc(var(--lift) - 1px));
+    box-shadow:
+      0 1px 0 0 var(--edge),
+      0 3px 9px -5px rgba(24, 10, 4, 0.5);
+  }
+  .btn3d:focus-visible {
+    outline: 2px solid var(--lb-gold);
+    outline-offset: 3px;
+  }
+  .btn3d:disabled {
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .btn3d svg {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+  .btn3d--coral {
+    /* Deep enough that white body text clears WCAG AA on the light stop. */
+    background: linear-gradient(180deg, #d8431f, #b8330f);
+    color: #fff;
+    --edge: #7d240c;
+  }
+  .btn3d--gold {
+    background: linear-gradient(180deg, var(--lb-gold-hi), var(--lb-gold));
+    color: var(--lb-ink-on-gold);
+    --edge: #a9761a;
+  }
+  .btn3d--soft {
+    background: color-mix(in oklab, var(--lb-cream) 10%, transparent);
+    color: var(--lb-cream);
+    --edge: rgba(0, 0, 0, 0.45);
+    box-shadow:
+      inset 0 1px 0 rgba(247, 242, 231, 0.14),
+      0 var(--lift) 0 0 var(--edge),
+      0 calc(var(--lift) + 10px) 20px -10px rgba(24, 10, 4, 0.5);
+  }
+  .day .btn3d--soft {
+    background: #ffffff;
+    color: var(--lb-cream);
+    --edge: rgba(120, 60, 20, 0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 var(--lift) 0 0 var(--edge),
+      0 calc(var(--lift) + 10px) 20px -10px rgba(120, 60, 20, 0.35);
+  }
+
+  /* -------- Dashboard panels / surfaces -------- */
+  .mc-nav {
+    background: rgba(11, 9, 6, 0.82);
+    backdrop-filter: blur(18px) saturate(135%);
+  }
+  .day .mc-nav {
+    background: rgba(255, 243, 228, 0.86);
+  }
+  .mc-tab {
+    display: inline-flex;
+    min-height: 2.5rem;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0 0.85rem;
+    color: var(--lb-body);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: color 180ms var(--ease-brand), background-color 180ms var(--ease-brand);
+  }
+  .mc-tab:hover {
+    color: var(--lb-cream);
+    background: color-mix(in oklab, var(--lb-cream) 7%, transparent);
+  }
+  .mc-tab.is-active {
+    color: var(--lb-ink-on-gold);
+    background: var(--lb-gold);
+  }
+  .mc-panel {
+    position: relative;
+    border-radius: 20px;
+    border: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3.5%, transparent);
+    box-shadow: inset 0 1px 0 rgba(247, 242, 231, 0.06);
+  }
+  .day .mc-panel {
+    background: rgba(255, 255, 255, 0.66);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 18px 40px -34px rgba(120, 60, 20, 0.5);
+  }
+  .mc-panel-strong {
+    border-radius: 22px;
+    border: 1px solid var(--lb-hair-card);
+    background:
+      linear-gradient(180deg, rgba(247, 242, 231, 0.06), rgba(247, 242, 231, 0.015)),
+      var(--lb-ground);
+  }
+  .day .mc-panel-strong {
+    background: linear-gradient(180deg, #ffffff, #fff8ee);
+    border-color: rgba(120, 60, 20, 0.14);
+    box-shadow: 0 24px 60px -36px rgba(120, 60, 20, 0.5);
+  }
+
+  .mc-stat {
+    border-radius: 16px;
+    border: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3%, transparent);
+    padding: 0.9rem 1rem;
+  }
+  .day .mc-stat {
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .mc-stat-value {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 1.9rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--lb-gold-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .mc-eyebrow {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--lb-coral);
+  }
+  .mc-icon-button {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--lb-hair-div);
+    border-radius: 999px;
+    color: var(--lb-body);
+    transition: border-color 180ms var(--ease-brand), color 180ms var(--ease-brand), transform 100ms ease-out;
+  }
+  .mc-icon-button:hover {
+    border-color: var(--lb-coral);
+    color: var(--lb-cream);
+  }
+  .mc-icon-button:active {
+    transform: translateY(1px);
+  }
+  .mc-icon-button svg {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+
+  /* -------- Holographic 3D membership card -------- */
+  .mc-card-scene {
+    perspective: 1200px;
+  }
+  .mc-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 24px;
+    color: #2a1608;
+    transform-style: preserve-3d;
+    background:
+      radial-gradient(120% 140% at 80% -10%, rgba(255, 255, 255, 0.55), transparent 46%),
+      linear-gradient(135deg, #f7d68d 0%, #e9b95d 42%, #d5972f 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 34px 70px -28px rgba(120, 70, 10, 0.72);
+  }
+  /* Cursor-tracked glare (JS sets --gx/--gy); pure interaction, not decoration. */
+  .mc-card-glare {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(
+      36% 44% at var(--gx, 70%) var(--gy, 12%),
+      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0) 60%
+    );
+    mix-blend-mode: soft-light;
+    opacity: 0.9;
+    transition: background 80ms linear;
+  }
+  .mc-card-grain {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.5;
+    background: radial-gradient(60% 80% at 12% 108%, rgba(120, 60, 10, 0.24), transparent 60%);
+  }
+  .mc-card-chip {
+    width: 2.6rem;
+    height: 2rem;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #f7e6b8, #caa24e);
+    box-shadow: inset 0 0 0 1px rgba(120, 70, 10, 0.4);
+    position: relative;
+  }
+  .mc-card-chip::before {
+    content: "";
+    position: absolute;
+    inset: 24% 18%;
+    border: 1px solid rgba(120, 70, 10, 0.45);
+    border-radius: 3px;
+  }
+  .mc-card-qr {
+    background: #fff8ea;
+    border-radius: 12px;
+    padding: 7px;
+    box-shadow: inset 0 0 0 1px rgba(120, 70, 10, 0.18);
+  }
+  .mc-card-value {
+    font-family: var(--font-serif), Georgia, serif;
+    font-weight: 600;
+    line-height: 0.9;
+    color: #3a1e08;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Progress track toward the next reward. */
+  .mc-track {
+    height: 12px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--lb-cream) 10%, transparent);
+    overflow: hidden;
+  }
+  .day .mc-track {
+    background: rgba(120, 60, 20, 0.12);
+  }
+
+  /* -------- Reward cards -------- */
+  .mc-reward {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3.5%, transparent);
+    transition:
+      transform 0.32s var(--ease-brand),
+      border-color 0.32s var(--ease-brand),
+      box-shadow 0.32s var(--ease-brand);
+    will-change: transform;
+  }
+  .day .mc-reward {
+    background: rgba(255, 255, 255, 0.66);
+  }
+  @media (hover: hover) {
+    .mc-reward:hover {
+      transform: translateY(-6px);
+      border-color: var(--lb-gold);
+      box-shadow: 0 26px 50px -26px rgba(20, 9, 3, 0.7);
+    }
+    .day .mc-reward:hover {
+      box-shadow: 0 26px 50px -28px rgba(120, 60, 20, 0.45);
+    }
+    /* Locked rewards get a cooler, coral-tinted lift to read as "not yet". */
+    .mc-reward[data-locked="true"]:hover {
+      border-color: var(--lb-coral);
+    }
+  }
+  .mc-reward-media {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    background: #1a120b;
+  }
+  .mc-reward-media img {
+    transition: transform 0.55s var(--ease-brand);
+  }
+  @media (hover: hover) {
+    .mc-reward:hover .mc-reward-media img {
+      transform: scale(1.07);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mc-reward,
+    .mc-reward-media img {
+      transition: none;
+    }
+    .mc-reward:hover {
+      transform: none;
+    }
+    .mc-reward:hover .mc-reward-media img {
+      transform: none;
+    }
+  }
+  .mc-reward-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(20, 9, 3, 0.05) 40%, rgba(20, 9, 3, 0.55) 100%);
+  }
+  .mc-reward[data-locked="true"] .mc-reward-media img {
+    filter: saturate(0.5) brightness(0.72);
+  }
+  .mc-reward-cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-weight: 700;
+    font-size: 0.875rem;
+    background: rgba(25, 13, 7, 0.82);
+    color: #ffe6b0;
+    backdrop-filter: blur(10px);
+  }
+  .mc-reward-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    background: rgba(25, 13, 7, 0.7);
+    color: #f4e2c4;
+    backdrop-filter: blur(10px);
+  }
+
+  /* -------- Event / discount cards -------- */
+  .mc-event {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    border: 1px solid var(--lb-hair-div);
+    background: color-mix(in oklab, var(--lb-cream) 3.5%, transparent);
+    padding: 1.25rem;
+  }
+  .day .mc-event {
+    background: rgba(255, 255, 255, 0.66);
+  }
+  .mc-event-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: flex-start;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .mc-event[data-kind="descuento"] .mc-event-tag {
+    background: var(--lb-coral-soft);
+    color: var(--lb-coral);
+  }
+  .mc-event[data-kind="evento"] .mc-event-tag {
+    background: color-mix(in oklab, var(--lb-gold) 18%, transparent);
+    color: var(--lb-gold-accent);
+  }
+  .mc-event[data-kind="cumple"] .mc-event-tag {
+    background: color-mix(in oklab, var(--lb-cream) 10%, transparent);
+    color: var(--lb-cream);
+  }
+  .day .mc-event[data-kind="cumple"] .mc-event-tag {
+    background: rgba(120, 60, 20, 0.1);
+  }
+  .mc-official {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lb-muted);
+  }
+
+  /* -------- Activity table -------- */
+  .mc-activity-row {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.85rem 0;
+    border-top: 1px solid var(--lb-hair-div);
+  }
+  .mc-activity-row:first-child {
+    border-top: 0;
+  }
+  .mc-channel {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--lb-body);
+    border: 1px solid var(--lb-hair-chip);
+  }
+  .mc-points-gain {
+    font-family: var(--font-serif), Georgia, serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--lb-gold-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* -------- Settings -------- */
+  .mc-switch {
+    position: relative;
+    display: inline-flex;
+    width: 3rem;
+    height: 1.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--lb-cream) 12%, transparent);
+    border: 1px solid var(--lb-hair-chip);
+    cursor: pointer;
+    transition: background-color 200ms var(--ease-brand), border-color 200ms var(--ease-brand);
+  }
+  .day .mc-switch {
+    background: rgba(120, 60, 20, 0.12);
+  }
+  .mc-switch::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    background: var(--lb-cream);
+    box-shadow: 0 2px 6px rgba(20, 9, 3, 0.4);
+    transition: transform 200ms var(--ease-brand);
+  }
+  .mc-switch[data-on="true"] {
+    background: var(--lb-coral);
+    border-color: transparent;
+  }
+  .mc-switch[data-on="true"]::after {
+    transform: translateX(1.2rem);
+    background: #fff;
+  }
+  .mc-switch:focus-visible {
+    outline: 2px solid var(--lb-coral);
+    outline-offset: 2px;
+  }
+  .mc-field {
+    height: 3rem;
+    border: 1px solid var(--lb-hair-chip);
+    border-radius: 0.75rem;
+    background: var(--lb-input);
+    color: var(--lb-cream);
+    padding-inline: 0.9rem;
+    font-size: 1rem;
+    width: 100%;
+  }
+  .mc-field:focus-visible {
+    outline: none;
+    border-color: var(--lb-coral);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--lb-coral) 20%, transparent);
+  }
+
+  /* -------- Login -------- */
+  .login-aside {
+    position: relative;
+    overflow: hidden;
+    border-radius: 26px;
+    background: #1a120b;
+    box-shadow: 0 30px 70px -34px rgba(20, 9, 3, 0.8);
+  }
+  .login-aside-scrim {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(20, 9, 3, 0.15) 30%, rgba(20, 9, 3, 0.85) 100%),
+      linear-gradient(90deg, rgba(20, 9, 3, 0.45), transparent 60%);
+  }
+  .login-card {
+    position: relative;
+    border-radius: 24px;
+    border: 1px solid var(--lb-hair-card);
+    background:
+      linear-gradient(180deg, rgba(247, 242, 231, 0.05), rgba(247, 242, 231, 0.015)),
+      var(--lb-ground);
+    box-shadow: inset 0 1px 0 rgba(247, 242, 231, 0.08), 0 30px 70px -40px rgba(20, 9, 3, 0.8);
+  }
+  .day .login-card {
+    background: linear-gradient(180deg, #ffffff, #fff8ee);
+    border-color: rgba(120, 60, 20, 0.14);
+    box-shadow: 0 30px 70px -42px rgba(120, 60, 20, 0.5);
+  }
+  .login-demo {
+    border-radius: 14px;
+    border: 1px dashed var(--lb-hair-ghost);
+    background: color-mix(in oklab, var(--lb-gold) 8%, transparent);
+    color: var(--lb-body);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-page *,
+  .btn3d {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

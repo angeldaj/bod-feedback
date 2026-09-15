@@ -96,8 +96,9 @@ export function IntroStep({ actions }: { actions: StepActions }) {
       </Item>
       <Item>
         <p className={cls.body}>
-          Seis preguntas, menos de dos minutos. Lo que nos cuentes lo lee el
-          equipo de sala y cocina cada semana.
+          En La Bodega queremos atenderte con el mayor estándar. Cuéntanos cómo
+          te fue: te toma menos de dos minutos y nos ayuda a cuidarte aún mejor
+          en tu próxima visita.
         </p>
       </Item>
       <Item className="mt-1 flex flex-wrap items-center gap-4">
@@ -276,16 +277,16 @@ export function IssuesStep({
           <div className="flex flex-col gap-3 rounded-2xl border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] p-4">
             <div className="flex items-center gap-2">
               <span className="pop-badge pop-badge-coral text-[12px] uppercase tracking-[0.06em]">
-                Urgente
+                Queja
               </span>
               <span className="text-[15px] font-semibold text-cream">
-                ¿Fue algo grave?
+                ¿Algo no estuvo bien?
               </span>
             </div>
             <p className="text-[15px] leading-[1.5] text-body">
               Si encontraste comida en mal estado, fría, cruda o un objeto
-              extraño, no llenes toda la encuesta: repórtalo con foto y lo
-              atendemos de inmediato.
+              extraño, no hace falta que llenes toda la encuesta: repórtalo con
+              una foto y lo resolvemos de inmediato para ti.
             </p>
             <div>
               <Button
@@ -293,7 +294,7 @@ export function IssuesStep({
                 size="popSm"
                 render={<Link href="/feedback?tab=urgente" />}
               >
-                Reportar urgencia
+                Reportar mi queja
               </Button>
             </div>
           </div>
