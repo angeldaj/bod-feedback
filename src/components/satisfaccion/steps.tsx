@@ -20,11 +20,11 @@ import {
   ASPECTS,
   MOMENTOS,
   OVERALL_LABELS,
-  SUCURSALES,
   TEMAS,
   type AspectKey,
   type SurveyState,
 } from "./survey-data";
+import { useBranches } from "@/lib/use-branches";
 
 // ---- Shared typographic blocks (pop register) ----
 const cls = {
@@ -177,6 +177,7 @@ export function VisitStep({
   state: SurveyState;
   actions: StepActions;
 }) {
+  const { names: branchNames, loading, error } = useBranches();
   return (
     <>
       <Item className={cls.eyebrow}>Paso dos</Item>
@@ -185,13 +186,19 @@ export function VisitStep({
       </Item>
       <Item className="flex flex-col gap-3">
         <div className={cls.groupLabel}>Sucursal</div>
-        <ChipGroup
-          variant="branch"
-          ariaLabel="Sucursal"
-          options={SUCURSALES}
-          value={state.sucursal}
-          onSelect={actions.setSucursal}
-        />
+        {loading ? (
+          <p className="text-[13px] text-muted-ink">Cargando sucursales…</p>
+        ) : error ? (
+          <p className="text-[13px] text-coral">{error}</p>
+        ) : (
+          <ChipGroup
+            variant="branch"
+            ariaLabel="Sucursal"
+            options={branchNames}
+            value={state.sucursal}
+            onSelect={actions.setSucursal}
+          />
+        )}
       </Item>
       <Item className="flex flex-col gap-3">
         <div className={cls.groupLabel}>Momento</div>
