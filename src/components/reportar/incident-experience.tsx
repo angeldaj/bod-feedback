@@ -36,6 +36,7 @@ import {
   type IncidentState,
   type MediaItem,
 } from "./incident-data";
+import { submitIncident } from "@/lib/feedback-api";
 
 // Wizard steps (intro + 4 numbered), mirroring the survey. "done" is driven by
 // `phase` after submit, not a step index.
@@ -91,6 +92,7 @@ export function IncidentExperience({
   const [audio, setAudio] = useState<Blob | null>(null);
   const [descMode, setDescMode] = useState<"text" | "audio">("text");
   const [phase, setPhase] = useState<"form" | "sending" | "done">("form");
+  const [error, setError] = useState<string | null>(null);
   const [height, setHeight] = useState<number | "auto">("auto");
 
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -166,10 +168,19 @@ export function IncidentExperience({
   async function submit() {
     if (!hasContent || phase === "sending") return;
     setPhase("sending");
-    // Sin backend por ahora: simulamos el envío. Aquí iría el upload real.
-    await new Promise((r) => setTimeout(r, 1400));
-    setPhase("done");
-    resetScroll();
+    setError(null);
+    try {
+      await submitIncident(state, media, audio);
+      setPhase("done");
+      resetScroll();
+    } catch (err) {
+      setPhase("form");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos enviar tu queja. Intenta de nuevo.",
+      );
+    }
   }
 
   function reset() {
@@ -179,6 +190,7 @@ export function IncidentExperience({
     setAudio(null);
     setDescMode("text");
     setPhase("form");
+    setError(null);
     setDir(-1);
     setStep(0);
   }
@@ -469,6 +481,12 @@ export function IncidentExperience({
               ) : (
                 <>
                   {renderStep()}
+
+                  {error && (
+                    <p role="alert" className="mt-4 text-[13px] font-medium text-coral">
+                      {error}
+                    </p>
+                  )}
 
                   {showNav && (
                     <motion.div
