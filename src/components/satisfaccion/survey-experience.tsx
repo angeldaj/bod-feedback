@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "./brand-logo";
 import { PopScene } from "@/components/pop-scene";
+import { submitSurvey } from "@/lib/feedback-api";
 
 function stepFromHash(): number {
   if (typeof window === "undefined") return 0;
@@ -54,6 +55,8 @@ export function SurveyExperience({
   const [dir, setDir] = useState<1 | -1>(1);
   const [state, setState] = useState<SurveyState>(initialSurvey);
   const [height, setHeight] = useState<number | "auto">("auto");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
   const roRef = useRef<ResizeObserver | null>(null);
@@ -119,6 +122,7 @@ export function SurveyExperience({
       setState(initialSurvey);
       setDir(-1);
       setStep(0);
+      setError(null);
       resetScroll();
     },
     setOverall: (n) => setState((s) => ({ ...s, overall: n })),
@@ -135,6 +139,29 @@ export function SurveyExperience({
       })),
     setField: (key, v) => setState((s) => ({ ...s, [key]: v })),
   };
+
+  // En el paso de contacto, "Enviar" manda la encuesta al backend antes de
+  // pasar a la pantalla de gracias. En el resto, solo avanza.
+  async function handleNext() {
+    if (name !== "contact") {
+      goto(1);
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await submitSurvey(state);
+      goto(1);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos enviar tu encuesta. Intenta de nuevo.",
+      );
+    } finally {
+      setSending(false);
+    }
+  }
 
   const pct = Math.round((Math.min(step, 5) / 5) * 100);
   const stepLabel = name === "done" ? "¡Listo!" : `Paso ${Math.max(1, step)} de 5`;
@@ -243,17 +270,29 @@ export function SurveyExperience({
             >
               {renderStep()}
 
+              {error && (
+                <p role="alert" className="mt-4 text-[13px] font-medium text-coral">
+                  {error}
+                </p>
+              )}
+
               {showNav && (
                 <motion.div
                   variants={popStepItem}
                   className="mt-1 flex flex-wrap items-center justify-between gap-3 border-t border-hair-div pt-6"
                 >
-                  <Button variant="popGhost" size="popMd" onClick={actions.back} className="gap-2">
+                  <Button variant="popGhost" size="popMd" onClick={actions.back} className="gap-2" disabled={sending}>
                     <ArrowLeft aria-hidden="true" />
                     Atrás
                   </Button>
-                  <Button variant="pop" size="popMd" onClick={actions.next} className="gap-2">
-                    {nextLabel}
+                  <Button
+                    variant="pop"
+                    size="popMd"
+                    onClick={handleNext}
+                    disabled={sending}
+                    className="gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {sending ? "Enviando…" : nextLabel}
                     {name === "contact" ? (
                       <Send aria-hidden="true" />
                     ) : (
