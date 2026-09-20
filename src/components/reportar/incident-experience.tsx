@@ -32,10 +32,11 @@ import { AudioRecorder } from "./audio-recorder";
 import {
   initialIncident,
   PROBLEMAS,
-  SUCURSALES,
   type IncidentState,
   type MediaItem,
 } from "./incident-data";
+import { submitIncident } from "@/lib/feedback-api";
+import { useBranches } from "@/lib/use-branches";
 
 // Wizard steps (intro + 4 numbered), mirroring the survey. "done" is driven by
 // `phase` after submit, not a step index.
@@ -89,8 +90,14 @@ export function IncidentExperience({
   const [state, setState] = useState<IncidentState>(initialIncident);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [audio, setAudio] = useState<Blob | null>(null);
+  const {
+    names: branchNames,
+    loading: branchesLoading,
+    error: branchesError,
+  } = useBranches();
   const [descMode, setDescMode] = useState<"text" | "audio">("text");
   const [phase, setPhase] = useState<"form" | "sending" | "done">("form");
+  const [error, setError] = useState<string | null>(null);
   const [height, setHeight] = useState<number | "auto">("auto");
 
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -166,10 +173,19 @@ export function IncidentExperience({
   async function submit() {
     if (!hasContent || phase === "sending") return;
     setPhase("sending");
-    // Sin backend por ahora: simulamos el envío. Aquí iría el upload real.
-    await new Promise((r) => setTimeout(r, 1400));
-    setPhase("done");
-    resetScroll();
+    setError(null);
+    try {
+      await submitIncident(state, media, audio);
+      setPhase("done");
+      resetScroll();
+    } catch (err) {
+      setPhase("form");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "No pudimos enviar tu queja. Intenta de nuevo.",
+      );
+    }
   }
 
   function reset() {
@@ -179,6 +195,7 @@ export function IncidentExperience({
     setAudio(null);
     setDescMode("text");
     setPhase("form");
+    setError(null);
     setDir(-1);
     setStep(0);
   }
@@ -246,13 +263,19 @@ export function IncidentExperience({
             </Item>
             <Item className="flex flex-col gap-3">
               <div className={cls.groupLabel}>¿Dónde te atendimos?</div>
-              <ChipGroup
-                variant="branch"
-                ariaLabel="Sucursal"
-                options={SUCURSALES}
-                value={state.sucursal}
-                onSelect={(v) => set("sucursal", v)}
-              />
+              {branchesLoading ? (
+                <p className="text-[13px] text-muted-ink">Cargando sucursales…</p>
+              ) : branchesError ? (
+                <p className="text-[13px] text-coral">{branchesError}</p>
+              ) : (
+                <ChipGroup
+                  variant="branch"
+                  ariaLabel="Sucursal"
+                  options={branchNames}
+                  value={state.sucursal}
+                  onSelect={(v) => set("sucursal", v)}
+                />
+              )}
             </Item>
             <Item className="flex flex-col gap-3">
               <div className={cls.groupLabel}>¿Qué te sucedió?</div>
@@ -469,6 +492,12 @@ export function IncidentExperience({
               ) : (
                 <>
                   {renderStep()}
+
+                  {error && (
+                    <p role="alert" className="mt-4 text-[13px] font-medium text-coral">
+                      {error}
+                    </p>
+                  )}
 
                   {showNav && (
                     <motion.div
