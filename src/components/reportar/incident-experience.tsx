@@ -32,11 +32,11 @@ import { AudioRecorder } from "./audio-recorder";
 import {
   initialIncident,
   PROBLEMAS,
-  SUCURSALES,
   type IncidentState,
   type MediaItem,
 } from "./incident-data";
 import { submitIncident } from "@/lib/feedback-api";
+import { useBranches } from "@/lib/use-branches";
 
 // Wizard steps (intro + 4 numbered), mirroring the survey. "done" is driven by
 // `phase` after submit, not a step index.
@@ -90,6 +90,11 @@ export function IncidentExperience({
   const [state, setState] = useState<IncidentState>(initialIncident);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [audio, setAudio] = useState<Blob | null>(null);
+  const {
+    names: branchNames,
+    loading: branchesLoading,
+    error: branchesError,
+  } = useBranches();
   const [descMode, setDescMode] = useState<"text" | "audio">("text");
   const [phase, setPhase] = useState<"form" | "sending" | "done">("form");
   const [error, setError] = useState<string | null>(null);
@@ -258,13 +263,19 @@ export function IncidentExperience({
             </Item>
             <Item className="flex flex-col gap-3">
               <div className={cls.groupLabel}>¿Dónde te atendimos?</div>
-              <ChipGroup
-                variant="branch"
-                ariaLabel="Sucursal"
-                options={SUCURSALES}
-                value={state.sucursal}
-                onSelect={(v) => set("sucursal", v)}
-              />
+              {branchesLoading ? (
+                <p className="text-[13px] text-muted-ink">Cargando sucursales…</p>
+              ) : branchesError ? (
+                <p className="text-[13px] text-coral">{branchesError}</p>
+              ) : (
+                <ChipGroup
+                  variant="branch"
+                  ariaLabel="Sucursal"
+                  options={branchNames}
+                  value={state.sucursal}
+                  onSelect={(v) => set("sucursal", v)}
+                />
+              )}
             </Item>
             <Item className="flex flex-col gap-3">
               <div className={cls.groupLabel}>¿Qué te sucedió?</div>
