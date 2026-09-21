@@ -438,7 +438,9 @@ export async function register(payload: RegisterPayload): Promise<RegisterResult
   const homeBranchId = payload.homeBranchId;
   const body = {
     nationality: payload.nationality,
-    ci: payload.cedula,
+    // The API validates `ci` as an integer. Keep it as text in the form so
+    // input editing is safe, then normalize it at the request boundary.
+    ci: Number(payload.cedula),
     name: payload.name,
     whatsapp: payload.whatsapp,
     email: payload.email,
