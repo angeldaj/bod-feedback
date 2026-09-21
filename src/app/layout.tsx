@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Barlow_Condensed, Cormorant_Garamond } from "next/font/google";
+import { MemberSessionProvider } from "@/lib/member-session";
 import "./globals.css";
 
 const barlow = Barlow_Condensed({
@@ -36,7 +37,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="relative min-h-dvh">
         <div className="lb-grain" aria-hidden="true" />
         <div className="lb-ember" aria-hidden="true" />
-        {children}
+        <MemberSessionProvider>{children}</MemberSessionProvider>
       </body>
     </html>
   );
