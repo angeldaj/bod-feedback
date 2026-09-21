@@ -47,11 +47,19 @@ async function resolveBranchId(name: string): Promise<string> {
   return match.id;
 }
 
-export async function submitSurvey(state: SurveyState): Promise<void> {
+/**
+ * `accessToken` es opcional: si el socio tiene sesión iniciada (070), se manda
+ * el Bearer para que el backend vincule la encuesta a su cuenta y sume puntos.
+ * Sin sesión, el envío sigue siendo anónimo — no se pide cédula suelta.
+ */
+export async function submitSurvey(state: SurveyState, accessToken?: string | null): Promise<void> {
   const branchId = await resolveBranchId(state.sucursal);
   await request<unknown>("/feedback/surveys", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify({
       branchId,
       overall: state.overall,

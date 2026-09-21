@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { BrandLogo } from "./brand-logo";
 import { PopScene } from "@/components/pop-scene";
 import { submitSurvey } from "@/lib/feedback-api";
+import { useMember } from "@/lib/member-session";
 
 function stepFromHash(): number {
   if (typeof window === "undefined") return 0;
@@ -51,6 +52,7 @@ export function SurveyExperience({
   onUrgent?: () => void;
 } = {}) {
   const reduce = useReducedMotion();
+  const { accessToken } = useMember();
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState<1 | -1>(1);
   const [state, setState] = useState<SurveyState>(initialSurvey);
@@ -150,7 +152,7 @@ export function SurveyExperience({
     setSending(true);
     setError(null);
     try {
-      await submitSurvey(state);
+      await submitSurvey(state, accessToken);
       goto(1);
     } catch (err) {
       setError(
