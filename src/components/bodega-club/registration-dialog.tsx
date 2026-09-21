@@ -1,7 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Check, CircleAlert, LoaderCircle, PartyPopper } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, CircleAlert, Eye, EyeOff, LoaderCircle, PartyPopper } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -20,18 +21,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BRANCHES, PREFERENCES } from "./club-data";
+import { isCedula } from "@/components/auth/login-experience";
+import { useBranches } from "@/lib/use-branches";
+import { useMember } from "@/lib/member-session";
+import { PREFERENCES } from "./club-data";
 import {
   submitClubRegistration,
   type ClubRegistrationPayload,
 } from "./submit-registration";
 
-type FieldErrors = Partial<Record<"name" | "whatsapp" | "birthday" | "membership", string>>;
+type FieldErrors = Partial<
+  Record<"name" | "whatsapp" | "birthday" | "membership" | "cedula" | "email" | "password" | "username", string>
+>;
 type FormState = ClubRegistrationPayload;
 
 const EMPTY_FORM: FormState = {
   name: "",
+  nationality: "V",
+  cedula: "",
   whatsapp: "",
+  email: "",
+  password: "",
+  username: "",
   birthday: "",
   branch: "",
   preferences: [],
@@ -57,6 +68,25 @@ function validateBirthday(value: string) {
     : "La fecha de cumpleaños no puede estar en el futuro.";
 }
 
+function validateCedula(nationality: "V" | "E", cedula: string) {
+  return isCedula(`${nationality}${cedula}`) ? "" : "Escribe tu cédula: solo números, 6 a 9 dígitos.";
+}
+
+function validateEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? "" : "Escribe un correo válido.";
+}
+
+function validatePassword(value: string) {
+  return value.length >= 6 ? "" : "Tu contraseña necesita al menos 6 caracteres.";
+}
+
+function validateUsername(value: string) {
+  if (!value) return "";
+  return /^[a-zA-Z0-9._-]{3,}$/.test(value)
+    ? ""
+    : "Usa letras, números, puntos o guiones, sin espacios.";
+}
+
 function FieldError({ id, children }: { id: string; children?: string }) {
   if (!children) return null;
   return (
@@ -77,12 +107,17 @@ export function RegistrationDialog({
   theme: "day" | "night";
 }) {
   const reduce = useReducedMotion();
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const { branches, loading: branchesLoading } = useBranches();
+  const { adoptSession } = useMember();
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [status, setStatus] = useState<"idle" | "submitting" | "error" | "success">("idle");
   const [serverMessage, setServerMessage] = useState("");
   const [welcomeReward, setWelcomeReward] = useState("");
+  const [welcomeBonus, setWelcomeBonus] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -92,6 +127,8 @@ export function RegistrationDialog({
         setStatus("idle");
         setServerMessage("");
         setWelcomeReward("");
+        setWelcomeBonus(0);
+        setShowPassword(false);
       }, 180);
       return () => window.clearTimeout(reset);
     }
@@ -117,9 +154,17 @@ export function RegistrationDialog({
     const nameError = validateName(form.name);
     const whatsappError = validateWhatsapp(form.whatsapp);
     const birthdayError = validateBirthday(form.birthday);
+    const cedulaError = validateCedula(form.nationality, form.cedula);
+    const emailError = validateEmail(form.email);
+    const passwordError = validatePassword(form.password);
+    const usernameError = validateUsername(form.username);
     if (nameError) next.name = nameError;
     if (whatsappError) next.whatsapp = whatsappError;
     if (birthdayError) next.birthday = birthdayError;
+    if (cedulaError) next.cedula = cedulaError;
+    if (emailError) next.email = emailError;
+    if (passwordError) next.password = passwordError;
+    if (usernameError) next.username = usernameError;
     if (!form.acceptsMembership) {
       next.membership = "Acepta el uso necesario de tus datos para crear la membresía.";
     }
@@ -145,8 +190,13 @@ export function RegistrationDialog({
         ...form,
         name: form.name.trim(),
         whatsapp: form.whatsapp.trim(),
+        cedula: form.cedula.trim(),
+        email: form.email.trim(),
+        username: form.username.trim(),
       });
+      adoptSession(result.session);
       setWelcomeReward(result.welcomeReward);
+      setWelcomeBonus(result.welcomeBonus);
       setStatus("success");
     } catch (error) {
       setStatus("error");
@@ -181,7 +231,7 @@ export function RegistrationDialog({
               <span className="club-success-mark flex size-14 items-center justify-center rounded-full">
                 <PartyPopper className="size-6" aria-hidden="true" />
               </span>
-              <span className="club-points-seal font-serif text-2xl italic">+20</span>
+              <span className="club-points-seal font-serif text-2xl italic">+{welcomeBonus}</span>
             </div>
             <div aria-live="polite">
               <p className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-coral">
@@ -194,7 +244,7 @@ export function RegistrationDialog({
                 Tu bienvenida incluye: {welcomeReward.toLowerCase()}.
               </DialogDescription>
               <p className="mt-4 max-w-[48ch] text-sm leading-relaxed text-muted-ink">
-                Esta versión demuestra el flujo. La cuenta quedará activa cuando conectemos el sistema de registro.
+                Tu sesión ya quedó iniciada. Entra a Mi Club para ver tu tarjeta, tus puntos y las recompensas disponibles.
               </p>
             </div>
             <Button
@@ -202,9 +252,12 @@ export function RegistrationDialog({
               variant="popCoral"
               size="popMd"
               className="w-full shadow-none"
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false);
+                router.push("/mi-club");
+              }}
             >
-              Cerrar bienvenida
+              Ir a Mi Club
             </Button>
           </motion.div>
         ) : (
@@ -217,7 +270,7 @@ export function RegistrationDialog({
                 Únete gratis.
               </DialogTitle>
               <DialogDescription className="max-w-[44ch] text-base leading-relaxed text-body">
-                Tu nombre y WhatsApp bastan para empezar. Los demás datos nos ayudan a darte mejores beneficios.
+                Nombre, cédula, WhatsApp, correo y una contraseña bastan para empezar. Los demás datos nos ayudan a darte mejores beneficios.
               </DialogDescription>
             </DialogHeader>
 
@@ -263,6 +316,124 @@ export function RegistrationDialog({
                 <FieldError id="club-whatsapp-error">{errors.whatsapp}</FieldError>
               </div>
 
+              <div className="grid gap-5 sm:grid-cols-[7rem_1fr]">
+                <div className="grid gap-2">
+                  <label htmlFor="club-nationality" className="club-field-label">Nacionalidad</label>
+                  <Select
+                    name="nationality"
+                    value={form.nationality}
+                    onValueChange={(value) => updateField("nationality", (value as "V" | "E") ?? "V")}
+                    disabled={status === "submitting"}
+                  >
+                    <SelectTrigger id="club-nationality" className="club-form-control w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className={`${theme === "day" ? "day " : ""}club-select-content`}>
+                      <SelectItem value="V" className="club-select-item">V</SelectItem>
+                      <SelectItem value="E" className="club-select-item">E</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="club-cedula" className="club-field-label">Cédula</label>
+                  <Input
+                    id="club-cedula"
+                    name="cedula"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={form.cedula}
+                    onChange={(event) => updateField("cedula", event.target.value.replace(/\D/g, ""))}
+                    onBlur={() =>
+                      setErrors((current) => ({
+                        ...current,
+                        cedula: validateCedula(form.nationality, form.cedula) || undefined,
+                      }))
+                    }
+                    aria-invalid={Boolean(errors.cedula)}
+                    aria-describedby={errors.cedula ? "club-cedula-error" : undefined}
+                    className="club-form-control"
+                    placeholder="12345678"
+                    disabled={status === "submitting"}
+                  />
+                  <FieldError id="club-cedula-error">{errors.cedula}</FieldError>
+                </div>
+              </div>
+
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <label htmlFor="club-email" className="club-field-label">Correo</label>
+                  <Input
+                    id="club-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={(event) => updateField("email", event.target.value)}
+                    onBlur={() => setErrors((current) => ({ ...current, email: validateEmail(form.email) || undefined }))}
+                    aria-invalid={Boolean(errors.email)}
+                    aria-describedby={errors.email ? "club-email-error" : undefined}
+                    className="club-form-control"
+                    placeholder="tú@correo.com"
+                    disabled={status === "submitting"}
+                  />
+                  <FieldError id="club-email-error">{errors.email}</FieldError>
+                </div>
+
+                <div className="grid gap-2">
+                  <label htmlFor="club-username" className="club-field-label">Usuario, opcional</label>
+                  <Input
+                    id="club-username"
+                    name="username"
+                    autoComplete="username"
+                    value={form.username}
+                    onChange={(event) => updateField("username", event.target.value)}
+                    onBlur={() =>
+                      setErrors((current) => ({ ...current, username: validateUsername(form.username) || undefined }))
+                    }
+                    aria-invalid={Boolean(errors.username)}
+                    aria-describedby={errors.username ? "club-username-error" : undefined}
+                    className="club-form-control"
+                    placeholder="tu.usuario"
+                    disabled={status === "submitting"}
+                  />
+                  <FieldError id="club-username-error">{errors.username}</FieldError>
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <label htmlFor="club-password" className="club-field-label">Contraseña</label>
+                <div className="relative">
+                  <Input
+                    id="club-password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={form.password}
+                    onChange={(event) => updateField("password", event.target.value)}
+                    onBlur={() =>
+                      setErrors((current) => ({ ...current, password: validatePassword(form.password) || undefined }))
+                    }
+                    aria-invalid={Boolean(errors.password)}
+                    aria-describedby={errors.password ? "club-password-error" : "club-password-help"}
+                    className="club-form-control pr-10"
+                    placeholder="Al menos 6 caracteres"
+                    disabled={status === "submitting"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-muted-ink transition-colors hover:text-cream"
+                  >
+                    {showPassword ? <EyeOff className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+                  </button>
+                </div>
+                <p id="club-password-help" className="text-sm text-muted-ink">
+                  La usarás para entrar a Mi Club junto con tu cédula o correo.
+                </p>
+                <FieldError id="club-password-error">{errors.password}</FieldError>
+              </div>
+
               <div className="grid gap-5 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <label htmlFor="club-birthday" className="club-field-label">Cumpleaños, opcional</label>
@@ -288,15 +459,15 @@ export function RegistrationDialog({
                     name="branch"
                     value={form.branch || null}
                     onValueChange={(value) => updateField("branch", value ?? "")}
-                    disabled={status === "submitting"}
+                    disabled={status === "submitting" || branchesLoading}
                   >
                     <SelectTrigger id="club-branch" className="club-form-control w-full">
-                      <SelectValue placeholder="Elige una sucursal" />
+                      <SelectValue placeholder={branchesLoading ? "Cargando sucursales…" : "Elige una sucursal"} />
                     </SelectTrigger>
                     <SelectContent className={`${theme === "day" ? "day " : ""}club-select-content`}>
-                      {BRANCHES.map((branch) => (
-                        <SelectItem key={branch} value={branch} className="club-select-item">
-                          {branch}
+                      {branches.map((branch) => (
+                        <SelectItem key={branch.id} value={branch.id} className="club-select-item">
+                          {branch.name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -376,7 +547,7 @@ export function RegistrationDialog({
                 )}
               </Button>
               <p className="text-center text-sm leading-relaxed text-muted-ink" aria-live="polite">
-                {status === "submitting" ? "Estamos preparando tu bienvenida." : "Tus datos no se guardan en esta demostración."}
+                {status === "submitting" ? "Estamos preparando tu bienvenida." : "Tus datos solo se usan para tu membresía en Bodega Club."}
               </p>
             </form>
           </div>
