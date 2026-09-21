@@ -44,6 +44,37 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
+/**
+ * The loyalty endpoints have existed in both direct-list and enveloped forms
+ * while the backend contract is being finalized. Keep that translation here
+ * so components never have to guess whether a response is an array.
+ */
+function readList<T>(payload: unknown, keys: string[], resource: string): T[] {
+  if (Array.isArray(payload)) return payload as T[];
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+    for (const key of [...keys, "data", "items", "results"]) {
+      const value = record[key];
+      if (Array.isArray(value)) return value as T[];
+      if (value && typeof value === "object") {
+        const nested = readList<T>(value, keys, resource);
+        if (nested) return nested;
+      }
+    }
+  }
+  throw new LoyaltyApiError(`Respuesta inválida al cargar ${resource}.`, 502);
+}
+
+function readObject<T>(payload: unknown, resource: string): T {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new LoyaltyApiError(`Respuesta inválida al cargar ${resource}.`, 502);
+  }
+  const record = payload as Record<string, unknown>;
+  const data = record.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) return data as T;
+  return payload as T;
+}
+
 function jsonInit(method: string, body?: unknown, accessToken?: string): RequestInit {
   return {
     method,
@@ -195,7 +226,8 @@ type MemberDto = {
   acceptsMarketing: boolean;
   memberNo: string;
   createdAt: string;
-  tier: MemberTier | null;
+  tier?: MemberTier | null;
+  state?: { balance: number; lifetime: number; tierName: string | null };
   points?: { balance: number; lifetime: number };
   notifyWhatsapp?: boolean;
   notifyEmail?: boolean;
@@ -208,7 +240,7 @@ type PointsEntryDto = {
   points: number;
   occurredAt: string;
   reason: string | null;
-  saleId: number | null;
+  saleId?: number | null;
 };
 
 type MemberPurchaseLineDto = {
@@ -229,9 +261,12 @@ type MemberPurchaseDto = {
 };
 
 type ActivityDto = {
-  balance: number;
-  lifetime: number;
-  movements: PointsEntryDto[];
+  state?: { balance: number; lifetime: number };
+  entries?: PointsEntryDto[];
+  // Kept for compatibility with the pre-contract activity response.
+  balance?: number;
+  lifetime?: number;
+  movements?: PointsEntryDto[];
   purchases: MemberPurchaseDto[];
 };
 
@@ -242,7 +277,7 @@ type RewardDto = {
   pointsCost: number;
   category: string | null;
   imageUrl: string | null;
-  active: boolean;
+  active?: boolean;
   affordable?: boolean;
   missingPoints?: number;
 };
@@ -298,7 +333,12 @@ function formatMemberSince(iso: string | null | undefined): string {
 function mapMember(dto: MemberDto): Member {
   const ciDigits = String(dto.ci);
   const fullName = dto.name;
-  const points = dto.points ?? { balance: 0, lifetime: 0 };
+  const points = dto.points ?? dto.state ?? { balance: 0, lifetime: 0 };
+  const tier = dto.tier ?? (dto.state?.tierName ? {
+    name: dto.state.tierName,
+    minLifetimePoints: 0,
+    benefits: [],
+  } : null);
   return {
     id: dto.id,
     firstName: fullName.split(" ")[0] ?? fullName,
@@ -315,7 +355,7 @@ function mapMember(dto: MemberDto): Member {
     preferences: dto.preferences ?? [],
     acceptsMarketing: dto.acceptsMarketing,
     memberSince: formatMemberSince(dto.createdAt),
-    tier: dto.tier,
+    tier,
     points,
     notificationPreferences: {
       whatsapp: dto.notifyWhatsapp ?? true,
@@ -343,7 +383,7 @@ function purchaseChannel(lines: MemberPurchaseLineDto[] | null | undefined): Pur
 }
 
 function purchaseSummary(lines: MemberPurchaseLineDto[] | null | undefined): string {
-  const names = (lines ?? [])
+  const names = (Array.isArray(lines) ? lines : [])
     .map((line) => line.productName)
     .filter((name): name is string => Boolean(name));
   if (!names.length) return "Compra en La Bodega";
@@ -367,22 +407,24 @@ function mapPurchase(dto: MemberPurchaseDto, pointsBySale: Map<number, number>):
 }
 
 function mapActivity(dto: ActivityDto): Activity {
+  const entries = dto.entries ?? dto.movements ?? [];
+  const state = dto.state;
   const pointsBySale = new Map<number, number>();
-  for (const movement of dto.movements) {
+  for (const movement of entries) {
     if (movement.saleId != null && movement.points > 0) {
       pointsBySale.set(movement.saleId, (pointsBySale.get(movement.saleId) ?? 0) + movement.points);
     }
   }
   return {
-    balance: dto.balance,
-    lifetime: dto.lifetime,
-    movements: dto.movements.map((m) => ({
+    balance: state?.balance ?? dto.balance ?? 0,
+    lifetime: state?.lifetime ?? dto.lifetime ?? 0,
+    movements: entries.map((m) => ({
       id: m.id,
       type: m.type,
       points: m.points,
       occurredAt: m.occurredAt,
       reason: m.reason,
-      saleId: m.saleId,
+      saleId: m.saleId ?? null,
     })),
     purchases: dto.purchases
       .map((p) => mapPurchase(p, pointsBySale))
@@ -398,7 +440,7 @@ function mapReward(dto: RewardDto, balance: number): Reward {
     category: dto.category ?? "Especial",
     note: dto.description ?? "",
     image: dto.imageUrl ?? "",
-    active: dto.active,
+    active: dto.active !== false,
     affordable: dto.affordable ?? balance >= dto.pointsCost,
   };
 }
@@ -505,16 +547,18 @@ export async function updateMe(accessToken: string, patch: UpdateMemberPayload):
 }
 
 export async function getActivity(accessToken: string): Promise<Activity> {
-  const dto = await request<ActivityDto>("/loyalty/me/activity", authedGet(accessToken));
+  const payload = await request<unknown>("/loyalty/me/activity", authedGet(accessToken));
+  const dto = readObject<ActivityDto>(payload, "tu actividad");
   return mapActivity(dto);
 }
 
 export async function getRewards(accessToken: string): Promise<Reward[]> {
-  const [dtos, me] = await Promise.all([
-    request<RewardDto[]>("/loyalty/me/rewards", authedGet(accessToken)),
+  const [payload, me] = await Promise.all([
+    request<unknown>("/loyalty/me/rewards", authedGet(accessToken)),
     getMe(accessToken),
   ]);
-  return dtos.filter((d) => d.active).map((d) => mapReward(d, me.points.balance));
+  const dtos = readList<RewardDto>(payload, ["rewards"], "las recompensas");
+  return dtos.filter((d) => d.active !== false).map((d) => mapReward(d, me.points.balance));
 }
 
 export async function requestRedemption(accessToken: string, rewardId: string): Promise<Redemption> {
@@ -531,16 +575,19 @@ export async function listRedemptions(accessToken: string): Promise<Redemption[]
 }
 
 export async function getQr(accessToken: string): Promise<MemberQr> {
-  return request<MemberQr>("/loyalty/me/qr", authedGet(accessToken));
+  const dto = await request<{ memberNo: string; qrValue: string }>("/loyalty/me/qr", authedGet(accessToken));
+  return { memberNo: dto.memberNo, value: dto.qrValue };
 }
 
 export async function getEvents(accessToken: string): Promise<ClubEvent[]> {
-  const dtos = await request<ClubEventDto[]>("/loyalty/events", authedGet(accessToken));
+  const payload = await request<unknown>("/loyalty/events", authedGet(accessToken));
+  const dtos = readList<ClubEventDto>(payload, ["events"], "los eventos");
   return dtos.filter((d) => d.active).map(mapEvent);
 }
 
 export async function getNotifications(accessToken: string): Promise<MemberNotification[]> {
-  const dtos = await request<NotificationDto[]>("/loyalty/me/notifications", authedGet(accessToken));
+  const payload = await request<unknown>("/loyalty/me/notifications", authedGet(accessToken));
+  const dtos = readList<NotificationDto>(payload, ["notifications"], "las notificaciones");
   return dtos.map(mapNotification);
 }
 
