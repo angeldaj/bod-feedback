@@ -14,7 +14,7 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { POINTS_SERIES } from "./data";
+import type { PointsPoint } from "./data";
 
 /**
  * Points earned per month. An area chart reads the momentum at a glance; colours
@@ -26,9 +26,24 @@ const chartConfig = {
   earned: { label: "Puntos ganados" },
 } satisfies ChartConfig;
 
-export function PointsChart({ theme }: { theme: "day" | "night" }) {
+export function PointsChart({
+  theme,
+  series,
+}: {
+  theme: "day" | "night";
+  /** Serie mensual derivada de la actividad real del socio (`/me/activity`). */
+  series: PointsPoint[];
+}) {
   const reduce = useReducedMotion();
   const day = theme === "day";
+
+  if (!series.length) {
+    return (
+      <div className="flex h-[240px] w-full items-center justify-center text-center text-sm text-muted-ink sm:h-[260px]">
+        Todavía no tienes puntos sumados para graficar este mes.
+      </div>
+    );
+  }
 
   const gold = "#d9a94a";
   const goldHi = day ? "#c8901f" : "#efc77e";
@@ -41,7 +56,7 @@ export function PointsChart({ theme }: { theme: "day" | "night" }) {
       className="!aspect-auto h-[240px] w-full sm:h-[260px]"
     >
       <AreaChart
-        data={POINTS_SERIES}
+        data={series}
         margin={{ top: 10, right: 10, left: -18, bottom: 0 }}
       >
         <defs>

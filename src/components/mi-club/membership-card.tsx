@@ -11,14 +11,23 @@ import {
   useTransform,
   useReducedMotion,
 } from "motion/react";
-import { MEMBER, POINTS } from "./data";
+import type { Member } from "@/lib/loyalty-api";
 
 /**
  * The showpiece: a holographic gold membership card that tilts toward the
  * pointer in 3D and carries a cursor-tracked glare. Falls back to a static card
- * when the user prefers reduced motion. The QR encodes the member's account URL.
+ * when the user prefers reduced motion. The QR encodes the member's real
+ * identification value from `GET /loyalty/me/qr` (or the member number while
+ * it's still loading).
  */
-export function MembershipCard() {
+export function MembershipCard({
+  member,
+  qrValue,
+}: {
+  member: Member;
+  /** Valor real de `/loyalty/me/qr`; cae al número de socio mientras carga. */
+  qrValue: string;
+}) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -86,7 +95,7 @@ export function MembershipCard() {
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-[#2a1608] px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#f3d692]">
             <Sparkles className="size-3.5" aria-hidden="true" />
-            {MEMBER.tier}
+            {member.tier?.name ?? "Bodega Club"}
           </span>
         </div>
 
@@ -97,18 +106,18 @@ export function MembershipCard() {
               Puntos disponibles
             </p>
             <p className="mc-card-value mt-1 text-[3.25rem]">
-              {POINTS.balance}
+              {member.points.balance}
             </p>
             <p className="mt-2 truncate text-base font-semibold uppercase tracking-[0.04em] text-[#3a1e08]">
-              {MEMBER.fullName}
+              {member.fullName}
             </p>
             <p className="font-serif text-sm tracking-[0.14em] text-[#6b3e14] tabular-nums">
-              {MEMBER.memberNo}
+              {member.memberNo}
             </p>
           </div>
           <div className="mc-card-qr shrink-0">
             <QRCode
-              value={MEMBER.qrValue}
+              value={qrValue}
               size={78}
               bgColor="transparent"
               fgColor="#2a1608"
