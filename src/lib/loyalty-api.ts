@@ -196,7 +196,7 @@ type MemberDto = {
   memberNo: string;
   createdAt: string;
   tier: MemberTier | null;
-  points: { balance: number; lifetime: number };
+  points?: { balance: number; lifetime: number };
   notifyWhatsapp?: boolean;
   notifyEmail?: boolean;
   notifyOffers?: boolean;
@@ -298,6 +298,7 @@ function formatMemberSince(iso: string | null | undefined): string {
 function mapMember(dto: MemberDto): Member {
   const ciDigits = String(dto.ci);
   const fullName = dto.name;
+  const points = dto.points ?? { balance: 0, lifetime: 0 };
   return {
     id: dto.id,
     firstName: fullName.split(" ")[0] ?? fullName,
@@ -315,7 +316,7 @@ function mapMember(dto: MemberDto): Member {
     acceptsMarketing: dto.acceptsMarketing,
     memberSince: formatMemberSince(dto.createdAt),
     tier: dto.tier,
-    points: dto.points,
+    points,
     notificationPreferences: {
       whatsapp: dto.notifyWhatsapp ?? true,
       email: dto.notifyEmail ?? false,
