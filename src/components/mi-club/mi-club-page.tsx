@@ -376,6 +376,7 @@ function ResumenSection({
                         <p className="truncate text-sm font-semibold text-cream">{purchase.summary}</p>
                         <p className="text-xs text-muted-ink">
                           {purchase.dateLabel} · {purchase.branch}
+                          {purchase.paymentMethods.length ? ` · ${purchase.paymentMethods.join(", ")}` : ""}
                         </p>
                       </div>
                       <span className="font-serif text-lg leading-none text-gold-accent tabular-nums">
@@ -568,6 +569,11 @@ function ActivitySection({ purchases }: { purchases: Purchase[] }) {
                             <span aria-hidden="true">·</span>
                             <span>{purchase.branch}</span>
                             <span className="mc-channel">{purchase.channel}</span>
+                            {purchase.paymentMethods.map((method) => (
+                              <span key={method} className={method === "Crédito" ? "mc-channel text-coral" : "mc-channel"}>
+                                {method}
+                              </span>
+                            ))}
                           </p>
                         </div>
                         <div className="text-right">

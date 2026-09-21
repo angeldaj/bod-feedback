@@ -257,6 +257,7 @@ type MemberPurchaseDto = {
   branchName: string | null;
   totalUsd: number | string;
   totalBs: number | string;
+  paymentMethods?: string[] | null;
   lines?: MemberPurchaseLineDto[] | null;
 };
 
@@ -390,6 +391,16 @@ function purchaseSummary(lines: MemberPurchaseLineDto[] | null | undefined): str
   return names.slice(0, 2).join(" + ");
 }
 
+function normalizePaymentMethods(methods: string[] | null | undefined): string[] {
+  return (methods ?? [])
+    .map((method) => {
+      const normalized = method.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+      if (normalized === "credito" || normalized === "credit") return "Crédito";
+      return method.trim();
+    })
+    .filter(Boolean);
+}
+
 function mapPurchase(dto: MemberPurchaseDto, pointsBySale: Map<number, number>): Purchase {
   const date = new Date(dto.soldAt);
   const dateLabel = Number.isNaN(date.getTime())
@@ -403,6 +414,7 @@ function mapPurchase(dto: MemberPurchaseDto, pointsBySale: Map<number, number>):
     summary: purchaseSummary(dto.lines),
     amount: Number(dto.totalUsd) || 0,
     points: pointsBySale.get(dto.saleId) ?? 0,
+    paymentMethods: normalizePaymentMethods(dto.paymentMethods),
   };
 }
 

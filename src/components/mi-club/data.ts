@@ -74,6 +74,7 @@ export type Purchase = {
   summary: string;
   amount: number;
   points: number;
+  paymentMethods: string[];
 };
 
 export type ClubEvent = {
