@@ -1,4 +1,4 @@
-// La Bodega — encuesta de satisfacción. Datos y tipos (copy final, no reescribir).
+// La Bodega — encuesta de satisfacción. Datos y tipos.
 
 export const STEPS = [
   "intro",
@@ -45,9 +45,9 @@ export const TEMAS = [
 
 export const STEP_ANNOUNCE: Record<StepName, string> = {
   intro: "Bienvenida",
-  overall: "Paso 1 de 5, satisfacción general",
-  visit: "Paso 2 de 5, tu visita",
-  aspects: "Paso 3 de 5, lo que evaluamos",
+  overall: "Paso 1 de 5, ¿qué tal la pasaste?",
+  visit: "Paso 2 de 5, ¿dónde nos visitaste?",
+  aspects: "Paso 3 de 5, ¿cómo estuvo cada cosa?",
   issues: "Paso 4 de 5, algo que mejorar",
   contact: "Paso 5 de 5, contacto",
   done: "Encuesta completada, gracias",

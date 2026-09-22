@@ -3,9 +3,9 @@ import { chromium } from "playwright";
 const OUT = process.argv[2] || ".";
 const steps = {
   intro: "¿Cómo estuvo",
-  overall: "Satisfacción general",
-  visit: "Tu visita",
-  aspects: "Lo que evaluamos",
+  overall: "¿Qué tal la pasaste?",
+  visit: "¿Dónde nos visitaste?",
+  aspects: "¿Cómo estuvo cada cosa?",
   issues: "¿Algo que mejorar?",
   contact: "¿Te contactamos?",
   done: "Gracias",

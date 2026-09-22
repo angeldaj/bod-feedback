@@ -7,10 +7,15 @@ import {
   Armchair,
   Clock,
   HandPlatter,
+  MapPin,
+  Moon,
+  ShoppingBag,
+  Sun,
+  Sunrise,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { popStepItem } from "./motion";
+import { popStepItem, springBouncy } from "./motion";
 import { RatingScale } from "./rating-scale";
 import { ChipGroup } from "./chip-group";
 import { BrandTextField, BrandTextArea } from "./brand-field";
@@ -44,6 +49,14 @@ const ASPECT_ICON: Record<AspectKey, LucideIcon> = {
   servicio: HandPlatter,
   ambiente: Armchair,
   tiempo: Clock,
+};
+
+// Icono por momento del día — lectura instantánea al escoger cuándo nos visitaste.
+const MOMENTO_ICON: Record<string, LucideIcon> = {
+  Desayuno: Sunrise,
+  Almuerzo: Sun,
+  Cena: Moon,
+  "Para llevar": ShoppingBag,
 };
 
 // Color del texto de reacción, ligado a la nota. Tonos profundos que leen
@@ -137,7 +150,12 @@ export function OverallStep({
     <>
       <Item className={cls.eyebrow}>Paso uno</Item>
       <Item>
-        <h2 className={cls.title}>Satisfacción general</h2>
+        <h2 className={cls.title}>¿Qué tal la pasaste?</h2>
+      </Item>
+      <Item>
+        <p className="font-serif text-[18px] italic text-muted-ink">
+          Del 1 al 5: uno si algo falló, cinco si te vas con ganas de volver.
+        </p>
       </Item>
       <Item>
         <RatingScale
@@ -169,7 +187,7 @@ export function OverallStep({
   );
 }
 
-// ---- Step 2: Tu visita ----
+// ---- Step 2: ¿Dónde nos visitaste? ----
 export function VisitStep({
   state,
   actions,
@@ -178,14 +196,30 @@ export function VisitStep({
   actions: StepActions;
 }) {
   const { names: branchNames, loading, error } = useBranches();
+
+  // Sucursales dinámicas: un pin por cada nombre de sucursal.
+  const branchIcons: Record<string, LucideIcon> = {};
+  for (const name of branchNames) branchIcons[name] = MapPin;
+
   return (
     <>
       <Item className={cls.eyebrow}>Paso dos</Item>
       <Item>
-        <h2 className={cls.title}>Tu visita</h2>
+        <h2 className={cls.title}>¿Dónde nos visitaste?</h2>
       </Item>
+      <Item>
+        <p className="font-serif text-[18px] italic text-muted-ink">
+          Así sabemos a qué equipo darle tu opinión.
+        </p>
+      </Item>
+
       <Item className="flex flex-col gap-3">
-        <div className={cls.groupLabel}>Sucursal</div>
+        <div className={cls.groupLabel}>
+          <span className="inline-flex items-center gap-2">
+            <MapPin size={14} strokeWidth={2.2} aria-hidden="true" className="text-gold-accent" />
+            La sucursal
+          </span>
+        </div>
         {loading ? (
           <p className="text-[13px] text-muted-ink">Cargando sucursales…</p>
         ) : error ? (
@@ -194,21 +228,48 @@ export function VisitStep({
           <ChipGroup
             variant="branch"
             ariaLabel="Sucursal"
+            icons={branchIcons}
             options={branchNames}
             value={state.sucursal}
             onSelect={actions.setSucursal}
           />
         )}
       </Item>
+
       <Item className="flex flex-col gap-3">
-        <div className={cls.groupLabel}>Momento</div>
+        <div className={cls.groupLabel}>
+          <span className="inline-flex items-center gap-2">
+            <Clock size={14} strokeWidth={2.2} aria-hidden="true" className="text-gold-accent" />
+            ¿En qué momento?
+          </span>
+        </div>
         <ChipGroup
           variant="branch"
           ariaLabel="Momento"
+          icons={MOMENTO_ICON}
           options={MOMENTOS}
           value={state.momento}
           onSelect={actions.setMomento}
         />
+      </Item>
+
+      <Item className="min-h-[1.5em]">
+        <AnimatePresence mode="wait">
+          {state.sucursal && (
+            <motion.p
+              key={`${state.sucursal}-${state.momento}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.3 }}
+              className="font-serif text-[20px] italic text-gold-accent"
+            >
+              {state.momento
+                ? `${state.momento} en ${state.sucursal} — gracias por venir.`
+                : `Nos alegra verte en ${state.sucursal}.`}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </Item>
     </>
   );
@@ -226,20 +287,35 @@ export function AspectsStep({
     <>
       <Item className={cls.eyebrow}>Paso tres</Item>
       <Item>
-        <h2 className={cls.title}>Lo que evaluamos</h2>
+        <h2 className={cls.title}>¿Cómo estuvo cada cosa?</h2>
+      </Item>
+      <Item>
+        <p className="font-serif text-[18px] italic text-muted-ink">
+          Puntúa lo que más te importó. Los que dejes en blanco, los saltamos.
+        </p>
       </Item>
       <Item className="flex flex-col gap-1">
         {ASPECTS.map((a) => {
           const Icon = ASPECT_ICON[a.key];
+          const rated = state.aspects[a.key] > 0;
           return (
             <div
               key={a.key}
               className="flex flex-wrap items-center justify-between gap-4 border-t border-hair-div py-4 first:border-t-0 max-[560px]:flex-col max-[560px]:items-start max-[560px]:gap-2.5"
             >
               <div className="flex items-center gap-3.5">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--lb-input)] text-gold-accent">
+                <motion.span
+                  animate={{ scale: rated ? 1.06 : 1 }}
+                  transition={springBouncy}
+                  className={
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors duration-300 " +
+                    (rated
+                      ? "bg-[linear-gradient(105deg,var(--lb-gold-hi),var(--lb-gold))] text-[color:var(--lb-ink-on-gold)] shadow-[0_8px_20px_-8px_rgba(217,169,74,0.7)]"
+                      : "bg-[var(--lb-input)] text-gold-accent")
+                  }
+                >
                   <Icon size={20} strokeWidth={1.9} aria-hidden="true" />
-                </span>
+                </motion.span>
                 <div>
                   <div className="text-[21px] font-semibold uppercase tracking-[0.02em] text-cream">
                     {a.label}
@@ -278,6 +354,11 @@ export function IssuesStep({
       <Item>
         <h2 className={cls.title}>¿Algo que mejorar?</h2>
       </Item>
+      <Item>
+        <p className="font-serif text-[18px] italic text-muted-ink">
+          Marca lo que aplique. Entre más nos cuentes, mejor te cuidamos.
+        </p>
+      </Item>
 
       {lowScore && (
         <Item>
@@ -312,6 +393,7 @@ export function IssuesStep({
         <ChipGroup
           variant="topic"
           multi
+          checkOnSelected
           ariaLabel="Temas a mejorar"
           options={TEMAS}
           value={state.temas}
