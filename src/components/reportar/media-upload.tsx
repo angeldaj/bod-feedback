@@ -32,7 +32,9 @@ export function MediaUpload({ items, onChange }: Props) {
 
   // Revoca los object URLs al desmontar para no filtrar memoria.
   const itemsRef = useRef(items);
-  itemsRef.current = items;
+  useEffect(() => {
+    itemsRef.current = items;
+  });
   useEffect(
     () => () => itemsRef.current.forEach((it) => URL.revokeObjectURL(it.url)),
     [],

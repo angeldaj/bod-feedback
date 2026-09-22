@@ -33,6 +33,7 @@ export function AudioRecorder({
       typeof window !== "undefined" &&
       (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia)
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- detección de capacidad del navegador al montar
       setStatus("unsupported");
     }
   }, []);

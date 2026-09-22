@@ -35,6 +35,7 @@ export function CountUp({
 
   React.useEffect(() => {
     if (reduce) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin animación: salta directo al valor final
       setDisplay(value);
       prevRef.current = value;
       return;

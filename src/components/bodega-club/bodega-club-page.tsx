@@ -101,6 +101,7 @@ function CountUp({ to, className }: { to: number; className?: string }) {
   useEffect(() => {
     if (!inView) return;
     if (reduce) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sin animación: salta directo al valor final
       setValue(to);
       return;
     }

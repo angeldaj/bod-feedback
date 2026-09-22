@@ -66,6 +66,7 @@ export function SurveyExperience({
 
   // Deep-link: #overall, #aspects, … abre/comparte un paso concreto.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- lee el hash del navegador solo en cliente (evita mismatch de hidratación)
     setStep(stepFromHash());
   }, []);
 
