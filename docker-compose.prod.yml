@@ -1,0 +1,27 @@
+# Landing pública — producción en el VPS.
+#
+# Se une a la red externa `la_bodega_net` (la crea deploy/db de bodega-api).
+# NO publica puertos: el único ingress del VPS es el Caddy que vive en el
+# compose de bodega-api. Ese Caddy enruta labodega-ve.com -> landing:3000 por
+# nombre de servicio dentro de la red (ver deploy/README.md, paso Caddy).
+
+networks:
+  la_bodega_net:
+    external: true
+
+services:
+  landing:
+    build:
+      context: .
+      args:
+        # URL pública del backend real (se hornea en el bundle en build time).
+        # Se toma del archivo .env junto a este compose.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>{if(r.status>=500)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    networks:
+      - la_bodega_net

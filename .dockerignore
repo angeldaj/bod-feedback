@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.github
+npm-debug.log*
+*.local
+.env
+.env.*
+!.env.example
+deploy
+shots
+*.png
+README.md
+DESIGN.md
+PRODUCT.md
+ECOSYSTEM.md
