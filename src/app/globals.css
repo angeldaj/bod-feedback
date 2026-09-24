@@ -2363,3 +2363,57 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   /pedidos — scroll de marca. Riel invisible, thumb en píldora
+   dorada que "flota" (borde transparente + background-clip) y se
+   enciende al hover/arrastre. Solo en la página (html:has) y en el
+   modal/selector del pedido, para no alterar el resto del sitio.
+   ============================================================ */
+@layer components {
+  /* Reserva el riel en la página para que el layout no salte entre pasos. */
+  html:has(.pedidos-root) {
+    scrollbar-gutter: stable;
+    /* El riel transparente deja ver el lienzo: que sea el suelo nocturno. */
+    background: var(--lb-ground);
+    color-scheme: dark;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar,
+  .pedidos-scroll::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar-track,
+  .pedidos-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar-thumb,
+  .pedidos-scroll::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(239, 199, 126, 0.7), rgba(217, 169, 74, 0.45)) padding-box;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar-thumb:hover,
+  .pedidos-scroll::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+    background: linear-gradient(180deg, var(--lb-gold-hi), var(--lb-gold) 60%, var(--lb-coral)) padding-box;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar-thumb:active,
+  .pedidos-scroll::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, var(--lb-gold-hi), var(--lb-coral)) padding-box;
+  }
+  html:has(.pedidos-root)::-webkit-scrollbar-corner,
+  .pedidos-scroll::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  /* Firefox (sin ::-webkit-scrollbar): versión estándar fina y dorada.
+     Se aísla en @supports porque en Chromium `scrollbar-color` anula
+     los pseudo-elementos de arriba. */
+  @supports not selector(::-webkit-scrollbar) {
+    html:has(.pedidos-root),
+    .pedidos-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(217, 169, 74, 0.55) transparent;
+    }
+  }
+}

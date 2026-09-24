@@ -27,16 +27,19 @@ export function Photo({
   priority?: boolean;
   className?: string;
 }) {
-  const src = id.startsWith("/")
-    ? id
-    : `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&q=72&auto=format&fit=crop`;
+  // Ruta local, URL absoluta (fotos de productos en Cloudinary) o id de Unsplash.
+  const src =
+    id.startsWith("/") || id.startsWith("https://")
+      ? id
+      : `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&q=72&auto=format&fit=crop`;
   return (
     <>
       <span
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(135deg,#f6b45a,#e2492a)]"
       />
-      <Image
+      {/* Sin foto queda solo el degradado. */}
+      {id && <Image
         src={src}
         alt={alt}
         fill
@@ -44,7 +47,7 @@ export function Photo({
         priority={priority}
         sizes={sizes}
         className={"object-cover " + className}
-      />
+      />}
     </>
   );
 }
