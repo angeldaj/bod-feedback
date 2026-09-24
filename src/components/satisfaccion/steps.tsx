@@ -3,60 +3,83 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import {
-  ArrowRight,
   Armchair,
+  ArrowRight,
+  Bike,
   Clock,
+  Croissant,
+  ExternalLink,
+  Gift,
   HandPlatter,
+  HeartHandshake,
   MapPin,
   Moon,
+  Package,
   ShoppingBag,
+  Sparkles,
+  Star,
+  Store,
   Sun,
   Sunrise,
+  Timer,
   UtensilsCrossed,
   type LucideIcon,
 } from "lucide-react";
-import { popStepItem, springBouncy } from "./motion";
+import { springBouncy } from "./motion";
 import { RatingScale } from "./rating-scale";
+import { NpsScale } from "./nps-scale";
 import { ChipGroup } from "./chip-group";
 import { BrandTextField, BrandTextArea } from "./brand-field";
-import { SurveyQR } from "./survey-qr";
 import { Button } from "@/components/ui/button";
 import {
-  ASPECTS,
-  MOMENTOS,
-  OVERALL_LABELS,
-  TEMAS,
+  ASPECTS_BY_CHANNEL,
+  CHANNELS,
+  CHANNEL_LABELS,
+  MOMENTS,
+  MOMENT_LABELS,
+  TOPICS,
+  TOPIC_LABELS,
   type AspectKey,
-  type SurveyState,
-} from "./survey-data";
+  type Channel,
+  type Moment,
+  type Topic,
+} from "@/components/feedback/feedback-catalog";
+import { cls, FieldError, GroupLabel, Item, StepHeading } from "@/components/feedback/wizard";
+import { OVERALL_LABELS, type SurveyField, type SurveyState } from "./survey-data";
 import { useBranches } from "@/lib/use-branches";
+import type { SurveyResult } from "@/lib/feedback-api";
 
-// ---- Shared typographic blocks (pop register) ----
-const cls = {
-  eyebrow: "text-[12px] font-semibold uppercase tracking-[0.2em] text-coral",
-  eyebrowSerif: "font-serif italic text-[22px] text-gold-accent",
-  title:
-    "m-0 text-[40px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream text-balance max-[560px]:text-[32px]",
-  headline:
-    "m-0 text-[54px] font-semibold uppercase leading-[0.9] tracking-[0.01em] text-balance text-cream max-[560px]:text-[clamp(38px,11vw,54px)]",
-  body: "text-[18px] leading-[1.55] text-body max-w-[52ch] text-pretty",
-  groupLabel: "text-[13px] font-medium uppercase tracking-[0.14em] text-label",
+export type SurveyErrors = Partial<Record<SurveyField, string>>;
+
+export type StepProps = {
+  state: SurveyState;
+  update: (patch: Partial<SurveyState>) => void;
+  errors: SurveyErrors;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
 };
 
-// Un icono por aspecto evaluado (deleite y lectura rápida).
+// Un icono por opción: lectura instantánea al escoger.
+const CHANNEL_ICON: Record<Channel, LucideIcon> = {
+  dine_in: UtensilsCrossed,
+  bakery: Croissant,
+  takeaway: ShoppingBag,
+  delivery: Bike,
+};
+
+const MOMENT_ICON: Record<Moment, LucideIcon> = {
+  breakfast: Sunrise,
+  lunch: Sun,
+  dinner: Moon,
+};
+
 const ASPECT_ICON: Record<AspectKey, LucideIcon> = {
-  comida: UtensilsCrossed,
-  servicio: HandPlatter,
-  ambiente: Armchair,
-  tiempo: Clock,
-};
-
-// Icono por momento del día — lectura instantánea al escoger cuándo nos visitaste.
-const MOMENTO_ICON: Record<string, LucideIcon> = {
-  Desayuno: Sunrise,
-  Almuerzo: Sun,
-  Cena: Moon,
-  "Para llevar": ShoppingBag,
+  food: UtensilsCrossed,
+  service: HandPlatter,
+  ambiance: Armchair,
+  waitTime: Clock,
+  packaging: Package,
+  punctuality: Timer,
+  courier: Bike,
 };
 
 // Color del texto de reacción, ligado a la nota. Tonos profundos que leen
@@ -69,105 +92,164 @@ const SENT_TEXT: Record<number, string> = {
   5: "#b0710f",
 };
 
-function Item({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+const errId = (field: SurveyField) => `survey-err-${field}`;
+
+function toggle<T>(list: readonly T[], value: T): T[] {
+  return list.includes(value) ? list.filter((v) => v !== value) : [...list, value];
+}
+
+/** Atajo a queja cuando la nota es baja (pasos 2 y 4). */
+function ComplainShortcut({ onComplain, detailed }: { onComplain: () => void; detailed?: boolean }) {
   return (
-    <motion.div variants={popStepItem} className={className}>
-      {children}
-    </motion.div>
+    <div className="flex flex-col gap-3 rounded-[18px] border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="pop-badge pop-badge-coral text-[12px] uppercase tracking-[0.06em]">Queja</span>
+        <span className="text-[16px] font-semibold text-cream">¿Algo no estuvo bien?</span>
+      </div>
+      {detailed && (
+        <p className="text-[15px] leading-[1.5] text-body">
+          Si encontraste comida en mal estado, fría, cruda o un objeto extraño, no hace falta que
+          llenes toda la encuesta: repórtalo con una foto y lo resolvemos de inmediato para ti.
+        </p>
+      )}
+      <div>
+        <Button variant="popCoral" size="popSm" onClick={onComplain} className="min-h-11 gap-2">
+          Repórtalo como queja
+          <ArrowRight aria-hidden="true" />
+        </Button>
+      </div>
+    </div>
   );
 }
 
-export type StepActions = {
-  next: () => void;
-  back: () => void;
-  restart: () => void;
-  setOverall: (n: number) => void;
-  setSucursal: (v: string) => void;
-  setMomento: (v: string) => void;
-  setAspect: (key: AspectKey, n: number) => void;
-  toggleTema: (label: string) => void;
-  setField: (key: "comentario" | "nombre" | "contacto", v: string) => void;
-};
+// ---- Paso 1: ¿Dónde nos visitaste? ----
+export function VisitStep({ state, update, errors, headingRef }: StepProps) {
+  const { branches, loading, error } = useBranches();
+  const branchIds = branches.map((b) => b.id);
+  const branchLabels = Object.fromEntries(branches.map((b) => [b.id, b.name]));
+  const branchIcons = Object.fromEntries(branches.map((b) => [b.id, MapPin]));
+  const branchName = branchLabels[state.branchId];
 
-// ---- Step 0: Intro ----
-export function IntroStep({ actions }: { actions: StepActions }) {
   return (
     <>
-      <Item className={cls.eyebrowSerif}>Gracias por acompañarnos</Item>
-      <Item>
-        <h1 className={cls.headline}>
-          ¿Cómo estuvo
-          <br />
-          tu visita?
-        </h1>
+      <StepHeading
+        eyebrow="Paso uno"
+        title="¿Dónde nos visitaste?"
+        lead="Así tu opinión llega al equipo correcto."
+        headingRef={headingRef}
+      />
+
+      <Item className="flex flex-col gap-3">
+        <GroupLabel id="survey-branch-label" icon={Store}>
+          La sucursal
+        </GroupLabel>
+        {loading ? (
+          <p className="text-[14px] text-muted-ink">Cargando sucursales…</p>
+        ) : error ? (
+          <p role="alert" className="text-[14px] text-coral">
+            {error}
+          </p>
+        ) : (
+          <ChipGroup
+            variant="branch"
+            ariaLabel="Sucursal"
+            icons={branchIcons}
+            options={branchIds}
+            labels={branchLabels}
+            value={state.branchId}
+            onSelect={(v) => update({ branchId: v })}
+            invalid={Boolean(errors.branchId)}
+            describedBy={errors.branchId ? errId("branchId") : undefined}
+          />
+        )}
+        <FieldError id={errId("branchId")} message={errors.branchId} />
       </Item>
-      <Item>
-        <p className={cls.body}>
-          En La Bodega queremos atenderte con el mayor estándar. Cuéntanos cómo
-          te fue: te toma menos de dos minutos y nos ayuda a cuidarte aún mejor
-          en tu próxima visita.
-        </p>
+
+      <Item className="flex flex-col gap-3">
+        <GroupLabel icon={UtensilsCrossed}>¿Cómo nos visitaste?</GroupLabel>
+        <ChipGroup
+          variant="branch"
+          ariaLabel="¿Cómo nos visitaste?"
+          icons={CHANNEL_ICON}
+          options={CHANNELS}
+          labels={CHANNEL_LABELS}
+          value={state.channel}
+          onSelect={(v) => update({ channel: v as Channel })}
+          invalid={Boolean(errors.channel)}
+          describedBy={errors.channel ? errId("channel") : undefined}
+        />
+        <FieldError id={errId("channel")} message={errors.channel} />
       </Item>
-      <Item className="mt-1 flex flex-wrap items-center gap-4">
-        <Button variant="pop" size="popLg" onClick={actions.next} className="gap-2">
-          Comenzar
-          <ArrowRight aria-hidden="true" />
-        </Button>
-        <span className="font-serif text-[18px] italic text-muted-ink">
-          Anónimo si así lo prefieres
-        </span>
+
+      <Item className="flex flex-col gap-3">
+        <GroupLabel icon={Clock}>¿En qué momento?</GroupLabel>
+        <ChipGroup
+          variant="branch"
+          ariaLabel="¿En qué momento?"
+          icons={MOMENT_ICON}
+          options={MOMENTS}
+          labels={MOMENT_LABELS}
+          value={state.moment}
+          onSelect={(v) => update({ moment: v as Moment })}
+          invalid={Boolean(errors.moment)}
+          describedBy={errors.moment ? errId("moment") : undefined}
+        />
+        <FieldError id={errId("moment")} message={errors.moment} />
       </Item>
-      <Item className="mt-1 flex flex-wrap items-center gap-5 border-t border-hair-div pt-6">
-        <div className="overflow-hidden rounded-2xl">
-          <SurveyQR size={98} />
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className={cls.groupLabel}>¿Prefieres tu teléfono?</span>
-          <span className="font-serif text-[18px] italic text-muted-ink">
-            Escanea el código para abrir la encuesta.
-          </span>
-        </div>
+
+      <Item className="min-h-[1.5em]">
+        <AnimatePresence mode="wait">
+          {branchName && (
+            <motion.p
+              key={`${state.branchId}-${state.moment}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.3 }}
+              className="font-serif text-[20px] italic text-gold-accent"
+            >
+              {state.moment
+                ? `${MOMENT_LABELS[state.moment]} en ${branchName}, gracias por venir.`
+                : `Nos alegra verte en ${branchName}.`}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </Item>
     </>
   );
 }
 
-// ---- Step 1: Satisfacción general ----
+// ---- Paso 2: ¿Qué tal la pasaste? ----
 export function OverallStep({
   state,
-  actions,
-}: {
-  state: SurveyState;
-  actions: StepActions;
-}) {
+  update,
+  errors,
+  headingRef,
+  onComplain,
+}: StepProps & { onComplain: () => void }) {
+  const lowScore = state.overall > 0 && state.overall <= 2;
   return (
     <>
-      <Item className={cls.eyebrow}>Paso uno</Item>
-      <Item>
-        <h2 className={cls.title}>¿Qué tal la pasaste?</h2>
-      </Item>
-      <Item>
-        <p className="font-serif text-[18px] italic text-muted-ink">
-          Del 1 al 5: uno si algo falló, cinco si te vas con ganas de volver.
-        </p>
-      </Item>
-      <Item>
+      <StepHeading
+        eyebrow="Paso dos"
+        title="¿Qué tal la pasaste?"
+        lead="Uno si algo falló, cinco si te vas con ganas de volver."
+        headingRef={headingRef}
+      />
+      <Item className="flex flex-col gap-3">
         <RatingScale
           variant="overall"
           value={state.overall}
-          onChange={actions.setOverall}
+          onChange={(n) => update({ overall: n })}
           ariaLabel="Satisfacción general, de 1 a 5"
+          invalid={Boolean(errors.overall)}
+          describedBy={errors.overall ? errId("overall") : undefined}
         />
-      </Item>
-      <Item className="flex max-w-[430px] justify-between text-[13px] font-medium uppercase tracking-[0.12em] text-label">
-        <span>Mala</span>
-        <span>Excelente</span>
+        <div className="flex max-w-[430px] justify-between text-[13px] font-medium uppercase tracking-[0.12em] text-label">
+          <span>Mala</span>
+          <span>Excelente</span>
+        </div>
+        <FieldError id={errId("overall")} message={errors.overall} />
       </Item>
       <Item className="min-h-[1.5em] font-serif text-[22px] italic">
         <AnimatePresence mode="wait">
@@ -183,121 +265,31 @@ export function OverallStep({
           </motion.span>
         </AnimatePresence>
       </Item>
+      {lowScore && (
+        <Item>
+          <ComplainShortcut onComplain={onComplain} />
+        </Item>
+      )}
     </>
   );
 }
 
-// ---- Step 2: ¿Dónde nos visitaste? ----
-export function VisitStep({
-  state,
-  actions,
-}: {
-  state: SurveyState;
-  actions: StepActions;
-}) {
-  const { names: branchNames, loading, error } = useBranches();
-
-  // Sucursales dinámicas: un pin por cada nombre de sucursal.
-  const branchIcons: Record<string, LucideIcon> = {};
-  for (const name of branchNames) branchIcons[name] = MapPin;
-
+// ---- Paso 3: ¿Cómo estuvo cada cosa? (aspectos según el canal) ----
+export function AspectsStep({ state, update, headingRef }: StepProps) {
+  const aspects = state.channel ? ASPECTS_BY_CHANNEL[state.channel] : [];
   return (
     <>
-      <Item className={cls.eyebrow}>Paso dos</Item>
-      <Item>
-        <h2 className={cls.title}>¿Dónde nos visitaste?</h2>
-      </Item>
-      <Item>
-        <p className="font-serif text-[18px] italic text-muted-ink">
-          Así sabemos a qué equipo darle tu opinión.
-        </p>
-      </Item>
-
-      <Item className="flex flex-col gap-3">
-        <div className={cls.groupLabel}>
-          <span className="inline-flex items-center gap-2">
-            <MapPin size={14} strokeWidth={2.2} aria-hidden="true" className="text-gold-accent" />
-            La sucursal
-          </span>
-        </div>
-        {loading ? (
-          <p className="text-[13px] text-muted-ink">Cargando sucursales…</p>
-        ) : error ? (
-          <p className="text-[13px] text-coral">{error}</p>
-        ) : (
-          <ChipGroup
-            variant="branch"
-            ariaLabel="Sucursal"
-            icons={branchIcons}
-            options={branchNames}
-            value={state.sucursal}
-            onSelect={actions.setSucursal}
-          />
-        )}
-      </Item>
-
-      <Item className="flex flex-col gap-3">
-        <div className={cls.groupLabel}>
-          <span className="inline-flex items-center gap-2">
-            <Clock size={14} strokeWidth={2.2} aria-hidden="true" className="text-gold-accent" />
-            ¿En qué momento?
-          </span>
-        </div>
-        <ChipGroup
-          variant="branch"
-          ariaLabel="Momento"
-          icons={MOMENTO_ICON}
-          options={MOMENTOS}
-          value={state.momento}
-          onSelect={actions.setMomento}
-        />
-      </Item>
-
-      <Item className="min-h-[1.5em]">
-        <AnimatePresence mode="wait">
-          {state.sucursal && (
-            <motion.p
-              key={`${state.sucursal}-${state.momento}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.3 }}
-              className="font-serif text-[20px] italic text-gold-accent"
-            >
-              {state.momento
-                ? `${state.momento} en ${state.sucursal} — gracias por venir.`
-                : `Nos alegra verte en ${state.sucursal}.`}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </Item>
-    </>
-  );
-}
-
-// ---- Step 3: Lo que evaluamos ----
-export function AspectsStep({
-  state,
-  actions,
-}: {
-  state: SurveyState;
-  actions: StepActions;
-}) {
-  return (
-    <>
-      <Item className={cls.eyebrow}>Paso tres</Item>
-      <Item>
-        <h2 className={cls.title}>¿Cómo estuvo cada cosa?</h2>
-      </Item>
-      <Item>
-        <p className="font-serif text-[18px] italic text-muted-ink">
-          Puntúa lo que más te importó. Los que dejes en blanco, los saltamos.
-        </p>
-      </Item>
+      <StepHeading
+        eyebrow="Paso tres"
+        title="¿Cómo estuvo cada cosa?"
+        lead="Puntúa solo lo que quieras; lo que dejes en blanco lo saltamos."
+        headingRef={headingRef}
+      />
       <Item className="flex flex-col gap-1">
-        {ASPECTS.map((a) => {
+        {aspects.map((a) => {
           const Icon = ASPECT_ICON[a.key];
-          const rated = state.aspects[a.key] > 0;
+          const value = state.aspects[a.key] ?? 0;
+          const rated = value > 0;
           return (
             <div
               key={a.key}
@@ -308,7 +300,7 @@ export function AspectsStep({
                   animate={{ scale: rated ? 1.06 : 1 }}
                   transition={springBouncy}
                   className={
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl transition-colors duration-300 " +
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] transition-colors duration-300 " +
                     (rated
                       ? "bg-[linear-gradient(105deg,var(--lb-gold-hi),var(--lb-gold))] text-[color:var(--lb-ink-on-gold)] shadow-[0_8px_20px_-8px_rgba(217,169,74,0.7)]"
                       : "bg-[var(--lb-input)] text-gold-accent")
@@ -320,16 +312,20 @@ export function AspectsStep({
                   <div className="text-[21px] font-semibold uppercase tracking-[0.02em] text-cream">
                     {a.label}
                   </div>
-                  <div className="font-serif text-[16px] italic text-muted-ink">
-                    {a.hint}
-                  </div>
+                  <div className="font-serif text-[16px] italic text-muted-ink">{a.hint}</div>
                 </div>
               </div>
               <RatingScale
                 variant="dots"
-                value={state.aspects[a.key]}
-                onChange={(n) => actions.setAspect(a.key, n)}
-                ariaLabel={`${a.label}, de 1 a 5`}
+                clearable
+                value={value}
+                onChange={(n) => {
+                  const next = { ...state.aspects };
+                  if (n) next[a.key] = n;
+                  else delete next[a.key];
+                  update({ aspects: next });
+                }}
+                ariaLabel={`${a.label}, de 1 a 5 (opcional)`}
               />
             </div>
           );
@@ -339,72 +335,76 @@ export function AspectsStep({
   );
 }
 
-// ---- Step 4: ¿Algo que mejorar? ----
-export function IssuesStep({
+// ---- Paso 4: lo que más te gustó / lo que podemos mejorar ----
+export function TopicsStep({
   state,
-  actions,
-}: {
-  state: SurveyState;
-  actions: StepActions;
-}) {
+  update,
+  headingRef,
+  onComplain,
+}: StepProps & { onComplain: () => void }) {
   const lowScore = state.overall > 0 && state.overall <= 2;
   return (
     <>
-      <Item className={cls.eyebrow}>Paso cuatro</Item>
-      <Item>
-        <h2 className={cls.title}>¿Algo que mejorar?</h2>
-      </Item>
-      <Item>
-        <p className="font-serif text-[18px] italic text-muted-ink">
-          Marca lo que aplique. Entre más nos cuentes, mejor te cuidamos.
-        </p>
-      </Item>
-
-      {lowScore && (
-        <Item>
-          <div className="flex flex-col gap-3 rounded-2xl border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] p-4">
-            <div className="flex items-center gap-2">
-              <span className="pop-badge pop-badge-coral text-[12px] uppercase tracking-[0.06em]">
-                Queja
-              </span>
-              <span className="text-[15px] font-semibold text-cream">
-                ¿Algo no estuvo bien?
-              </span>
-            </div>
-            <p className="text-[15px] leading-[1.5] text-body">
-              Si encontraste comida en mal estado, fría, cruda o un objeto
-              extraño, no hace falta que llenes toda la encuesta: repórtalo con
-              una foto y lo resolvemos de inmediato para ti.
-            </p>
-            <div>
-              <Button
-                variant="popCoral"
-                size="popSm"
-                render={<Link href="/feedback?tab=urgente" />}
-              >
-                Reportar mi queja
-              </Button>
-            </div>
-          </div>
-        </Item>
-      )}
-
+      <StepHeading eyebrow="Paso cuatro" title="Lo que más te gustó" headingRef={headingRef} />
       <Item>
         <ChipGroup
           variant="topic"
           multi
           checkOnSelected
-          ariaLabel="Temas a mejorar"
-          options={TEMAS}
-          value={state.temas}
-          onSelect={actions.toggleTema}
+          ariaLabel="Lo que más te gustó"
+          options={TOPICS}
+          labels={TOPIC_LABELS}
+          value={state.positiveTopics}
+          onSelect={(v) => update({ positiveTopics: toggle(state.positiveTopics, v as Topic) })}
+        />
+      </Item>
+
+      <Item className="flex flex-col gap-4 border-t border-hair-div pt-6">
+        <h3 className="m-0 text-[26px] font-semibold uppercase leading-none tracking-[0.01em] text-cream">
+          Lo que podemos mejorar
+        </h3>
+        <ChipGroup
+          variant="topic"
+          tone="danger"
+          multi
+          checkOnSelected
+          ariaLabel="Lo que podemos mejorar"
+          options={TOPICS}
+          labels={TOPIC_LABELS}
+          value={state.negativeTopics}
+          onSelect={(v) => update({ negativeTopics: toggle(state.negativeTopics, v as Topic) })}
+        />
+      </Item>
+
+      {lowScore && (
+        <Item>
+          <ComplainShortcut onComplain={onComplain} detailed />
+        </Item>
+      )}
+
+      <Item className="flex flex-col gap-3 border-t border-hair-div pt-6">
+        <p className="flex items-start gap-2.5 text-[17px] leading-[1.45] text-body">
+          <HeartHandshake size={20} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-gold-accent" />
+          ¿Alguien del equipo te atendió especialmente bien? Dinos su nombre y se lo haremos saber.
+        </p>
+        <BrandTextField
+          label="Su nombre"
+          optional
+          autoComplete="off"
+          placeholder="Ej. María, la de caja"
+          maxLength={80}
+          value={state.staffMention}
+          onChange={(v) => update({ staffMention: v })}
         />
       </Item>
       <Item>
         <BrandTextArea
           label="Cuéntanos con tus palabras"
-          value={state.comentario}
-          onChange={(v) => actions.setField("comentario", v)}
+          optional
+          rows={4}
+          maxLength={2000}
+          value={state.comment}
+          onChange={(v) => update({ comment: v })}
           placeholder="Lo que pasó, lo que te gustó, lo que esperabas…"
         />
       </Item>
@@ -412,78 +412,161 @@ export function IssuesStep({
   );
 }
 
-// ---- Step 5: ¿Te contactamos? ----
-export function ContactStep({
-  state,
-  actions,
-}: {
-  state: SurveyState;
-  actions: StepActions;
-}) {
+// ---- Paso 5: ¿Nos recomendarías? ----
+export function RecommendStep({ state, update, errors, headingRef }: StepProps) {
   return (
     <>
-      <Item className={cls.eyebrow}>Paso cinco</Item>
-      <Item>
-        <h2 className={cls.title}>¿Te contactamos?</h2>
-      </Item>
-      <Item>
-        <p className="text-[18px] leading-[1.5] text-body">
-          Opcional. Si dejas tus datos, un encargado te escribe personalmente.
-        </p>
-      </Item>
-      <Item className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-        <BrandTextField
-          label="Nombre"
-          autoComplete="name"
-          placeholder="Tu nombre"
-          value={state.nombre}
-          onChange={(v) => actions.setField("nombre", v)}
+      <StepHeading
+        eyebrow="Paso cinco"
+        title="¿Nos recomendarías?"
+        lead="Del 0 al 10, ¿qué tan probable es que le recomiendes La Bodega a un amigo o familiar?"
+        headingRef={headingRef}
+      />
+      <Item className="flex flex-col gap-3">
+        <NpsScale
+          value={state.recommend}
+          onChange={(n) => update({ recommend: n })}
+          ariaLabel="Probabilidad de recomendarnos, de 0 a 10"
+          invalid={Boolean(errors.recommend)}
+          describedBy={errors.recommend ? errId("recommend") : undefined}
         />
-        <BrandTextField
-          label="Teléfono o correo"
-          autoComplete="email"
-          inputMode="email"
-          placeholder="+58 ··· / tu@correo"
-          value={state.contacto}
-          onChange={(v) => actions.setField("contacto", v)}
-        />
+        <div className="flex justify-between text-[13px] font-medium uppercase tracking-[0.12em] text-label">
+          <span>Nada probable</span>
+          <span>Muy probable</span>
+        </div>
+        <FieldError id={errId("recommend")} message={errors.recommend} />
       </Item>
     </>
   );
 }
 
-// ---- Step 6: Gracias ----
-export function DoneStep({ actions }: { actions: StepActions }) {
+// ---- Gracias ----
+export function DoneStep({
+  branchName,
+  result,
+  hasSession,
+  showBridge,
+  reviewUrl,
+  headingRef,
+  onBridge,
+  onRestart,
+}: {
+  branchName: string;
+  result: SurveyResult | null;
+  hasSession: boolean;
+  showBridge: boolean;
+  reviewUrl: string | null;
+  headingRef: React.RefObject<HTMLHeadingElement | null>;
+  onBridge: () => void;
+  onRestart: () => void;
+}) {
+  const points = result?.pointsAwarded ?? 0;
   return (
-    <Item className="flex flex-col items-center gap-5 py-5 pb-2 text-center">
-      <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 380, damping: 18 }}
-        className="relative flex h-[74px] w-[74px] items-center justify-center rounded-full"
-        style={{
-          background: "linear-gradient(135deg, var(--lb-gold-hi), var(--lb-coral))",
-        }}
-      >
-        <span className="flex h-[74px] w-[74px] items-center justify-center font-serif text-[36px] text-[#2a0f07]">
+    <>
+      <Item className="flex flex-col items-center gap-4 pt-3 text-center">
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 18 }}
+          className="flex h-[74px] w-[74px] items-center justify-center rounded-full font-serif text-[36px] text-[#2a0f07]"
+          style={{ background: "linear-gradient(135deg, var(--lb-gold-hi), var(--lb-coral))" }}
+          aria-hidden="true"
+        >
           B
-        </span>
-      </motion.div>
-      <div className="text-[48px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream">
-        ¡Gracias!
-      </div>
-      <div className={cls.eyebrowSerif}>Tu opinión ya está con el equipo</div>
-      <p className="max-w-[46ch] text-[17px] leading-[1.5] text-body">
-        Si dejaste tus datos, te escribimos en las próximas 48 horas.
-      </p>
-      <Button
-        variant="popGhost"
-        size="popMd"
-        onClick={actions.restart}
-        className="mt-1"
-      >
-        Enviar otra respuesta
-      </Button>
-    </Item>
+        </motion.div>
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="m-0 text-[48px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream outline-none"
+        >
+          ¡Gracias!
+        </h2>
+        <p className={cls.eyebrowSerif}>
+          Tu opinión ya está con el equipo{branchName ? ` de ${branchName}` : ""}.
+        </p>
+      </Item>
+
+      {/* Puente a queja: va primero porque es lo más importante para quien la pasó mal. */}
+      {showBridge && (
+        <Item>
+          <div className="flex flex-col gap-3 rounded-[18px] border border-[rgba(255,106,61,0.4)] bg-[rgba(255,106,61,0.1)] p-5">
+            <p className="text-[17px] leading-[1.5] text-cream">
+              Sentimos que no fue lo que esperabas. ¿Quieres que un encargado te contacte para
+              resolverlo?
+            </p>
+            <div>
+              <Button variant="popCoral" size="popMd" onClick={onBridge} className="gap-2">
+                Sí, quiero que me contacten
+                <ArrowRight aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+        </Item>
+      )}
+
+      {hasSession ? (
+        <Item>
+          {points > 0 ? (
+            <div className="pop-points">
+              <span className="pop-points__seal" aria-hidden="true">
+                <Sparkles size={20} strokeWidth={2.2} />
+              </span>
+              <div className="flex flex-col">
+                <span className="text-[26px] font-semibold uppercase leading-none tracking-[0.01em]">
+                  +{points} puntos
+                </span>
+                <span className="text-[13px] font-medium uppercase tracking-[0.16em] opacity-80">
+                  Bodega Club
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center font-serif text-[19px] italic text-muted-ink">
+              Ya sumaste tus puntos de hoy, ¡gracias por volver a opinar!
+            </p>
+          )}
+        </Item>
+      ) : (
+        <Item>
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-[18px] border border-hair-div bg-[var(--lb-input)] p-4">
+            <p className="flex min-w-0 flex-1 basis-[220px] items-start gap-2.5 text-[16px] leading-[1.45] text-body">
+              <Gift size={20} strokeWidth={2} aria-hidden="true" className="mt-0.5 shrink-0 text-gold-accent" />
+              ¿Sabías que los socios de Bodega Club suman puntos por opinar?
+            </p>
+            <Button variant="pop" size="popSm" render={<Link href="/bodega-club" />} className="min-h-11 gap-2">
+              Unirme
+              <ArrowRight aria-hidden="true" />
+            </Button>
+          </div>
+        </Item>
+      )}
+
+      {reviewUrl && (
+        <Item className="flex justify-center">
+          <Button
+            variant="popGhost"
+            size="popMd"
+            render={<a href={reviewUrl} target="_blank" rel="noopener noreferrer" />}
+            className="gap-2"
+          >
+            <Star aria-hidden="true" />
+            Déjanos una reseña en Google
+            <ExternalLink aria-hidden="true" />
+            <span className="sr-only">(se abre en una pestaña nueva)</span>
+          </Button>
+        </Item>
+      )}
+
+      <Item className="flex justify-center border-t border-hair-div pt-5">
+        <button
+          type="button"
+          onClick={onRestart}
+          className="min-h-11 px-3 text-[15px] font-medium text-muted-ink underline-offset-4 transition-colors hover:text-cream hover:underline"
+        >
+          Enviar otra respuesta
+        </button>
+      </Item>
+    </>
   );
 }
+

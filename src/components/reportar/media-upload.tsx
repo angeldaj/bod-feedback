@@ -135,7 +135,7 @@ export function MediaUpload({ items, onChange }: Props) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.85 }}
                 transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                className="group relative aspect-square overflow-hidden rounded-xl border border-hair-div bg-black/40"
+                className="group relative aspect-square overflow-hidden rounded-[14px] border border-hair-div bg-black/40"
               >
                 {it.kind === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element -- preview local (object URL)
@@ -154,7 +154,7 @@ export function MediaUpload({ items, onChange }: Props) {
                   />
                 )}
                 {it.kind === "video" && (
-                  <span className="pointer-events-none absolute bottom-1 left-1 rounded-md bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cream">
+                  <span className="pointer-events-none absolute bottom-1 left-1 rounded-[6px] bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cream">
                     Video
                   </span>
                 )}

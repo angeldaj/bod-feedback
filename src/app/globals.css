@@ -406,20 +406,12 @@
 }
 
 /* ============================================================
-   POP LAYER — youthful/contemporary system for /satisfaccion and
-   /reportar. Scoped via .pop-* classes so the dashboard keeps its
+   POP LAYER — the official system of /feedback (survey + complaint).
+   Scoped via .pop-* classes so the dashboard keeps its
    original austere look untouched. Warm-dark + gold identity is
    preserved; coral adds the energy and carries urgency semantics.
    ============================================================ */
 @layer components {
-  /* Ambient colored glow field behind the card (scoped, not global). */
-  .pop-scene {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    pointer-events: none;
-  }
   /* Full-page ambient glow for the /feedback shell. `inset:0` makes it exactly
      as tall as the document (body is position:relative), so it adds NO extra
      scroll height — an explicit height (e.g. 125vh) created an empty "second
@@ -465,25 +457,6 @@
     .pop-page-glow {
       transition: none;
     }
-  }
-  .pop-blob {
-    position: absolute;
-    border-radius: 999px;
-    filter: blur(60px);
-    opacity: 0.5;
-    will-change: transform;
-  }
-  .pop-blob--coral {
-    background: radial-gradient(circle, rgba(255, 106, 61, 0.55), transparent 68%);
-    animation: pop-float 15s var(--ease-brand) infinite;
-  }
-  .pop-blob--gold {
-    background: radial-gradient(circle, rgba(217, 169, 74, 0.5), transparent 68%);
-    animation: pop-float 18s var(--ease-brand) infinite reverse;
-  }
-  .pop-blob--ember {
-    background: radial-gradient(circle, rgba(255, 138, 95, 0.4), transparent 70%);
-    animation: pop-float 21s var(--ease-brand) infinite;
   }
 
   /* Rounded, warm card surface with an inner top highlight (no outer
@@ -652,13 +625,130 @@
     background: linear-gradient(90deg, var(--lb-coral-deep), var(--lb-coral-hi));
     box-shadow: 0 0 14px -2px rgba(255, 106, 61, 0.7);
   }
+
+  /* Missing required answer: the unanswered options pick up a coral edge
+     (the message itself sits right under the group). Higher specificity than
+     `.day .pop-chip` so it reads in both themes. */
+  .pop-chip[data-invalid="true"]:not([data-on="true"]),
+  .pop-rate[data-invalid="true"]:not([data-filled="true"]) {
+    border-color: color-mix(in oklab, var(--lb-coral-hi) 70%, transparent);
+  }
+
+  /* Inline notice (911, "¿sigues en el local?", soft friction, charge tip). */
+  .pop-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    border-radius: 18px;
+    padding: 14px 16px;
+    color: var(--lb-body);
+  }
+  .pop-notice--warm {
+    border: 1px solid var(--lb-hair-chip);
+    background: var(--lb-input);
+  }
+  .pop-notice--alert {
+    border: 1.5px solid color-mix(in oklab, var(--lb-coral-hi) 55%, transparent);
+    background: var(--lb-coral-soft);
+    color: var(--lb-cream);
+  }
+  .pop-notice__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    color: var(--lb-gold-accent);
+    background: color-mix(in oklab, var(--lb-gold) 16%, transparent);
+  }
+  .pop-notice--alert .pop-notice__icon {
+    color: #2a0f07;
+    background: var(--lb-coral-hi);
+  }
+
+  /* "Así resolvemos tu queja" — collapsible policies card above the steps. */
+  .pop-policies {
+    border-radius: 22px;
+    border: 1px solid var(--lb-hair-div);
+    background: var(--lb-input);
+    transition: border-color 0.25s var(--ease-brand);
+  }
+  .pop-policies[data-open="true"] {
+    border-color: color-mix(in oklab, var(--lb-coral-hi) 35%, transparent);
+  }
+  .pop-policies__toggle {
+    display: flex;
+    width: 100%;
+    min-height: 56px;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 22px;
+    cursor: pointer;
+  }
+  .pop-policies__badge {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    color: #2a0f07;
+    background: linear-gradient(135deg, var(--lb-gold-hi), var(--lb-coral-hi));
+  }
+  .pop-policies__icon {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    margin-top: 1px;
+    border-radius: 999px;
+    color: var(--lb-coral);
+    background: var(--lb-coral-soft);
+  }
+
+  /* Club points sticker on the survey thank-you. */
+  .pop-points {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-inline: auto;
+    width: fit-content;
+    border-radius: 22px;
+    padding: 14px 22px 14px 14px;
+    color: var(--lb-ink-on-gold);
+    background: linear-gradient(105deg, var(--lb-gold-hi), var(--lb-gold) 60%, var(--lb-coral-hi));
+    box-shadow: 0 14px 30px -14px rgba(217, 169, 74, 0.8);
+  }
+  .pop-points__seal {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    background: rgba(255, 250, 240, 0.45);
+  }
+
+  /* Case number pill on the complaint thank-you. */
+  .pop-case {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    color: var(--lb-coral);
+    border: 1.5px solid color-mix(in oklab, var(--lb-coral-hi) 60%, transparent);
+    background: var(--lb-coral-soft);
+  }
 }
 
-@keyframes pop-float {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(6%, -5%) scale(1.08); }
-  66% { transform: translate(-5%, 4%) scale(0.96); }
-}
 @keyframes pop-rec {
   0% { opacity: 0.9; transform: scale(1); }
   70% { opacity: 0; transform: scale(1.6); }
@@ -666,9 +756,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pop-blob--coral,
-  .pop-blob--gold,
-  .pop-blob--ember,
   .pop-rec-ring::after {
     animation: none;
   }
@@ -676,6 +763,7 @@
   .pop-chip,
   .pop-input,
   .pop-dropzone,
+  .pop-policies,
   .pop-fill {
     transition: none;
   }
@@ -810,12 +898,6 @@
   .day .pop-dropzone:hover {
     border-color: var(--lb-coral-hi);
     background: rgba(255, 106, 61, 0.08);
-  }
-
-  /* Blobs read as gentle color washes on a light ground, not neon blasts. */
-  .day .pop-blob {
-    opacity: 0.4;
-    filter: blur(72px);
   }
 
   /* Coral "sticker" surfaces: keep BRIGHT coral fill in both themes so the
@@ -1111,6 +1193,11 @@
     }
     .fb-side__full {
       display: none;
+    }
+    /* The slim mobile banner sits on the brightest part of the photo: a
+       left-weighted scrim keeps "Estás enviando" legible. */
+    .fb-side .fb-photo__scrim {
+      background: linear-gradient(90deg, rgba(18, 6, 2, 0.8), rgba(18, 6, 2, 0.5) 60%, rgba(18, 6, 2, 0.35));
     }
     .fb-side__bar {
       position: relative;

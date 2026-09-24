@@ -2,8 +2,7 @@
 
 import * as React from "react";
 import { cn } from "cn";
-import { RANGES, type RangeKey } from "@/lib/mock";
-import { SUCURSALES } from "@/components/satisfaccion/survey-data";
+import { RANGES, SUCURSALES, type RangeKey } from "@/lib/mock";
 
 function Chip({
   active,

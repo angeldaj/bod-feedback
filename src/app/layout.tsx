@@ -19,7 +19,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://labodega.example"),
+  metadataBase: new URL("https://labodega-ve.com"),
   title: {
     default: "La Bodega · Restaurante · Panadería",
     template: "%s · La Bodega",
