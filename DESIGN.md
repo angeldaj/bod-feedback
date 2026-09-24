@@ -1,54 +1,63 @@
 # Design
 
-## Theme
-Single, committed **nocturnal** theme — no light mode. A warm near-black room lit like candlelight: a breathing gold ember behind the content, fine film grain over everything, cream ink, gold hairlines. Separation is carried by 1px hairlines and value contrast, never by shadows or panels. **Radius is 0 everywhere. Shadows: none.** The strategy is *Drenched* (the dark ground IS the brand) with gold as the single committed accent.
+## Direction
+**Pop, warm and appetite-first — day by default, with a night mode.** The official direction of the public surfaces (`/feedback`, landing, Bodega Club). It grew out of the original nocturnal system and keeps its identity (gold, coral, cream; Barlow Condensed + Cormorant Garamond) but trades hairlines-on-black for a friendly, tactile layer: pill chips, rounded tiles and cards, soft warm shadows, springy micro-motion and photographic covers.
 
-Live tokens are the source of truth: `src/app/globals.css`.
+- **Day ("Panadería de día")** is the default: cream ground, white cards, warm-dark ink. Scoped under `.day`, which re-points the `--lb-*` tokens so every token-driven component flips automatically.
+- **Night** is the same system on the warm near-black ground (the original room lit like candlelight). Toggled from the header and remembered in `localStorage` (`labodega-theme`).
+- The internal `/dashboard` demo keeps the old austere nocturnal look (no `.day`, no `.pop-*`).
+
+Live tokens are the source of truth: `src/app/globals.css` (`--lb-*`, the `POP LAYER`, the `DAY LAYER` and `FEEDBACK SPLIT SELECTOR` blocks).
 
 ## Color
-Exact brand hex (identity-preserved from the handoff — do not re-derive in OKLCH).
+Exact brand hex (identity-preserved — do not re-derive in OKLCH). Two roles carry meaning:
+- **Gold** = the brand and positive/primary actions (survey, points, selected chips).
+- **Coral** = energy and urgency (complaint flow, errors, "lo que podemos mejorar", 911 banner).
 
-| Role | Token | Value |
-| --- | --- | --- |
-| Ground | `--lb-ground` | `#0B0906` |
-| Gradient stops | `--lb-grad-1/2/3` | `#1C160F` · `#0F0B08` · `#0B0906` |
-| Card ground | `--lb-card` | `rgba(9,7,5,.6)` |
-| Input ground | `--lb-input` | `rgba(247,242,231,.04)` |
-| Gold (accent) | `--lb-gold` | `#D9A94A` |
-| Gold hover | `--lb-gold-hi` | `#EFC77E` |
-| Gold italic accent | `--lb-gold-accent` | `#E0B45C` |
-| Ink on gold | `--lb-ink-on-gold` | `#12100C` |
-| Cream ink | `--lb-cream` | `#F7F2E7` |
-| Body text | `--lb-body` | `#D6C9AE` |
-| Muted | `--lb-muted` | `#B4A382` |
-| Labels | `--lb-label` | `#8E8267` |
-| Placeholder | `--lb-placeholder` | `#6F6350` |
-| Hairline · card | `--lb-hair-card` | `rgba(217,169,74,.5)` |
-| Hairline · chip/input | `--lb-hair-chip` | `rgba(217,169,74,.35)` |
-| Hairline · progress track | `--lb-hair-track` | `rgba(217,169,74,.22)` |
-| Hairline · divider | `--lb-hair-div` | `rgba(245,239,227,.12)` |
-| Hairline · ghost button | `--lb-hair-ghost` | `rgba(245,239,227,.28)` |
+| Role | Token | Night | Day |
+| --- | --- | --- | --- |
+| Ground | `--lb-ground` | `#0B0906` | `#FFF3E4` |
+| Primary ink | `--lb-cream` | `#F7F2E7` | `#2A1A11` |
+| Body | `--lb-body` | `#D6C9AE` | `#6A5142` |
+| Muted | `--lb-muted` | `#B4A382` | `#7E6150` |
+| Labels | `--lb-label` | `#8E8267` | `#7A5C49` |
+| Gold (fill) | `--lb-gold` / `--lb-gold-hi` | `#D9A94A` / `#EFC77E` | `#D9A94A` / `#F0C274` |
+| Gold as text | `--lb-gold-accent` | `#E0B45C` | `#A9761A` |
+| Coral as text | `--lb-coral` | `#FF6A3D` | `#C8391A` |
+| Coral (fill) | `--lb-coral-hi` / `--lb-coral-deep` | `#FF8A5F` / `#E2492A` | `#FF6A3D` / `#9E2C10` |
+| Coral wash | `--lb-coral-soft` | `rgba(255,106,61,.14)` | `rgba(200,57,27,.12)` |
+| Input ground | `--lb-input` | `rgba(247,242,231,.04)` | `rgba(120,72,40,.05)` |
+| Divider | `--lb-hair-div` | `rgba(245,239,227,.12)` | `rgba(74,43,22,.13)` |
 
-These are mapped onto shadcn semantic tokens (`--primary` = gold, `--background` = ground, etc.) so shadcn/Base-UI primitives inherit the theme, and re-exposed as Tailwind utilities (`text-gold`, `text-body`, `text-label`, `border-hair-card`, …).
+Rules: coral stickers (`.pop-badge-coral`, filled danger chips) always use the **bright** coral fill with dark ink so the label clears AA in both themes. Color never carries meaning alone — errors add an icon and text, selected chips add a check.
 
 ## Typography
-Two families, chosen as the brand's committed identity (reflex-reject list is overridden by identity-preservation):
-- **Barlow Condensed** (400/500/600/700) — all UI and display. `--font-sans`.
-- **Cormorant Garamond** (400/600 + italic) — the brand's signature, used sparingly: wordmark, rating numerals, italic asides. `--font-serif`.
+- **Barlow Condensed** (400/500/600/700) — all UI and display. `--font-sans`. Step titles 40 px (32 px under 560 px), uppercase, weight 600, line-height 0.95. Labels 13 px uppercase `.14em`. Body 17 px / 1.55. Never below 13 px for text that must be read.
+- **Cormorant Garamond** (400/600 + italic) — the brand's signature, used sparingly: wordmark, step leads and italic asides, reaction lines, the overall rating numerals. Numbers that are compared or scanned (NPS 0–10, aspect dots, case numbers) use Barlow with tabular figures.
 
-Scale (px): display 58 / 50 / 42 (Barlow 600, uppercase, tracking `.04em`, line-height ~0.92–1). Cormorant 30 / 26 / 24 / 22. Body 19 / 18 / 17 / 16 / 15. Uppercase labels 14 / 13 / 12.
-Tracking: `.04em` display · `.1em`–`.14em` chips/labels · `.2em`–`.28em` small caps · `.3em`–`.44em` eyebrows and wordmark (always pair with matching `padding-left` when centered so the trailing track stays balanced).
+## Shape, depth and surface
+- **Radius scale:** pills `999px` (chips, buttons, badges, progress) · tiles `18px` (rating tiles, notices, inner boxes) · inputs `16px` · policy box `22px` · cards and covers `26–28px`. Use explicit values: the shadcn `--radius-*` tokens are 0 (legacy dashboard) so `rounded-xl/2xl` render square.
+- **Depth = soft warm shadows**, one strategy throughout: cards get an inner top highlight plus a long, low-opacity warm drop; filled chips/tiles get a colored glow of their own fill. Covers are the only "raised block" (solid bottom edge) because they are the one big tap target.
+- **Cards** are opaque (white-to-cream by day, `#0F0B08` by night) so the page glow never seams through.
+- **Covers with photo:** `/public/img/feedback-*.png` under a sheen and a bottom scrim so white copy stays legible; the brand gradient is the fallback if the photo fails.
 
 ## Components
-- **Rating meter** — cumulative fill: N squares, gold rises from the bottom on fill, hover previews a lighter fill up to the hovered value, selection pops. Overall = 88×88 (Cormorant 30px numerals); aspect dots = 38×38.
-- **Chips** — single- or multi-select. Inactive: transparent, 1px `--lb-hair-chip`, body ink. Active: gold fill sweeps in from the left, ink-on-gold text. No radius.
-- **Buttons** — primary: solid gold on ink, uppercase `.24em`, light sweep on hover → `--lb-gold-hi`. Ghost: transparent, `--lb-hair-ghost` border, hover to gold.
-- **Inputs/Textarea** — input ground, hairline border, gold underline draws left→right on focus, no radius.
-- **Progress** — 1px track with a gold fill at `min(step,5)/5·100%`; a brightness sweep runs when it advances.
-- **Card** — top+bottom hairlines only (no sides), `--lb-card` ground, hairlines draw in from center on load.
+- **Chips** (`.pop-chip`, `ChipGroup`) — pills ≥ 44 px tall. Single-select = real `radiogroup` with one tab stop and arrow keys; multi-select = toggle buttons with `aria-pressed` and a check. Gold when on; `--danger` variant is coral. Missing answers get a coral edge (`data-invalid`).
+- **Rating tiles** (`.pop-rate`) — overall 1–5 as a fluid 5-column grid (never wraps at 375 px), sentiment ramp coral → gold via `--sent`; aspect dots 44×44, clearable (tap again to unrate). **NPS 0–10** (`NpsScale`) is a choice, not a meter: only the chosen number fills; 6 + 5 in two rows under 560 px, 11 in a row above.
+- **Buttons** — `pop` (gold→coral gradient), `popCoral` (deep coral, white label), `popGhost` (outline). One primary per step; "Atrás" is ghost and absent on step 1.
+- **Inputs** (`.pop-input`, `BrandTextField/Area`) — visible label, "(opcional)" suffix, persistent hint and error under the field, fixed prefix support (`+58`).
+- **Notices** (`.pop-notice`) — warm (tips) and alert (911, soft friction). **Policies box** (`.pop-policies`) — collapsible, `aria-expanded`.
+- **Wizard shell** (`feedback/wizard.tsx`) — progress bar (`role=progressbar`), card with height morph, polite live region announcing "Paso N de M…", focus to the step title on change.
+- **Thank-you** — seal, big uppercase title, serif aside; points sticker (`.pop-points`), case pill (`.pop-case`).
 
 ## Motion
-Library: **Motion** (`motion/react`). Motion is motivated, never decorative. Easing: `cubic-bezier(0.22,1,0.36,1)` (ease-out expo-ish), no bounce/elastic. Signature moments: shell load stagger, per-step enter/leave with height morph and child stagger, ember breathe, meter fill, progress sweep, thank-you seal ring pulse. **Full `prefers-reduced-motion` parity is mandatory** — every animation collapses to instant/crossfade and the flow stays fully usable.
+Library: **Motion** (`motion/react`). Motion is motivated and quick:
+- **Springs** for touch feedback: press scale 0.9–0.94, selected lift (`springBouncy` 480/20), step items stagger in with `springSoft` (320/26).
+- **Ease-out expo** `cubic-bezier(0.22,1,0.36,1)` for layout: card height morph 450 ms, step leave 160 ms (exit faster than enter), cover ↔ form column morph.
+- Ambient: slow cover sheen and chevron nudge, page glow crossfade between tones.
+- **Full `prefers-reduced-motion` parity is mandatory**: `MotionConfig reducedMotion="user"` drops transforms, height/rotate transitions collapse to 0 ms, CSS loops and transitions are disabled; the flow stays fully usable.
 
 ## Layout
-Centered single column, card `max-width: 760px`. Page padding `40px 20px 64px` (→ `28px 14px 40px` under ~560px). Fluid, wrapping chip rows; contact grid `repeat(auto-fit, minmax(220px, 1fr))`. Below ~560px: card padding `28px 20px 26px`, intro headline `clamp(40px,12vw,58px)`, overall squares shrink to 64×64.
+- Mobile-first. 375 px has no horizontal scroll: page gutter 14 px, card padding 20 px, every control fits the ~300 px content width.
+- `/feedback` is a **split**: two covers side by side (stacked on mobile). Choosing one keeps it as a slim accent rail ("Estás enviando · Cambiar"; a banner on mobile) and opens the form in the other slot, max 560 px wide.
+- Touch targets ≥ 44 px, ≥ 8 px apart.
