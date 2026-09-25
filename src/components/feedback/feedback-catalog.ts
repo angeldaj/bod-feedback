@@ -1,7 +1,7 @@
 // La Bodega — vocabulario del feedback v2 (encuesta + queja).
 //
 // Las CLAVES son espejo exacto de `bodega-api/src/feedback/domain/catalog.ts`
-// (spec 071): al backend viajan claves, nunca etiquetas. Las etiquetas en
+// (spec 074): al backend viajan claves, nunca etiquetas. Las etiquetas en
 // español viven aquí porque la landing tiene su propio copy (p. ej. los
 // aspectos cambian de nombre según el canal). Si el backend agrega o renombra
 // una clave, se toca este archivo y `src/lib/feedback-api.ts`.

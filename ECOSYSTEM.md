@@ -2,7 +2,7 @@
 
 > Documento de contexto para el trabajo conjunto sobre **La Bodega** (Comercializadora La Bodega, C.A. — panadería + restaurante en Puerto Ordaz, Venezuela).
 > Cubre los tres repos que tocamos juntos: `bodega-landing` (público), `bodega-api` (backend) y `bodega-soft-nx` (microfrontends internos).
-> Última actualización: 2026-09-24 (feedback v2: specs api 071 · landing 2026-09-24 · nx 065).
+> Última actualización: 2026-09-24 (feedback v2: specs api 074 · landing 2026-09-24 · nx 068).
 
 ---
 
@@ -24,7 +24,7 @@
                    ▼
    ┌─────────────────────────────────────────┐
    │  bodega-api  (NestJS 11, hexagonal)       │  app.bod-service.cloud/api
-   │  módulo feedback (059 → 071) + 8 dominios │  PostgreSQL + Prisma 7
+   │  módulo feedback (059 → 074) + 8 dominios │  PostgreSQL + Prisma 7
    │  auth JWT (cookie httpOnly), RBAC         │  Cloudinary, MarSoft, Pushover, IA
    └───────────────┬───────────────────────────┘
                    │ GET/PATCH internos (cookie de sesión, roles feedback.*)
@@ -93,7 +93,7 @@ Sin modo standalone: ambos formularios viven solo dentro del split de `/feedback
 - `shoot.mjs` — capturas Playwright de `/feedback` v2 (375/1280, día/noche) sin enviar nada: `node shoot.mjs <carpeta>` con la landing en :3000.
 
 ### Estado del repo
-Rama `feat/feedback-v2` (sin push: push a `main` = deploy automático al VPS). Feedback v2 implementado contra la API 071.
+Rama `feat/feedback-v2` (sin push: push a `main` = deploy automático al VPS). Feedback v2 implementado contra la API 074.
 
 ---
 
@@ -120,11 +120,11 @@ Ubicación: `src/feedback/`. Reusa `FILE_STORAGE_PORT` de invoices → `Cloudina
 
 **Endpoints públicos** (`@Public()`, anónimos — `PublicFeedbackController`, base `/feedback`):
 - `GET /feedback/branches` → sucursales activas (para selectores de la landing).
-- `GET /feedback/catalog` → vocabulario (canales con sus aspectos, momentos, temas, grupos de queja con categorías y prioridad, resoluciones, rechazos). Fuente: `domain/catalog.ts` (spec 071).
+- `GET /feedback/catalog` → vocabulario (canales con sus aspectos, momentos, temas, grupos de queja con categorías y prioridad, resoluciones, rechazos). Fuente: `domain/catalog.ts` (spec 074).
 - `POST /feedback/surveys` → encuesta v2 (`SubmitSurveyResponseDto`); Bearer opcional del socio suma puntos → `{id, pointsAwarded}`.
 - `POST /feedback/incidents` → queja con evidencia (multipart `files`, hasta 10); normaliza el WhatsApp a E.164 (400 si no es móvil VE), deriva prioridad y número de caso → `{id, caseNumber, priority}`.
 
-> ⚠️ Spec 071 reescribió el modelo de encuesta/queja (canal, NPS, temas +/-, mención al equipo; queja como **caso** con prioridad, SLA y número). Lo de abajo describe la 059 original; la verdad está en `specs/071-feedback-v2/spec.md` y `openapi.json`.
+> ⚠️ Spec 074 reescribió el modelo de encuesta/queja (canal, NPS, temas +/-, mención al equipo; queja como **caso** con prioridad, SLA y número). Lo de abajo describe la 059 original; la verdad está en `specs/074-feedback-v2/spec.md` y `openapi.json`.
 
 **Endpoints internos** (cookie + rol — `FeedbackDashboardController`, base `/feedback`):
 - `GET /feedback/surveys` (`feedback.viewer`/`admin`) — filtros from/to/branchId.
@@ -213,8 +213,8 @@ Dashboard **autenticado de solo lectura/gestión** bajo `/feedback`. Consume el 
 | --- | --- | --- | --- |
 | Sucursales | `GET /feedback/branches` (`feedback-api.ts`) | `Branch` / `list-branches` | `useBranches` |
 | Vocabulario | claves espejo en `feedback-catalog.ts` | `domain/catalog.ts` → `GET /feedback/catalog` | catálogo |
-| Encuesta | `POST /feedback/surveys` (claves, aspectos `null`, NPS) | `SurveyResponse` (071) | resumen/listado 065 |
-| Queja | `POST /feedback/incidents` (multipart, `phone` E.164, `surveyId`) | `IncidentReport` como caso (071) + `IncidentMedia` (Cloudinary) | bandeja de casos 065 |
+| Encuesta | `POST /feedback/surveys` (claves, aspectos `null`, NPS) | `SurveyResponse` (074) | resumen/listado 068 |
+| Queja | `POST /feedback/incidents` (multipart, `phone` E.164, `surveyId`) | `IncidentReport` como caso (074) + `IncidentMedia` (Cloudinary) | bandeja de casos 068 |
 
 - **Claves:** la landing ya no traduce ES→EN: guarda y envía las claves del backend (`dine_in`, `waitTime`, `fair_price`, `allergic_reaction`…). Las etiquetas en español viven en `bodega-landing/src/components/feedback/feedback-catalog.ts`; si el backend agrega/renombra una clave, se toca ese archivo y `feedback-api.ts`.
 - **Sucursales placeholder:** landing (`SUCURSALES`, `BRANCHES`) y backend seed comparten "Bodega 1/2/3" — **pendiente sustituir por las reales** en un solo lugar (backend) ya que la landing las trae por API.

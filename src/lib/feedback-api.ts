@@ -1,5 +1,5 @@
 // Adapter de la API de feedback de La Bodega (la-bodega-api, módulo feedback,
-// specs 059/071). La landing vive en otro origen (labodega-ve.com) y habla con
+// specs 059/074). La landing vive en otro origen (labodega-ve.com) y habla con
 // el backend por su URL absoluta; los endpoints de envío son públicos (sin
 // sesión de empleado). El socio del club puede identificarse con su Bearer.
 //
@@ -64,7 +64,7 @@ export async function submitSurvey(
   if (!state.channel || !state.moment || state.recommend === null) {
     throw new Error("Faltan datos de la encuesta.");
   }
-  // Solo los aspectos del canal; lo no puntuado viaja como null (071).
+  // Solo los aspectos del canal; lo no puntuado viaja como null (074).
   const aspects = Object.fromEntries(
     ASPECTS_BY_CHANNEL[state.channel].map(({ key }) => [key, state.aspects[key] ?? null]),
   );
