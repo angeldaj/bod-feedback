@@ -1,11 +1,18 @@
 // Adapter de la API de feedback de La Bodega (la-bodega-api, módulo feedback,
-// spec 059). Reemplaza los envíos simulados de la encuesta y la queja. La
-// landing vive en otro origen (labodega.com) y habla con el backend por su URL
-// absoluta; los endpoints de envío son públicos (sin sesión).
+// specs 059/074). La landing vive en otro origen (labodega-ve.com) y habla con
+// el backend por su URL absoluta; los endpoints de envío son públicos (sin
+// sesión de empleado). El socio del club puede identificarse con su Bearer.
 //
 // Único punto de contacto con el backend desde la landing: si cambian los
-// endpoints, se toca solo este archivo.
+// endpoints, se toca solo este archivo. Al backend viajan CLAVES (las de
+// `components/feedback/feedback-catalog.ts`); las etiquetas en español viven
+// en la landing.
 
+import {
+  ASPECTS_BY_CHANNEL,
+  toE164,
+  type IncidentPriority,
+} from "@/components/feedback/feedback-catalog";
 import type { SurveyState } from "@/components/satisfaccion/survey-data";
 import type { IncidentState, MediaItem } from "@/components/reportar/incident-data";
 
@@ -18,14 +25,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
-    const message =
+    const raw =
       body && typeof body === "object" && "message" in body
-        ? String((body as { message: unknown }).message)
-        : `Error ${response.status}`;
+        ? (body as { message: unknown }).message
+        : null;
+    // Nest devuelve `message` como string o como lista (errores de validación).
+    const message = Array.isArray(raw) ? raw.join(" ") : raw ? String(raw) : `Error ${response.status}`;
     throw new Error(message);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+function authHeader(accessToken?: string | null): Record<string, string> {
+  return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
 }
 
 let branchesCache: Branch[] | null = null;
@@ -37,47 +50,43 @@ export async function fetchBranches(): Promise<Branch[]> {
   return branches;
 }
 
-/** Resuelve el id de la sucursal a partir de su nombre (lo que guarda el wizard). */
-async function resolveBranchId(name: string): Promise<string> {
-  const branches = await fetchBranches();
-  const match = branches.find((branch) => branch.name === name);
-  if (!match) {
-    throw new Error("Elige una sucursal válida.");
-  }
-  return match.id;
-}
+export type SurveyResult = { id: string; pointsAwarded: number };
 
 /**
- * `accessToken` es opcional: si el socio tiene sesión iniciada (070), se manda
- * el Bearer para que el backend vincule la encuesta a su cuenta y sume puntos.
- * Sin sesión, el envío sigue siendo anónimo — no se pide cédula suelta.
+ * `POST /feedback/surveys`. Encuesta ANÓNIMA: no viaja nombre ni contacto.
+ * Con `accessToken` (socio con sesión, spec 070) el backend la vincula a su
+ * cuenta y suma puntos; `pointsAwarded` es 0 si es anónima o ya sumó hoy.
  */
-export async function submitSurvey(state: SurveyState, accessToken?: string | null): Promise<void> {
-  const branchId = await resolveBranchId(state.sucursal);
-  await request<unknown>("/feedback/surveys", {
+export async function submitSurvey(
+  state: SurveyState,
+  accessToken?: string | null,
+): Promise<SurveyResult> {
+  if (!state.channel || !state.moment || state.recommend === null) {
+    throw new Error("Faltan datos de la encuesta.");
+  }
+  // Solo los aspectos del canal; lo no puntuado viaja como null (074).
+  const aspects = Object.fromEntries(
+    ASPECTS_BY_CHANNEL[state.channel].map(({ key }) => [key, state.aspects[key] ?? null]),
+  );
+  return request<SurveyResult>("/feedback/surveys", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
+    headers: { "Content-Type": "application/json", ...authHeader(accessToken) },
     body: JSON.stringify({
-      branchId,
+      branchId: state.branchId,
+      channel: state.channel,
+      moment: state.moment,
       overall: state.overall,
-      visitMoment: state.momento,
-      // El wizard usa claves en español; el backend, en inglés.
-      aspects: {
-        food: state.aspects.comida,
-        service: state.aspects.servicio,
-        ambiance: state.aspects.ambiente,
-        waitTime: state.aspects.tiempo,
-      },
-      topics: state.temas,
-      comment: state.comentario,
-      name: state.nombre,
-      contact: state.contacto,
+      recommend: state.recommend,
+      aspects,
+      positiveTopics: state.positiveTopics,
+      negativeTopics: state.negativeTopics,
+      comment: state.comment.trim() || undefined,
+      staffMention: state.staffMention.trim() || undefined,
     }),
   });
 }
+
+export type IncidentResult = { id: string; caseNumber: string; priority: IncidentPriority };
 
 const AUDIO_EXTENSIONS: Record<string, string> = {
   "audio/webm": "webm",
@@ -87,27 +96,42 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
   "audio/wav": "wav",
 };
 
+/**
+ * `POST /feedback/incidents` (multipart). `categories` viaja como array JSON de
+ * claves; el WhatsApp, ya en E.164. Devuelve el número de caso y la prioridad.
+ */
 export async function submitIncident(
   state: IncidentState,
   media: MediaItem[],
-  audio?: Blob | null,
-): Promise<void> {
-  const branchId = await resolveBranchId(state.sucursal);
+  audio: Blob | null,
+  options: { surveyId?: string; accessToken?: string | null } = {},
+): Promise<IncidentResult> {
+  if (!state.channel) throw new Error("Cuéntanos cómo nos visitaste.");
   const form = new FormData();
-  form.set("branchId", branchId);
-  form.set("problems", JSON.stringify(state.problemas));
-  form.set("description", state.descripcion);
-  form.set("name", state.nombre);
-  form.set("contact", state.contacto);
+  form.set("branchId", state.branchId);
+  form.set("channel", state.channel);
+  if (state.channel === "delivery" && state.orderNumber.trim()) {
+    form.set("orderNumber", state.orderNumber.trim());
+  }
+  form.set("categories", JSON.stringify(state.categories));
+  if (state.description.trim()) form.set("description", state.description.trim());
+  if (state.name.trim()) form.set("name", state.name.trim());
+  const phone = state.phone ? toE164(state.phone) : null;
+  if (phone) form.set("phone", phone);
+  if (options.surveyId) form.set("surveyId", options.surveyId);
   for (const item of media) {
     form.append("files", item.file, item.file.name);
   }
   if (audio) {
-    const ext = AUDIO_EXTENSIONS[audio.type] ?? "webm";
-    form.append("files", audio, `nota-de-voz.${ext}`);
+    // El MIME puede traer codecs ("audio/webm;codecs=opus"); el backend compara
+    // el tipo base, así que se manda limpio.
+    const type = audio.type.split(";")[0] || "audio/webm";
+    const ext = AUDIO_EXTENSIONS[type] ?? "webm";
+    form.append("files", new File([audio], `nota-de-voz.${ext}`, { type }));
   }
-  await request<unknown>("/feedback/incidents", {
+  return request<IncidentResult>("/feedback/incidents", {
     method: "POST",
+    headers: authHeader(options.accessToken),
     body: form,
   });
 }

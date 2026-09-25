@@ -5,13 +5,32 @@
 // —sin desajustes de hidratación— y para que las cifras del panel no cambien
 // entre recargas. No usar Date.now() ni Math.random() aquí.
 
-import {
-  ASPECTS,
-  MOMENTOS,
-  SUCURSALES,
-  TEMAS,
-  type AspectKey,
-} from "@/components/satisfaccion/survey-data";
+// ---------------------------------------------------------------------------
+// Vocabulario del panel de ejemplo (el de la encuesta v1). El dashboard real
+// vive en bodega-soft-nx (feedback-web); esto solo alimenta /dashboard.
+// ---------------------------------------------------------------------------
+
+export type AspectKey = "comida" | "servicio" | "ambiente" | "tiempo";
+
+export const ASPECTS: { key: AspectKey; label: string; hint: string }[] = [
+  { key: "comida", label: "La comida", hint: "Sabor, punto, temperatura" },
+  { key: "servicio", label: "El servicio", hint: "Atención y trato del equipo" },
+  { key: "ambiente", label: "El ambiente", hint: "Música, luz, limpieza" },
+  { key: "tiempo", label: "El tiempo de espera", hint: "Desde el pedido hasta la mesa" },
+];
+
+export const SUCURSALES = ["Bodega 1", "Bodega 2", "Bodega 3"] as const;
+export const MOMENTOS = ["Desayuno", "Almuerzo", "Cena", "Para llevar"] as const;
+export const TEMAS = [
+  "Sabor",
+  "Espera",
+  "Atención",
+  "Precio",
+  "Limpieza",
+  "Pedido equivocado",
+  "Ruido",
+  "Nada, todo bien",
+] as const;
 
 // ---------------------------------------------------------------------------
 // Tipos

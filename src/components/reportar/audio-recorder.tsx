@@ -104,7 +104,7 @@ export function AudioRecorder({
 
   if (status === "unsupported" || status === "denied") {
     return (
-      <div className="rounded-2xl border border-hair-div bg-[var(--lb-input)] px-4 py-4 text-[14px] leading-[1.5] text-muted-ink">
+      <div className="rounded-[18px] border border-hair-div bg-[var(--lb-input)] px-4 py-4 text-[14px] leading-[1.5] text-muted-ink">
         {status === "denied"
           ? "No pudimos usar el micrófono (permiso denegado). Puedes escribir la descripción arriba."
           : "Tu navegador no permite grabar audio aquí. Puedes escribir la descripción arriba."}
@@ -113,7 +113,7 @@ export function AudioRecorder({
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hair-div bg-[var(--lb-input)] p-4">
+    <div className="flex flex-col gap-3 rounded-[18px] border border-hair-div bg-[var(--lb-input)] p-4">
       {status === "idle" && (
         <button
           type="button"

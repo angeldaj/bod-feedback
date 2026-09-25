@@ -2,7 +2,7 @@
 
 > Documento de contexto para el trabajo conjunto sobre **La Bodega** (Comercializadora La Bodega, C.A. — panadería + restaurante en Puerto Ordaz, Venezuela).
 > Cubre los tres repos que tocamos juntos: `bodega-landing` (público), `bodega-api` (backend) y `bodega-soft-nx` (microfrontends internos).
-> Última actualización: 2026-09-21.
+> Última actualización: 2026-09-24 (feedback v2: specs api 074 · landing 2026-09-24 · nx 068).
 
 ---
 
@@ -10,20 +10,21 @@
 
 ```
                  GUEST (móvil, tras la visita)
-                        │  QR / recibo / labodega.com
+                        │  QR / recibo / labodega-ve.com
                         ▼
    ┌─────────────────────────────────────────┐
-   │  bodega-landing  (Next.js 16, público)   │  labodega.com
-   │  /feedback  → encuesta + queja urgente    │
+   │  bodega-landing  (Next.js 16, público)   │  labodega-ve.com
+   │  /feedback  → encuesta v2 + queja (caso)  │
    │  /bodega-club, /mi-club, /login (loyalty) │
    │  /dashboard (demo con mock)               │
    └───────────────┬───────────────────────────┘
                    │ POST público (sin sesión), CORS cross-origin
-                   │  /feedback/branches · /feedback/surveys · /feedback/incidents
+                   │  /feedback/branches · /feedback/catalog · /feedback/surveys · /feedback/incidents
+                   │  (Bearer opcional del socio del club)
                    ▼
    ┌─────────────────────────────────────────┐
    │  bodega-api  (NestJS 11, hexagonal)       │  app.bod-service.cloud/api
-   │  módulo feedback (spec 059) + 8 dominios  │  PostgreSQL + Prisma 7
+   │  módulo feedback (059 → 074) + 8 dominios │  PostgreSQL + Prisma 7
    │  auth JWT (cookie httpOnly), RBAC         │  Cloudinary, MarSoft, Pushover, IA
    └───────────────┬───────────────────────────┘
                    │ GET/PATCH internos (cookie de sesión, roles feedback.*)
@@ -52,26 +53,26 @@ Superficie pública de La Bodega. Empezó como `/satisfaccion` (encuesta) y crec
 | Ruta | Componente | Qué es |
 | --- | --- | --- |
 | `/` | `landing/landing.tsx` | Landing de marketing del restaurante/panadería |
-| `/feedback` | `feedback/feedback-experience.tsx` | **Hub de feedback**: pestañas *opinión* (encuesta) / *urgencia* (queja). Split con fotos de portada |
-| `/satisfaccion` | → redirect a `/feedback` | Ruta vieja del QR; se conserva por compatibilidad |
-| `/satisfaccion/qr` | `satisfaccion/qr/page.tsx` | Póster QR para impresión (table tent) |
-| `/reportar` | → redirect a `/feedback?tab=urgente` | Ruta vieja de queja |
+| `/feedback` | `feedback/feedback-experience.tsx` | **Hub de feedback**: pantalla dividida con dos covers (encuesta / queja). El cover ES la intro: un toque abre el paso 1. `?tab=encuesta` / `?tab=urgente` abren directo |
+| `/satisfaccion` | → redirect 307 a `/feedback?tab=encuesta` (`next.config.ts`) | Ruta vieja del QR |
+| `/satisfaccion/qr` | `satisfaccion/qr/page.tsx` | Póster QR para impresión (table tent). Codifica `https://labodega-ve.com/feedback` (`survey-url.ts`) |
+| `/reportar` | → redirect 307 a `/feedback?tab=urgente` (`next.config.ts`) | Ruta vieja de queja |
 | `/bodega-club` | `bodega-club/bodega-club-page.tsx` | Landing del programa de lealtad **Bodega Club** (puntos, recompensas, FAQ) |
 | `/mi-club` | `mi-club/mi-club-page.tsx` | Área de socio (puntos, canjes, actividad) — **mock** |
 | `/login` | `auth/login-experience.tsx` | Login de socios — **mock** |
 | `/dashboard` | `dashboard/dashboard-view.tsx` | "Libro de Sala": panel de satisfacción — **usa `lib/mock.ts`** (el dashboard real vive en nx) |
 
-### Módulo de satisfacción (`src/components/satisfaccion/`)
-Wizard de **7 estados en una sola tarjeta**: `intro → overall → visit → aspects → issues → contact → done` (`survey-data.ts` `STEPS`).
-- `survey-experience.tsx` — orquestador/estado del wizard.
-- `steps.tsx` — render de cada paso (iconos lucide por aspecto/momento, copy en pregunta).
-- `chip-group.tsx` — chips single/multi (soporta `icons` por opción y `checkOnSelected`).
-- `rating-scale.tsx` — medidor de relleno acumulativo (overall 88×88, aspectos 38×38).
-- `survey-data.ts` — tipos y datos: `SurveyState`, `ASPECTS` (comida/servicio/ambiente/tiempo), `MOMENTOS`, `TEMAS`. `SUCURSALES` es placeholder — las reales vienen del backend.
-- `brand-field.tsx`, `brand-logo.tsx`, `qr-poster.tsx`, `survey-qr.tsx`, `survey-url.ts`, `motion.ts`.
+### Feedback v2 (spec `docs/superpowers/specs/2026-09-24-feedback-v2.md`)
+Sin modo standalone: ambos formularios viven solo dentro del split de `/feedback` (`feedback/feedback-split.tsx`), que además guarda lo **precargado** de la queja (puente encuesta → queja).
+- `feedback/feedback-catalog.ts` — ⭐ vocabulario: **claves espejo** de `bodega-api/src/feedback/domain/catalog.ts` (canales `dine_in|bakery|takeaway|delivery`, momentos, aspectos + `ASPECTS_BY_CHANNEL`, temas, grupos/categorías de queja) con las etiquetas en español de la landing; helpers de WhatsApp VE (`nationalDigits`, `formatNational`, `toE164`).
+- `feedback/wizard.tsx` — shell compartido: progreso, tarjeta con morph de altura, región viva, foco al título al cambiar de paso, `FieldError`, `Notice`.
+- `feedback/review-links.ts` — links de reseña en Google Maps por sucursal (**vacíos, TODO**: el botón se oculta mientras falten).
 
-### Módulo de queja/urgencia (`src/components/reportar/`)
-`incident-experience.tsx`, `incident-data.ts` (`IncidentState`, `MediaItem`), `media-upload.tsx`, `audio-recorder.tsx` (nota de voz).
+**Encuesta** (`src/components/satisfaccion/`): anónima, 5 pasos `visit → overall → aspects → topics → recommend` + `done` (`survey-data.ts`). Validación por paso (`missingFields`), aspectos según canal (vacíos → `null`), NPS 0–10 (`nps-scale.tsx`, dos filas en 375 px), gracias con puntos del club / nudge "Unirme" / reseña Google (NPS 9–10) / **puente a queja** si nota ≤ 2 o NPS ≤ 6 (`isDetractor`).
+- `survey-experience.tsx` (orquestador), `steps.tsx` (pasos + gracias), `chip-group.tsx` (radiogroup con flechas / toggles `aria-pressed`, `labels` por clave), `rating-scale.tsx`, `nps-scale.tsx`, `brand-field.tsx` (hint/error/prefijo), `qr-poster.tsx`, `survey-qr.tsx`, `survey-url.ts`, `motion.ts`.
+
+**Queja** (`src/components/reportar/`): 3 pasos `where → what → contact` (`incident-data.ts`). Cuadro de políticas "Así resolvemos tu queja" (`policies.tsx`, expandido la 1ª vez por dispositivo), categorías agrupadas, banner 911 (alergia/accidente), "¿Sigues en el local?" (salud y seguridad), "Otro" exige texto o audio, WhatsApp `+58` validado (412/414/416/422/424/426), fricción suave sin número si salud/cobro, gracias con **número de caso real** según prioridad. Socio: nombre y WhatsApp prellenados y Bearer en el envío.
+- `incident-experience.tsx`, `policies.tsx`, `media-upload.tsx`, `audio-recorder.tsx`.
 
 ### Bodega Club (lealtad) — `src/components/bodega-club/` + `mi-club/`
 - `club-data.ts` — `REWARDS` (20→180 pts: café, pan, postre, desayuno, premio), `BENEFITS`, `FAQS`, `PREFERENCES`, `BRANCHES`.
@@ -79,21 +80,20 @@ Wizard de **7 estados en una sola tarjeta**: `intro → overall → visit → as
 - `mi-club/` — tarjeta de membresía, puntos, tema; datos en `mi-club/data.ts` (mock).
 
 ### Capa de datos / backend (`src/lib/`)
-- **`feedback-api.ts`** — ⭐ **único punto de contacto con el backend real**. Base: `NEXT_PUBLIC_API_BASE_URL ?? https://app.bod-service.cloud/api`.
-  - `fetchBranches()` → `GET /feedback/branches` (con caché en memoria).
-  - `resolveBranchId(name)` — el wizard guarda **nombre**; se traduce a `id` antes de enviar.
-  - `submitSurvey(state)` → `POST /feedback/surveys`. **Traduce claves ES→EN**: `comida→food, servicio→service, ambiente→ambiance, tiempo→waitTime`; `momento→visitMoment`, `temas→topics`, etc.
-  - `submitIncident(state, media, audio)` → `POST /feedback/incidents` (multipart `files`, hasta la nota de voz con extensión por MIME).
+- **`feedback-api.ts`** — ⭐ **único punto de contacto con el backend de feedback**. Base: `NEXT_PUBLIC_API_BASE_URL ?? https://app.bod-service.cloud/api`. Al backend viajan **claves** (las de `feedback-catalog.ts`), nunca etiquetas.
+  - `fetchBranches()` → `GET /feedback/branches` (caché en memoria). El estado guarda el **id** de la sucursal.
+  - `submitSurvey(state, accessToken?)` → `POST /feedback/surveys` JSON `{branchId, channel, moment, overall, recommend, aspects (claves del canal, null = sin puntuar), positiveTopics, negativeTopics, comment?, staffMention?}` → `{id, pointsAwarded}`. Sin nombre ni contacto.
+  - `submitIncident(state, media, audio, {surveyId?, accessToken?})` → `POST /feedback/incidents` multipart `{branchId, channel, orderNumber? (delivery), categories (JSON), description?, name?, phone? (E.164), surveyId?, files[]}` → `{id, caseNumber, priority}`.
 - **`use-branches.ts`** — hook que puebla los selectores desde `fetchBranches()` (reemplaza la lista hardcodeada).
 - **`mock.ts`** — datos simulados del `/dashboard` local.
 
 ### Config
 - `.env.example`: `NEXT_PUBLIC_API_BASE_URL=https://app.bod-service.cloud/api` (público; si se omite usa prod).
-- Docs internas: `PRODUCT.md`, `DESIGN.md` (tema **nocturnal**, oro sobre casi-negro, radio 0, sin sombras, Barlow Condensed + Cormorant Garamond), `docs/superpowers/specs/2026-09-14-bodega-club-design.md`.
-- `shoot.mjs` — script Playwright de capturas.
+- Docs internas: `PRODUCT.md`, `DESIGN.md` (dirección **pop, día por defecto con modo oscuro**: chips píldora, radios, sombras suaves, springs, covers con foto; paleta oro/coral/crema; Barlow Condensed + Cormorant Garamond), specs en `docs/superpowers/specs/`.
+- `shoot.mjs` — capturas Playwright de `/feedback` v2 (375/1280, día/noche) sin enviar nada: `node shoot.mjs <carpeta>` con la landing en :3000.
 
 ### Estado del repo
-Branch `main`. Cambios sin commitear en el módulo satisfacción (`chip-group.tsx`, `steps.tsx`, `survey-data.ts`) y `shoot.mjs`: iconos por opción/momento, copy en forma de pregunta, chips con check, micro-animaciones. PRs previos: feedback wiring (envío real + selector de sucursal desde BD).
+Rama `feat/feedback-v2` (sin push: push a `main` = deploy automático al VPS). Feedback v2 implementado contra la API 074.
 
 ---
 
@@ -120,8 +120,11 @@ Ubicación: `src/feedback/`. Reusa `FILE_STORAGE_PORT` de invoices → `Cloudina
 
 **Endpoints públicos** (`@Public()`, anónimos — `PublicFeedbackController`, base `/feedback`):
 - `GET /feedback/branches` → sucursales activas (para selectores de la landing).
-- `POST /feedback/surveys` → encuesta (`SubmitSurveyResponseDto`).
-- `POST /feedback/incidents` → queja con evidencia (multipart `files`, hasta 10).
+- `GET /feedback/catalog` → vocabulario (canales con sus aspectos, momentos, temas, grupos de queja con categorías y prioridad, resoluciones, rechazos). Fuente: `domain/catalog.ts` (spec 074).
+- `POST /feedback/surveys` → encuesta v2 (`SubmitSurveyResponseDto`); Bearer opcional del socio suma puntos → `{id, pointsAwarded}`.
+- `POST /feedback/incidents` → queja con evidencia (multipart `files`, hasta 10); normaliza el WhatsApp a E.164 (400 si no es móvil VE), deriva prioridad y número de caso → `{id, caseNumber, priority}`.
+
+> ⚠️ Spec 074 reescribió el modelo de encuesta/queja (canal, NPS, temas +/-, mención al equipo; queja como **caso** con prioridad, SLA y número). Lo de abajo describe la 059 original; la verdad está en `specs/074-feedback-v2/spec.md` y `openapi.json`.
 
 **Endpoints internos** (cookie + rol — `FeedbackDashboardController`, base `/feedback`):
 - `GET /feedback/surveys` (`feedback.viewer`/`admin`) — filtros from/to/branchId.
@@ -209,10 +212,11 @@ Dashboard **autenticado de solo lectura/gestión** bajo `/feedback`. Consume el 
 | Concepto | Landing (envía) | Backend (persiste) | Dashboard nx (lee) |
 | --- | --- | --- | --- |
 | Sucursales | `GET /feedback/branches` (`feedback-api.ts`) | `Branch` / `list-branches` | `useBranches` |
-| Encuesta | `POST /feedback/surveys` (traduce ES→EN) | `SurveyResponse` | `useSurveys` + `PATCH resolved` |
-| Queja | `POST /feedback/incidents` (multipart) | `IncidentReport`+`IncidentMedia` (Cloudinary) | `useIncidents` + `PATCH status` |
+| Vocabulario | claves espejo en `feedback-catalog.ts` | `domain/catalog.ts` → `GET /feedback/catalog` | catálogo |
+| Encuesta | `POST /feedback/surveys` (claves, aspectos `null`, NPS) | `SurveyResponse` (074) | resumen/listado 068 |
+| Queja | `POST /feedback/incidents` (multipart, `phone` E.164, `surveyId`) | `IncidentReport` como caso (074) + `IncidentMedia` (Cloudinary) | bandeja de casos 068 |
 
-- **Claves ES↔EN:** la landing usa español (`comida/servicio/ambiente/tiempo`, `momento`, `temas`), el backend/DTO inglés (`food/service/ambiance/waitTime`, `visitMoment`, `topics`). La traducción vive en `bodega-landing/src/lib/feedback-api.ts`.
+- **Claves:** la landing ya no traduce ES→EN: guarda y envía las claves del backend (`dine_in`, `waitTime`, `fair_price`, `allergic_reaction`…). Las etiquetas en español viven en `bodega-landing/src/components/feedback/feedback-catalog.ts`; si el backend agrega/renombra una clave, se toca ese archivo y `feedback-api.ts`.
 - **Sucursales placeholder:** landing (`SUCURSALES`, `BRANCHES`) y backend seed comparten "Bodega 1/2/3" — **pendiente sustituir por las reales** en un solo lugar (backend) ya que la landing las trae por API.
 - **`openapi.json`** es la fuente: backend lo exporta (`pnpm openapi:export`) → se copia a `libs/la-bodega-contracts` → Orval regenera clientes nx. Si cambia el contrato feedback, tocar: backend DTO → export → `contracts:sync` → `api:generate`, y a mano `bodega-landing/src/lib/feedback-api.ts`.
 - **Auth:** endpoints públicos de feedback = sin sesión (CORS). Dashboard nx = cookie httpOnly compartida same-origin + rol `feedback.*`.
@@ -231,4 +235,4 @@ Dashboard **autenticado de solo lectura/gestión** bajo `/feedback`. Consume el 
 - **Backend:** spec-driven — features nuevas van como `specs/NNN-*/` (spec→plan→tasks), respetar hexagonal + `specs/constitucion/`. Tablas/columnas en inglés vía `@@map`.
 - **nx:** Orval genera clientes (no editar `generated.ts` a mano); date picker compartido, no `<input type=date>`; `AGENTS.md` es el doc guía.
 - **Copy (landing):** español de Venezuela, voz de maître d'; el copy es final salvo indicación.
-- **Diseño (landing):** tema nocturnal, oro sobre casi-negro, radio 0, sin sombras, `prefers-reduced-motion` obligatorio.
+- **Diseño (landing):** dirección pop oficial (ver `DESIGN.md`): día por defecto + modo oscuro, chips píldora, radios, sombras suaves, springs; `prefers-reduced-motion` obligatorio.

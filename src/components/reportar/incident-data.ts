@@ -1,33 +1,45 @@
-// La Bodega — reporte de situación crítica / urgente. Datos y tipos.
-// Copy final en español (Venezuela). No reescribir sin pedir.
+// La Bodega — queja v2 (un caso con catálogo agrupado). Datos y tipos.
+// Copy aprobado en docs/superpowers/specs/2026-09-24-feedback-v2.md.
 
-export const PROBLEMAS = [
-  "Comida en mal estado",
-  "Objeto extraño / insecto",
-  "Cruda o mal cocida",
-  "Llegó fría",
-  "Reacción alérgica",
-  "Higiene del local",
-  "Otro",
-] as const;
+import type { Channel, IncidentCategory } from "@/components/feedback/feedback-catalog";
 
-export const SUCURSALES = ["Bodega 1", "Bodega 2", "Bodega 3"] as const;
+export const INCIDENT_STEPS = ["where", "what", "contact"] as const;
+export type IncidentStep = (typeof INCIDENT_STEPS)[number];
+
+export const INCIDENT_STEP_ANNOUNCE: Record<IncidentStep, string> = {
+  where: "Paso 1 de 3, ¿dónde fue?",
+  what: "Paso 2 de 3, ¿qué pasó?",
+  contact: "Paso 3 de 3, ¿cómo te contactamos?",
+};
 
 export type IncidentState = {
-  problemas: string[];
-  sucursal: string;
-  descripcion: string;
-  // Evidencia y audio no viven en el estado serializable; se manejan aparte.
-  nombre: string;
-  contacto: string;
+  branchId: string;
+  channel: Channel | "";
+  orderNumber: string;
+  categories: IncidentCategory[];
+  description: string;
+  name: string;
+  /** Solo los 10 dígitos nacionales (`4141234567`); el `+58` es fijo. */
+  phone: string;
 };
 
 export const initialIncident: IncidentState = {
-  problemas: [],
-  sucursal: "",
-  descripcion: "",
-  nombre: "",
-  contacto: "",
+  branchId: "",
+  channel: "",
+  orderNumber: "",
+  categories: [],
+  description: "",
+  name: "",
+  phone: "",
+};
+
+/** Lo que el puente encuesta → queja trae precargado. */
+export type IncidentPrefill = {
+  branchId?: string;
+  channel?: Channel | "";
+  description?: string;
+  /** Encuesta de origen (solo cuando ya se envió). */
+  surveyId?: string;
 };
 
 export type MediaItem = {

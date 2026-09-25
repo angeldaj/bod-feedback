@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { SurveyExperience } from "@/components/satisfaccion/survey-experience";
 import { IncidentExperience } from "@/components/reportar/incident-experience";
+import type { IncidentPrefill } from "@/components/reportar/incident-data";
+import { useMember } from "@/lib/member-session";
 
 export type Choice = "encuesta" | "urgencia";
 
@@ -29,6 +31,8 @@ type ChoiceDef = {
   kicker: string;
   title: string;
   subtitle: string;
+  /** Lo útil de la antigua intro, como microcopy del cover. */
+  microcopy: string;
   cta: string;
   bannerLabel: string;
   /** Foto de fondo (opcional). Suelta el archivo en /public/img con este
@@ -67,7 +71,8 @@ const CHOICES: ChoiceDef[] = [
     kicker: "Tu opinión cuenta",
     title: "Cuéntanos\ncómo te fue",
     subtitle:
-      "En La Bodega queremos atenderte con el mayor estándar. Dinos cómo fue tu visita y nos ayudas a cuidarte aún mejor.",
+      "En La Bodega queremos superar siempre tus expectativas. Tu opinión nos dice si lo estamos logrando.",
+    microcopy: "Anónima · 1 minuto · 5 preguntas",
     cta: "Dejar mi opinión",
     bannerLabel: "Tu opinión",
     img: "/img/feedback-opinion.png",
@@ -77,9 +82,10 @@ const CHOICES: ChoiceDef[] = [
     tone: "urgent",
     Icon: AlertTriangle,
     kicker: "Estamos para resolverlo",
-    title: "Reportar\nuna queja",
+    title: "¿Algo no\nsalió bien?",
     subtitle:
-      "Si algo no estuvo a la altura, queremos resolverlo de inmediato. Cuéntanos qué pasó y lo atendemos enseguida.",
+      "En La Bodega queremos superar siempre tus expectativas. Si algo no estuvo a la altura, nuestro compromiso es resolverlo hasta que salgas de aquí feliz.",
+    microcopy: "Te respondemos por WhatsApp · menos de un minuto",
     cta: "Reportar mi queja",
     bannerLabel: "Tu queja",
     img: "/img/feedback-queja.png",
@@ -100,6 +106,9 @@ export function FeedbackSplit({
   onSelect: (next: Choice | null, focus?: boolean) => void;
 }) {
   const reduce = useReducedMotion();
+  const { member } = useMember();
+  // Datos que la encuesta le pasa a la queja (atajo, enlace o puente).
+  const [prefill, setPrefill] = useState<IncidentPrefill | undefined>(undefined);
   const coverRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const backRef = useRef<HTMLButtonElement | null>(null);
 
@@ -139,6 +148,20 @@ export function FeedbackSplit({
 
   const selectedDef = CHOICES.find((c) => c.id === selected) ?? null;
 
+  // Con sesión de socio, la encuesta suma puntos: se dice en el cover.
+  const microcopyFor = (c: ChoiceDef) =>
+    c.id === "encuesta" && member ? `${c.microcopy} · +5 puntos` : c.microcopy;
+
+  // Volver a los covers (o cambiar de formulario) descarta lo precargado.
+  const choose = (next: Choice | null, focus?: boolean) => {
+    setPrefill(undefined);
+    onSelect(next, focus);
+  };
+  const openComplaint = (data: IncidentPrefill) => {
+    setPrefill(data);
+    onSelect("urgencia", true);
+  };
+
   return (
     <div
       className="fb-split"
@@ -173,9 +196,9 @@ export function FeedbackSplit({
                   animate={{ opacity: 1 }}
                   exit={reduce ? { opacity: 0 } : { opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  onClick={() => onSelect(c.id)}
+                  onClick={() => choose(c.id)}
                   onKeyDown={(e) => onCoverKeyDown(e, i)}
-                  aria-label={`${c.bannerLabel}. ${c.subtitle}`}
+                  aria-label={`${c.bannerLabel}. ${c.subtitle} ${microcopyFor(c)}.`}
                   className={`fb-photo fb-cover fb-cover--${c.tone === "urgent" ? "urgent" : "warm"} ${toneClass(c.tone)} group`}
                 >
                   <FbPhoto src={c.img} alt="" />
@@ -199,6 +222,9 @@ export function FeedbackSplit({
                     </span>
                     <span className="max-w-[36ch] text-[15.5px] leading-[1.5] text-[rgba(255,244,232,0.92)]">
                       {c.subtitle}
+                    </span>
+                    <span className="text-[13px] font-semibold uppercase tracking-[0.16em] text-[rgba(255,244,232,0.88)]">
+                      {microcopyFor(c)}
                     </span>
                     <span className="mt-2 inline-flex items-center gap-2 self-start rounded-full bg-[rgba(255,244,232,0.96)] px-6 py-3 text-[15px] font-semibold text-[#2a0f07] shadow-[0_10px_24px_-12px_rgba(24,10,4,0.7)] transition-transform duration-200 group-hover:translate-x-1">
                       {c.cta}
@@ -236,7 +262,7 @@ export function FeedbackSplit({
                         type="button"
                         ref={backRef}
                         className="fb-back self-start"
-                        onClick={() => onSelect(null, true)}
+                        onClick={() => choose(null, true)}
                       >
                         <ArrowLeft size={15} strokeWidth={2.4} aria-hidden="true" />
                         Cambiar
@@ -260,7 +286,7 @@ export function FeedbackSplit({
                     <button
                       type="button"
                       className="fb-back"
-                      onClick={() => onSelect(null, true)}
+                      onClick={() => choose(null, true)}
                     >
                       <ArrowLeft size={15} strokeWidth={2.4} aria-hidden="true" />
                       Cambiar
@@ -282,9 +308,13 @@ export function FeedbackSplit({
                   aria-label={selectedDef.bannerLabel}
                 >
                   {selectedDef.id === "encuesta" ? (
-                    <SurveyExperience embedded onUrgent={() => onSelect("urgencia", true)} />
+                    <SurveyExperience onComplain={openComplaint} />
                   ) : (
-                    <IncidentExperience embedded onSurvey={() => onSelect("encuesta", true)} />
+                    <IncidentExperience
+                      key={prefill?.surveyId ?? "queja"}
+                      prefill={prefill}
+                      onSurvey={() => choose("encuesta", true)}
+                    />
                   )}
                 </motion.div>
               )}

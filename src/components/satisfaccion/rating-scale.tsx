@@ -10,6 +10,10 @@ type Props = {
   onChange: (n: number) => void;
   ariaLabel: string;
   variant?: "overall" | "dots";
+  /** Tocar de nuevo la nota elegida la borra (aspectos opcionales). */
+  clearable?: boolean;
+  describedBy?: string;
+  invalid?: boolean;
 };
 
 // Sentiment ramp: la nota tiñe las casillas rellenas de coral (bajo) a oro (alto).
@@ -21,7 +25,15 @@ const SENT: Record<number, string> = {
   5: "#efc77e",
 };
 
-export function RatingScale({ value, onChange, ariaLabel, variant = "overall" }: Props) {
+export function RatingScale({
+  value,
+  onChange,
+  ariaLabel,
+  variant = "overall",
+  clearable = false,
+  describedBy,
+  invalid,
+}: Props) {
   const reduce = useReducedMotion();
   const [preview, setPreview] = useState(0);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -49,7 +61,12 @@ export function RatingScale({ value, onChange, ariaLabel, variant = "overall" }:
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={cn("flex flex-wrap", isDots ? "gap-2.5" : "gap-2.5 max-[560px]:gap-2")}
+      aria-describedby={describedBy}
+      aria-invalid={invalid || undefined}
+      aria-required={!clearable || undefined}
+      className={cn(
+        isDots ? "flex gap-2.5" : "grid w-full max-w-[430px] grid-cols-5 gap-2.5 max-[560px]:gap-2",
+      )}
       style={{ ["--sent" as string]: sent }}
       onMouseLeave={() => setPreview(0)}
     >
@@ -65,12 +82,13 @@ export function RatingScale({ value, onChange, ariaLabel, variant = "overall" }:
             aria-label={`${n} de 5`}
             data-filled={filled}
             data-preview={isPreview}
+            data-invalid={invalid || undefined}
             ref={(node) => {
               btnRefs.current[i] = node;
             }}
             tabIndex={value === 0 ? (n === 1 ? 0 : -1) : n === value ? 0 : -1}
             onMouseEnter={() => setPreview(n)}
-            onClick={() => onChange(n)}
+            onClick={() => onChange(clearable && n === value ? 0 : n)}
             onKeyDown={(e) => onKeyDown(e, i)}
             whileTap={reduce ? undefined : { scale: 0.9 }}
             animate={
@@ -83,7 +101,7 @@ export function RatingScale({ value, onChange, ariaLabel, variant = "overall" }:
               "pop-rate select-none",
               isDots
                 ? "h-11 w-11 font-sans text-[16px] font-medium"
-                : "h-[76px] w-[76px] text-[32px] max-[560px]:h-[58px] max-[560px]:w-[58px] max-[560px]:text-[26px]",
+                : "aspect-square w-full text-[32px] max-[560px]:text-[26px]",
             )}
           >
             {n}

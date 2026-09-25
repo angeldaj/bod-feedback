@@ -31,7 +31,7 @@ export function QrPoster() {
             tu visita?
           </h1>
           <p className="m-0 max-w-[30ch] text-[16px] leading-[1.5] text-body">
-            Apunta la cámara de tu teléfono al código. Dos minutos, seis
+            Apunta la cámara de tu teléfono al código. Un minuto, 5
             preguntas.
           </p>
         </div>
