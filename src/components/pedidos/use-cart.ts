@@ -15,7 +15,7 @@ export type CartItem = {
 };
 
 type Action =
-  | { type: "hydrate"; items: CartItem[]; storeId: string | null }
+  | { type: "hydrate"; items: CartItem[] }
   | { type: "add"; product: Product; quantity: number; note: string }
   | { type: "update"; lineId: string; quantity: number; note: string }
   | { type: "remove"; lineId: string }
@@ -27,12 +27,9 @@ export const MAX_QTY = 20;
 
 type CartState = {
   items: CartItem[];
-  /** Local cuyo carrito se leyó de localStorage; null mientras no se lee. */
-  loadedFor: string | null;
+  /** Ya se leyó el carrito de localStorage. */
+  loaded: boolean;
 };
-
-/** Un carrito por local: un pedido sale de un solo local. */
-const storageKey = (storeId: string) => `${STORAGE_KEY}:${storeId}`;
 
 function itemsReducer(items: CartItem[], action: Exclude<Action, { type: "hydrate" }>): CartItem[] {
   switch (action.type) {
@@ -76,36 +73,38 @@ function itemsReducer(items: CartItem[], action: Exclude<Action, { type: "hydrat
 }
 
 function reducer(state: CartState, action: Action): CartState {
-  if (action.type === "hydrate") return { items: action.items, loadedFor: action.storeId };
+  if (action.type === "hydrate") return { items: action.items, loaded: true };
   return { ...state, items: itemsReducer(state.items, action) };
 }
 
-export function useCart(storeId: string | null) {
-  const [{ items, loadedFor }, dispatch] = useReducer(reducer, { items: [], loadedFor: null });
+/**
+ * Un solo carrito: el catálogo es el mismo en todos los locales (solo cambia qué
+ * está agotado en cada uno), así que cambiar de local no lo vacía.
+ */
+export function useCart() {
+  const [{ items, loaded }, dispatch] = useReducer(reducer, { items: [], loaded: false });
 
-  // El carrito del local se lee de localStorage tras montar (para no desalinear la
-  // hidratación) y cada vez que cambia el local.
+  // Se lee de localStorage tras montar, para no desalinear la hidratación.
   useEffect(() => {
-    if (!storeId) return;
     let saved: CartItem[] = [];
     try {
-      const raw = localStorage.getItem(storageKey(storeId));
+      const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) saved = JSON.parse(raw) as CartItem[];
     } catch {
       // Sin almacenamiento el carrito funciona igual, solo no persiste.
     }
-    dispatch({ type: "hydrate", items: saved, storeId });
-  }, [storeId]);
+    dispatch({ type: "hydrate", items: saved });
+  }, []);
 
-  // Solo se escribe después de leer el mismo local, para no pisar un carrito con otro.
+  // Solo se escribe después de leer, para no pisar el carrito guardado con uno vacío.
   useEffect(() => {
-    if (!storeId || loadedFor !== storeId) return;
+    if (!loaded) return;
     try {
-      localStorage.setItem(storageKey(storeId), JSON.stringify(items));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {
       // Persistencia opcional.
     }
-  }, [items, loadedFor, storeId]);
+  }, [items, loaded]);
 
   const add = useCallback(
     (product: Product, quantity: number, note: string) => dispatch({ type: "add", product, quantity, note }),

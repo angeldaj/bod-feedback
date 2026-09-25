@@ -18,18 +18,12 @@ export function CatalogView({
   products,
   cart,
   loading,
-  storeName,
-  onChangeStore,
   onSelect,
 }: {
   categories: Category[];
   products: Product[];
   cart: CartItem[];
   loading: boolean;
-  /** Local del que sale el pedido. */
-  storeName?: string;
-  /** Solo si hay más de un local. */
-  onChangeStore?: () => void;
   onSelect: (product: Product) => void;
 }) {
   const [category, setCategory] = useState(ALL);
@@ -56,24 +50,13 @@ export function CatalogView({
     <>
       {/* Header sticky: marca, buscador y categorías. */}
       <header className="sticky top-0 z-20 -mx-4 flex flex-col gap-3 border-b border-hair-div bg-[rgba(11,9,6,0.86)] px-4 pt-4 pb-3 md:-mx-8 md:px-8 md:pt-6 backdrop-blur-md">
-        <div className="flex items-end justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="font-serif text-[26px] font-semibold leading-none tracking-tight text-cream">
-              La Bodega
-            </span>
-            <span className="pl-[0.1em] text-[10.5px] font-medium uppercase tracking-[0.28em] text-label">
-              {storeName ? `Pedidos · ${storeName}` : "Pedidos · Delivery y retiro"}
-            </span>
-          </div>
-          {onChangeStore && (
-            <button
-              type="button"
-              onClick={onChangeStore}
-              className="shrink-0 text-[14px] font-medium text-gold underline-offset-4 hover:underline"
-            >
-              Cambiar local
-            </button>
-          )}
+        <div className="flex flex-col gap-1">
+          <span className="font-serif text-[26px] font-semibold leading-none tracking-tight text-cream">
+            La Bodega
+          </span>
+          <span className="pl-[0.1em] text-[10.5px] font-medium uppercase tracking-[0.28em] text-label">
+            Pedidos · Delivery y retiro
+          </span>
         </div>
 
         <label className="relative block md:max-w-[520px]">
