@@ -60,7 +60,7 @@ function TierProgress({ card }: { card: ClubCard }) {
 }
 
 export function HomeScreen() {
-  const { card, member, loading, activeVouchers, openOverlay } = useClub();
+  const { card, member, loading, activeVouchers, openOverlay, href } = useClub();
   const [flipped, setFlipped] = useState(false);
 
   if (loading || !card || !member) {
@@ -111,7 +111,7 @@ export function HomeScreen() {
         <TierProgress card={card} />
         <div className="sec-head">
           <h2>Tu Wallet</h2>
-          <Link href="/mi-club/wallet" className="link">
+          <Link href={href("wallet")} className="link">
             Ver todo
             <ChevronRight aria-hidden="true" />
           </Link>

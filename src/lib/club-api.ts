@@ -1,11 +1,13 @@
 // Adapter de Bodega Club v2 (mi-club): tarjeta con piel por nivel, diseños de
 // tarjeta, Bodega Wallet de vouchers, catálogo de canje y actividad.
 //
-// CONTRATO PROPUESTO — el backend todavía no lo expone. Estos tipos son la
-// propuesta para la spec de bodega-api (tarjeta/pieles/diseños/vouchers). Hasta
-// que exista, la fuente por defecto es un mock en memoria
-// (`NEXT_PUBLIC_CLUB_V2_SOURCE` != "api"). Cuando el backend esté listo se pone
-// `NEXT_PUBLIC_CLUB_V2_SOURCE=api` y la UI no cambia: solo este archivo.
+// Contrato: spec 075 de bodega-api (`GET /loyalty/me/card`, `/me/card-designs`,
+// `PUT /me/card-design`, `/me/vouchers`, `/me/rewards`, `POST /me/redemptions`,
+// `/me/timeline`). Dos adaptadores con la misma interfaz:
+// - `createLiveClubAdapter`: el backend real con la sesión Bearer del socio
+//   (lo usa `/mi-club`).
+// - `createMockClubAdapter`: datos de ejemplo en memoria, sin login, para la
+//   demostración en `/club-mock`.
 //
 // Mismo patrón que `loyalty-api.ts` / `feedback-api.ts`: único punto de
 // contacto con los endpoints del club v2 desde la landing.
@@ -14,9 +16,6 @@ import type { Member } from "./loyalty-api";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://app.bod-service.cloud/api";
-
-export const CLUB_SOURCE: "mock" | "api" =
-  process.env.NEXT_PUBLIC_CLUB_V2_SOURCE === "api" ? "api" : "mock";
 
 // ---------------------------------------------------------------------------
 // Tipos del contrato
@@ -72,7 +71,7 @@ export type CardDesign = {
 export type VoucherOrigin = "redemption" | "grant";
 export type GrantReason = "manual" | "segment" | "complaint" | "tier_up";
 export type VoucherKind = "percent" | "amount" | "product";
-export type VoucherStatus = "active" | "used" | "expired";
+export type VoucherStatus = "active" | "used" | "expired" | "cancelled";
 
 export type Voucher = {
   id: string;
@@ -147,8 +146,10 @@ export class ClubApiError extends Error {
 }
 
 // ---------------------------------------------------------------------------
-// Fuente "api" (endpoints propuestos para la spec de bodega-api)
+// Adaptador live (backend real, spec 075)
 // ---------------------------------------------------------------------------
+
+export type AuthedRequest = <T>(fn: (accessToken: string) => Promise<T>) => Promise<T>;
 
 async function request<T>(path: string, accessToken: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -171,18 +172,75 @@ async function request<T>(path: string, accessToken: string, init?: RequestInit)
   return (await response.json()) as T;
 }
 
-const api = {
-  getCard: (t: string) => request<ClubCard>("/loyalty/me/card", t),
-  listDesigns: (t: string) => request<CardDesign[]>("/loyalty/me/card-designs", t),
-  selectDesign: (t: string, designId: string) =>
-    request<ClubCard>("/loyalty/me/card-design", t, { method: "PUT", body: JSON.stringify({ designId }) }),
-  listVouchers: (t: string) => request<Voucher[]>("/loyalty/me/vouchers", t),
-  listRewards: (t: string) => request<ClubReward[]>("/loyalty/rewards", t),
-  redeem: (t: string, rewardId: string) =>
-    request<Voucher>("/loyalty/me/redemptions", t, { method: "POST", body: JSON.stringify({ rewardId }) }),
-  getActivity: (t: string) => request<ClubActivity>("/loyalty/me/activity/v2", t),
+// DTOs del backend (openapi.json de bodega-api, spec 075).
+type CardTierDto = { rank: number; name: string; skin: CardSkin; minLifetimePoints: number; perk: string | null };
+type ClubCardDto = {
+  memberNo: string;
+  holderName: string;
+  qrValue: string;
+  balance: number;
+  lifetime: number;
+  visits: number;
+  memberSince: string;
+  tier: CardTierDto | null;
+  nextTier: (CardTierDto & { pointsToGo: number; progressPct: number; unlocksDesign: string | null }) | null;
+  designId: string;
 };
+type MemberRewardsDto = {
+  available: number;
+  rewards: {
+    id: string;
+    name: string;
+    description: string | null;
+    pointsCost: number;
+    category: string | null;
+    imageUrl: string | null;
+    affordable: boolean;
+  }[];
+};
+type RedemptionWithVoucherDto = { voucher: Voucher };
 
+/** Sin niveles configurados el backend manda `tier: null`; la tarjeta igual necesita una piel. */
+const FALLBACK_TIER: ClubTier = { rank: 0, name: "Socio", skin: "cobre", minLifetimePoints: 0, perk: null };
+
+export function memberSinceLabel(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("es-VE", { month: "long", year: "numeric" }).replace(" de ", " ");
+}
+
+function mapCard(dto: ClubCardDto): ClubCard {
+  return {
+    memberNo: dto.memberNo,
+    holderName: dto.holderName,
+    qrValue: dto.qrValue,
+    balance: dto.balance,
+    lifetime: dto.lifetime,
+    visits: dto.visits,
+    memberSince: memberSinceLabel(dto.memberSince),
+    tier: dto.tier ?? FALLBACK_TIER,
+    nextTier: dto.nextTier,
+    designId: dto.designId,
+  };
+}
+
+function mapRewards(dto: MemberRewardsDto): ClubReward[] {
+  const rewards = dto.rewards.map((r) => ({
+    id: r.id,
+    name: r.name,
+    category: r.category ?? "Especial",
+    description: r.description ?? "",
+    points: r.pointsCost,
+    imageUrl: r.imageUrl,
+    featured: false,
+  }));
+  // Sin dato de popularidad todavía: destacamos la canjeable más económica.
+  const cheapest = rewards
+    .filter((r) => r.points <= dto.available)
+    .sort((a, b) => a.points - b.points)[0];
+  if (cheapest) cheapest.featured = true;
+  return rewards;
+}
 // ---------------------------------------------------------------------------
 // Fuente "mock" (en memoria, por sesión de navegador)
 // ---------------------------------------------------------------------------
@@ -255,7 +313,7 @@ function seedStore(member: Member | null): MockStore {
   const now = Date.now();
   const voucher = (v: Omit<Voucher, "id" | "code" | "qrValue" | "status" | "usedAt" | "usedAtBranch"> & Partial<Voucher>): Voucher => {
     const code = v.code ?? randomCode();
-    return { id: `v-${code}`, code, qrValue: `BCV:${code}`, status: "active", usedAt: null, usedAtBranch: null, ...v };
+    return { id: `v-${code}`, code, qrValue: `LBVCH:${code}`, status: "active", usedAt: null, usedAtBranch: null, ...v };
   };
   return {
     memberKey: member?.id ?? "demo",
@@ -333,7 +391,7 @@ function buildCard(s: MockStore): ClubCard {
   return {
     memberNo: s.memberNo,
     holderName: s.holderName,
-    qrValue: `BC1:${s.memberNo.replace(/\s/g, "")}`,
+    qrValue: `LBCLUB:${s.memberNo.replace(/\s/g, "")}`,
     balance: s.balance,
     lifetime: s.lifetime,
     visits: s.visits,
@@ -378,75 +436,105 @@ function buildActivity(s: MockStore): ClubActivity {
 const delay = <T,>(value: T, ms = 220) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
 // ---------------------------------------------------------------------------
-// API pública (la usa el provider de mi-club)
+// Interfaz común de los adaptadores (la usa el provider de mi-club)
 // ---------------------------------------------------------------------------
 
-export type ClubContext = { accessToken: string | null; member: Member | null };
+export type ClubDemoActions = {
+  tierUp: () => boolean;
+  complaintGift: () => Voucher | null;
+  toggleVisits: () => number;
+};
 
-export async function getCard({ accessToken, member }: ClubContext): Promise<ClubCard> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.getCard(accessToken);
-  return delay(buildCard(ensureStore(member)));
+export interface ClubAdapter {
+  getCard(): Promise<ClubCard>;
+  listDesigns(): Promise<CardDesign[]>;
+  selectDesign(designId: string): Promise<ClubCard>;
+  listVouchers(): Promise<Voucher[]>;
+  listRewards(): Promise<ClubReward[]>;
+  redeemReward(rewardId: string): Promise<Voucher>;
+  getActivity(): Promise<ClubActivity>;
+  /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
+  demo: ClubDemoActions | null;
 }
 
-export async function listDesigns({ accessToken, member }: ClubContext): Promise<CardDesign[]> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.listDesigns(accessToken);
-  return delay(resolveDesigns(ensureStore(member)));
-}
-
-export async function selectDesign({ accessToken, member }: ClubContext, designId: string): Promise<ClubCard> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.selectDesign(accessToken, designId);
-  const s = ensureStore(member);
-  const design = resolveDesigns(s).find((d) => d.id === designId);
-  if (!design) throw new ClubApiError("Ese diseño ya no existe.", 404);
-  if (!design.unlocked) throw new ClubApiError("Todavía no has ganado ese diseño.", 409);
-  s.designId = designId;
-  return delay(buildCard(s), 160);
-}
-
-export async function listVouchers({ accessToken, member }: ClubContext): Promise<Voucher[]> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.listVouchers(accessToken);
-  const s = ensureStore(member);
-  const now = Date.now();
-  s.vouchers.forEach((v) => {
-    if (v.status === "active" && new Date(v.expiresAt).getTime() <= now) v.status = "expired";
-  });
-  return delay([...s.vouchers]);
-}
-
-export async function listRewards({ accessToken }: ClubContext): Promise<ClubReward[]> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.listRewards(accessToken);
-  return delay([...MOCK_REWARDS]);
-}
-
-export async function redeemReward({ accessToken, member }: ClubContext, rewardId: string): Promise<Voucher> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.redeem(accessToken, rewardId);
-  const s = ensureStore(member);
-  const reward = MOCK_REWARDS.find((r) => r.id === rewardId);
-  if (!reward) throw new ClubApiError("Esa recompensa ya no está disponible.", 404);
-  if (s.balance < reward.points) throw new ClubApiError(`Te faltan ${reward.points - s.balance} pts para este canje.`, 409);
-  s.balance -= reward.points;
-  const code = randomCode();
-  const voucher: Voucher = {
-    id: `v-${code}`, origin: "redemption", grantReason: null, kind: "product", title: reward.name,
-    valueLabel: `${reward.points} pts`, category: reward.category, code, qrValue: `BCV:${code}`,
-    expiresAt: new Date(Date.now() + DAY).toISOString(), status: "active", note: null, usedAt: null, usedAtBranch: null,
+export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
+  return {
+    getCard: () => authed((t) => request<ClubCardDto>("/loyalty/me/card", t)).then(mapCard),
+    listDesigns: () => authed((t) => request<CardDesign[]>("/loyalty/me/card-designs", t)),
+    selectDesign: (designId) =>
+      authed((t) =>
+        request<ClubCardDto>("/loyalty/me/card-design", t, { method: "PUT", body: JSON.stringify({ designId }) }),
+      ).then(mapCard),
+    listVouchers: () => authed((t) => request<Voucher[]>("/loyalty/me/vouchers", t)),
+    listRewards: () => authed((t) => request<MemberRewardsDto>("/loyalty/me/rewards", t)).then(mapRewards),
+    redeemReward: (rewardId) =>
+      authed((t) =>
+        request<RedemptionWithVoucherDto>("/loyalty/me/redemptions", t, {
+          method: "POST",
+          body: JSON.stringify({ rewardId }),
+        }),
+      ).then((r) => r.voucher),
+    getActivity: () => authed((t) => request<ClubActivity>("/loyalty/me/timeline", t)),
+    demo: null,
   };
-  s.vouchers.unshift(voucher);
-  s.activity.unshift({ id: `a-${code}`, type: "redemption", occurredAt: new Date().toISOString(), title: `Canjeaste: ${reward.name.toLowerCase()}`, detail: "Guardado en tu Wallet por 24 h", points: -reward.points, category: reward.category });
-  return delay(voucher, 380);
 }
 
-export async function getActivity({ accessToken, member }: ClubContext): Promise<ClubActivity> {
-  if (CLUB_SOURCE === "api" && accessToken) return api.getActivity(accessToken);
-  return delay(buildActivity(ensureStore(member)));
+export function createMockClubAdapter(member: Member): ClubAdapter {
+  const s = () => ensureStore(member);
+  return {
+    getCard: () => delay(buildCard(s())),
+    listDesigns: () => delay(resolveDesigns(s())),
+    async selectDesign(designId) {
+      const store = s();
+      const design = resolveDesigns(store).find((d) => d.id === designId);
+      if (!design) throw new ClubApiError("Ese diseño ya no existe.", 404);
+      if (!design.unlocked) throw new ClubApiError("Todavía no has ganado ese diseño.", 409);
+      store.designId = designId;
+      return delay(buildCard(store), 160);
+    },
+    listVouchers() {
+      const store = s();
+      const now = Date.now();
+      store.vouchers.forEach((v) => {
+        if (v.status === "active" && new Date(v.expiresAt).getTime() <= now) v.status = "expired";
+      });
+      return delay([...store.vouchers]);
+    },
+    listRewards: () => delay([...MOCK_REWARDS]),
+    async redeemReward(rewardId) {
+      const store = s();
+      const reward = MOCK_REWARDS.find((r) => r.id === rewardId);
+      if (!reward) throw new ClubApiError("Esa recompensa ya no está disponible.", 404);
+      if (store.balance < reward.points) {
+        throw new ClubApiError(`Te faltan ${reward.points - store.balance} pts para este canje.`, 409);
+      }
+      store.balance -= reward.points;
+      const code = randomCode();
+      const voucher: Voucher = {
+        id: `v-${code}`, origin: "redemption", grantReason: null, kind: "product", title: reward.name,
+        valueLabel: `${reward.points} pts`, category: reward.category, code, qrValue: `LBVCH:${code}`,
+        expiresAt: new Date(Date.now() + DAY).toISOString(), status: "active", note: null, usedAt: null, usedAtBranch: null,
+      };
+      store.vouchers.unshift(voucher);
+      store.activity.unshift({
+        id: `a-${code}`, type: "redemption", occurredAt: new Date().toISOString(),
+        title: `Canjeaste: ${reward.name.toLowerCase()}`, detail: "Guardado en tu Wallet", points: -reward.points,
+        category: reward.category,
+      });
+      return delay(voucher, 380);
+    },
+    getActivity: () => delay(buildActivity(s())),
+    demo: {
+      tierUp: () => demoTierUp(member),
+      complaintGift: () => demoComplaintGift(member),
+      toggleVisits: () => demoToggleVisits(member),
+    },
+  };
 }
-
 // ---------------------------------------------------------------------------
-// Modo demo (solo fuente mock): permite ver mi-club sin backend ni sesión y
-// disparar a mano los eventos que en producción llegan del backend.
+// Demo (/club-mock): socia de ejemplo y eventos que en producción dispara el
+// backend (subida de nivel, compensación de una queja, visitas).
 // ---------------------------------------------------------------------------
-
-export const CLUB_DEMO = process.env.NEXT_PUBLIC_CLUB_V2_DEMO === "1";
 
 export const DEMO_MEMBER: Member = {
   id: "demo",
@@ -470,8 +558,7 @@ export const DEMO_MEMBER: Member = {
 };
 
 /** Sube al socio al siguiente nivel y emite el regalo del nivel. Solo mock. */
-export function demoTierUp(member: Member | null): boolean {
-  if (CLUB_SOURCE !== "mock") return false;
+function demoTierUp(member: Member | null): boolean {
   const s = ensureStore(member);
   const next = TIERS[tierFor(s.lifetime).rank + 1];
   if (!next) return false;
@@ -480,7 +567,7 @@ export function demoTierUp(member: Member | null): boolean {
     const code = randomCode();
     s.vouchers.unshift({
       id: `v-${code}`, origin: "grant", grantReason: "tier_up", kind: /\d+%/.test(next.perk) ? "percent" : "product",
-      title: next.perk, valueLabel: next.perk.match(/\d+%/)?.[0] ?? "Gratis", category: null, code, qrValue: `BCV:${code}`,
+      title: next.perk, valueLabel: next.perk.match(/\d+%/)?.[0] ?? "Gratis", category: null, code, qrValue: `LBVCH:${code}`,
       expiresAt: new Date(Date.now() + 14 * DAY).toISOString(), status: "active", note: `Regalo por subir a ${next.name}`, usedAt: null, usedAtBranch: null,
     });
     s.activity.unshift({ id: `a-${code}`, type: "grant", occurredAt: new Date().toISOString(), title: `Subiste a ${next.name}`, detail: `Te regalamos: ${next.perk.toLowerCase()}`, points: 0, category: null });
@@ -490,14 +577,13 @@ export function demoTierUp(member: Member | null): boolean {
 
 let demoCase = 43;
 /** Simula la compensación de una queja desde feedback-web. Solo mock. */
-export function demoComplaintGift(member: Member | null): Voucher | null {
-  if (CLUB_SOURCE !== "mock") return null;
+function demoComplaintGift(member: Member | null): Voucher | null {
   const s = ensureStore(member);
   const caseNo = `Q-00${demoCase++}`;
   const code = randomCode();
   const voucher: Voucher = {
     id: `v-${code}`, origin: "grant", grantReason: "complaint", kind: "product", title: "Postre de la casa", valueLabel: "Gratis",
-    category: "Postres", code, qrValue: `BCV:${code}`, expiresAt: new Date(Date.now() + 14 * DAY).toISOString(), status: "active",
+    category: "Postres", code, qrValue: `LBVCH:${code}`, expiresAt: new Date(Date.now() + 14 * DAY).toISOString(), status: "active",
     note: `Por tu caso ${caseNo}`, usedAt: null, usedAtBranch: null,
   };
   s.vouchers.unshift(voucher);
@@ -506,7 +592,7 @@ export function demoComplaintGift(member: Member | null): Voucher | null {
 }
 
 /** Alterna 7 ↔ 10 visitas para probar el diseño Confluencia. Solo mock. */
-export function demoToggleVisits(member: Member | null): number {
+function demoToggleVisits(member: Member | null): number {
   const s = ensureStore(member);
   s.visits = s.visits >= 10 ? 7 : 10;
   if (s.visits < 10 && s.designId === "confluencia") s.designId = "clasica";
