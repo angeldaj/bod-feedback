@@ -1,132 +1,207 @@
 "use client";
 
 import { useRef } from "react";
-import QRCode from "react-qr-code";
-import { Sparkles } from "lucide-react";
 import Image from "next/image";
+import QRCode from "react-qr-code";
+import { Lock, Sparkles } from "lucide-react";
 import {
   motion,
+  useMotionTemplate,
   useMotionValue,
+  useReducedMotion,
   useSpring,
   useTransform,
-  useReducedMotion,
 } from "motion/react";
-import type { Member } from "@/lib/loyalty-api";
+import type { CardSkin } from "@/lib/club-api";
+import { SKIN_QR, fmtPts, textureUrl } from "./club-visuals";
+
+export type CardFaceData = {
+  holderName: string;
+  memberNo: string;
+  qrValue: string;
+  balance: number;
+  tierName: string;
+  skin: CardSkin;
+  designId: string;
+};
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+function CardQr({ value, skin }: { value: string; skin: CardSkin }) {
+  return (
+    <QRCode
+      value={value}
+      size={256}
+      viewBox="0 0 256 256"
+      bgColor="transparent"
+      fgColor={SKIN_QR[skin]}
+      level="M"
+      aria-hidden="true"
+      style={{ width: "100%", height: "100%" }}
+    />
+  );
+}
+
+function FaceLayers() {
+  return (
+    <>
+      <div className="skin" />
+      <div className="tex" />
+      <div className="glare" />
+    </>
+  );
+}
 
 /**
- * The showpiece: a holographic gold membership card that tilts toward the
- * pointer in 3D and carries a cursor-tracked glare. Falls back to a static card
- * when the user prefers reduced motion. The QR encodes the member's real
- * identification value from `GET /loyalty/me/qr` (or the member number while
- * it's still loading).
+ * La tarjeta de socio: la piel la decide el nivel y la textura el diseño
+ * elegido. Interactiva, se inclina hacia el puntero y se voltea para mostrar
+ * el QR grande de caja. Sin `interactive` es una tarjeta estática (galería,
+ * subida de nivel).
  */
 export function MembershipCard({
-  member,
-  qrValue,
+  data,
+  interactive = false,
+  flipped = false,
+  onFlip,
+  showBack = true,
+  locked = false,
 }: {
-  member: Member;
-  /** Valor real de `/loyalty/me/qr`; cae al número de socio mientras carga. */
-  qrValue: string;
+  data: CardFaceData;
+  interactive?: boolean;
+  flipped?: boolean;
+  onFlip?: () => void;
+  showBack?: boolean;
+  locked?: boolean;
 }) {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
-
   const px = useMotionValue(0.5);
   const py = useMotionValue(0.5);
-  const rotateX = useSpring(useTransform(py, [0, 1], [9, -9]), {
-    stiffness: 160,
-    damping: 18,
-  });
-  const rotateY = useSpring(useTransform(px, [0, 1], [-11, 11]), {
-    stiffness: 160,
-    damping: 18,
-  });
+  const glareX = useMotionValue(72);
+  const glareY = useMotionValue(10);
+  const rotateX = useSpring(useTransform(py, [0, 1], [8, -8]), { stiffness: 160, damping: 18 });
+  const rotateY = useSpring(useTransform(px, [0, 1], [-10, 10]), { stiffness: 160, damping: 18 });
+  const gx = useMotionTemplate`${glareX}%`;
+  const gy = useMotionTemplate`${glareY}%`;
+
+  const tilt = interactive && !reduce;
 
   function handleMove(event: React.PointerEvent<HTMLDivElement>) {
-    if (reduce) return;
+    if (!tilt || event.pointerType === "touch") return;
     const rect = ref.current?.getBoundingClientRect();
     if (!rect) return;
     const x = (event.clientX - rect.left) / rect.width;
     const y = (event.clientY - rect.top) / rect.height;
     px.set(x);
     py.set(y);
-    ref.current?.style.setProperty("--gx", `${x * 100}%`);
-    ref.current?.style.setProperty("--gy", `${y * 100}%`);
+    glareX.set(x * 100);
+    glareY.set(y * 100);
   }
 
   function handleLeave() {
     px.set(0.5);
     py.set(0.5);
-    ref.current?.style.setProperty("--gx", "70%");
-    ref.current?.style.setProperty("--gy", "12%");
+    glareX.set(72);
+    glareY.set(10);
   }
 
-  return (
-    <div className="mc-card-scene w-full">
-      <motion.div
-        ref={ref}
-        onPointerMove={handleMove}
-        onPointerLeave={handleLeave}
-        style={reduce ? undefined : { rotateX, rotateY }}
-        className="mc-card mx-auto flex aspect-[1.586/1] w-full max-w-[27rem] flex-col justify-between p-6 sm:p-7"
-      >
-        <span className="mc-card-grain" aria-hidden="true" />
-        <span className="mc-card-glare" aria-hidden="true" />
+  const cardStyle = {
+    "--tex": `url(${textureUrl(data.designId)})`,
+    "--gx": gx,
+    "--gy": gy,
+    "--px": gx,
+    ...(tilt ? { rotateX, rotateY } : {}),
+  } as React.ComponentProps<typeof motion.div>["style"];
 
-        <div className="relative flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-[#1a120b]">
-              <Image
-                src="/logo-bodega.png"
-                alt=""
-                width={30}
-                height={30}
-                className="size-7 object-contain"
-              />
-            </span>
-            <div className="leading-none">
-              <p className="text-lg font-bold uppercase tracking-[0.05em] text-[#2a1608]">
-                Bodega Club
-              </p>
-              <p className="mt-0.5 text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#7a4a16]">
-                Tarjeta de socio
-              </p>
+  return (
+    <motion.div
+      ref={ref}
+      className={`card skin-${data.skin}`}
+      style={cardStyle}
+      onPointerMove={handleMove}
+      onPointerLeave={handleLeave}
+    >
+      <motion.div
+        className="card-inner"
+        initial={false}
+        animate={reduce ? undefined : { rotateY: flipped ? 180 : 0 }}
+        transition={{ duration: 0.75, ease: EASE }}
+      >
+        <div
+          className="face front"
+          style={reduce ? { opacity: flipped ? 0 : 1, transition: "opacity .2s" } : undefined}
+          aria-hidden={flipped}
+        >
+          <FaceLayers />
+          <div className="fc">
+            <div className="fc-top">
+              <div className="brand">
+                <span className="logo">
+                  <Image src="/logo-bodega.png" alt="" width={40} height={40} />
+                </span>
+                <span>
+                  <b className="wm">Bodega Club</b>
+                  <small>Tarjeta de socio</small>
+                </span>
+              </div>
+              <span className="tier-pill">
+                <Sparkles aria-hidden="true" />
+                {data.tierName}
+              </span>
+            </div>
+            <div className="fc-bottom">
+              <div className="who">
+                <small>
+                  <span className="chip" aria-hidden="true" />
+                  Puntos disponibles
+                </small>
+                <strong className="pts">{fmtPts(data.balance)}</strong>
+                <span className="nm">{data.holderName}</span>
+                <span className="no">{data.memberNo}</span>
+              </div>
+              <div className="qr-tile small">
+                <CardQr value={data.qrValue} skin={data.skin} />
+              </div>
             </div>
           </div>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[#2a1608] px-2.5 py-1 text-[0.7rem] font-bold uppercase tracking-[0.1em] text-[#f3d692]">
-            <Sparkles className="size-3.5" aria-hidden="true" />
-            {member.tier?.name ?? "Bodega Club"}
-          </span>
+          {locked ? (
+            <span className="lock-pill">
+              <Lock aria-hidden="true" />
+              Por ganar
+            </span>
+          ) : null}
         </div>
 
-        <div className="relative flex items-end justify-between gap-5">
-          <div className="min-w-0">
-            <span className="mc-card-chip mb-4 block" aria-hidden="true" />
-            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#7a4a16]">
-              Puntos disponibles
-            </p>
-            <p className="mc-card-value mt-1 text-[3.25rem]">
-              {member.points.balance}
-            </p>
-            <p className="mt-2 truncate text-base font-semibold uppercase tracking-[0.04em] text-[#3a1e08]">
-              {member.fullName}
-            </p>
-            <p className="font-serif text-sm tracking-[0.14em] text-[#6b3e14] tabular-nums">
-              {member.memberNo}
-            </p>
+        {showBack ? (
+          <div
+            className="face back"
+            style={reduce ? { transform: "none", opacity: flipped ? 1 : 0, transition: "opacity .2s" } : undefined}
+            aria-hidden={!flipped}
+          >
+            <FaceLayers />
+            <div className="fc back-c">
+              <div className="qr-tile big">
+                <CardQr value={data.qrValue} skin={data.skin} />
+              </div>
+              <div className="back-info">
+                <small>Muestra este código en caja</small>
+                <strong className="no">{data.memberNo}</strong>
+                <span className="nm">{data.holderName}</span>
+                <span className="hint">Tus vouchers activos aparecen al escanear.</span>
+              </div>
+            </div>
           </div>
-          <div className="mc-card-qr shrink-0">
-            <QRCode
-              value={qrValue}
-              size={78}
-              bgColor="transparent"
-              fgColor="#2a1608"
-              level="M"
-              aria-hidden="true"
-            />
-          </div>
-        </div>
+        ) : null}
       </motion.div>
-    </div>
+
+      {interactive && onFlip ? (
+        <button
+          type="button"
+          className="card-tap"
+          onClick={onFlip}
+          aria-label={flipped ? "Ver el frente de tu tarjeta" : "Ver el reverso de tu tarjeta con el QR"}
+        />
+      ) : null}
+    </motion.div>
   );
 }
