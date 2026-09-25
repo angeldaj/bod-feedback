@@ -224,9 +224,10 @@ export function PerfilScreen() {
 
           {demoActions ? (
             <section className="tile demo-tile" aria-labelledby="pf-demo">
-              <h2 id="pf-demo">Datos de ejemplo</h2>
+              <h2 id="pf-demo">Simular en la demo</h2>
               <p className="muted-sm" style={{ marginBottom: 12 }}>
-                Mientras el backend no expone la tarjeta v2, mi-club usa datos de ejemplo. Desde aquí puedes simular lo que hará el backend.
+                En producción estas cosas las dispara el club: subir de nivel al sumar puntos, un regalo al compensar una queja y llegar a 10
+                visitas.
               </p>
               <div className="fields">
                 <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.tierUp} disabled={!card?.nextTier}>

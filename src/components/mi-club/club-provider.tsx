@@ -17,8 +17,8 @@ import * as club from "@/lib/club-api";
 import type {
   CardDesign,
   ClubActivity,
+  ClubAdapter,
   ClubCard,
-  ClubContext,
   ClubReward,
   ClubTier,
   Voucher,
@@ -46,10 +46,17 @@ type ClubData = {
   activity: ClubActivity | null;
 };
 
+/** `live` = backend real con la sesión del socio; `demo` = datos de ejemplo sin login. */
+export type ClubMode = "live" | "demo";
+
 type ClubValue = ClubData & {
   member: Member | null;
   sessionLoading: boolean;
   demo: boolean;
+  /** Raíz de las rutas del área (`/mi-club` o `/club-mock`). */
+  basePath: string;
+  /** Arma una ruta dentro del área: `href("wallet")` → `/mi-club/wallet`. */
+  href: (sub?: string) => string;
   theme: Theme;
   themeClass: string;
   toggleTheme: () => void;
@@ -77,14 +84,36 @@ export function useClub(): ClubValue {
 
 const EMPTY: ClubData = { loading: true, error: null, card: null, designs: [], vouchers: [], rewards: [], activity: null };
 const TIER_KEY = (memberId: string) => `bodega-club-tier:${memberId}`;
+type SeenTier = Pick<ClubTier, "rank" | "name" | "skin">;
+
+function readSeenTier(raw: string | null): SeenTier | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Partial<SeenTier>;
+    return typeof parsed.rank === "number" && parsed.name && parsed.skin
+      ? { rank: parsed.rank, name: parsed.name, skin: parsed.skin }
+      : null;
+  } catch {
+    return null; // formato viejo (solo el número): se toma como primera visita
+  }
+}
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-export function ClubProvider({ children }: { children: ReactNode }) {
+export function ClubProvider({
+  children,
+  mode,
+  basePath,
+}: {
+  children: ReactNode;
+  mode: ClubMode;
+  basePath: string;
+}) {
   const session = useMember();
-  const member = club.CLUB_DEMO ? club.DEMO_MEMBER : session.member;
+  const demo = mode === "demo";
+  const member = demo ? club.DEMO_MEMBER : session.member;
   const { theme, toggleTheme } = useClubTheme();
   const [data, setData] = useState<ClubData>(EMPTY);
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -95,14 +124,9 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const walletTargets = useRef(new Set<HTMLElement>());
 
   const { authedRequest } = session;
-  const run = useCallback(
-    <T,>(fn: (ctx: ClubContext) => Promise<T>): Promise<T> => {
-      if (club.CLUB_SOURCE === "api" && !club.CLUB_DEMO) {
-        return authedRequest((accessToken) => fn({ accessToken, member }));
-      }
-      return fn({ accessToken: null, member });
-    },
-    [authedRequest, member],
+  const adapter = useMemo<ClubAdapter>(
+    () => (demo ? club.createMockClubAdapter(club.DEMO_MEMBER) : club.createLiveClubAdapter(authedRequest)),
+    [authedRequest, demo],
   );
 
   const notify = useCallback((icon: LucideIcon, title: string, sub: string) => {
@@ -116,17 +140,17 @@ export function ClubProvider({ children }: { children: ReactNode }) {
     if (!member) return;
     try {
       const [card, designs, vouchers, rewards, activity] = await Promise.all([
-        run(club.getCard),
-        run(club.listDesigns),
-        run(club.listVouchers),
-        run(club.listRewards),
-        run(club.getActivity),
+        adapter.getCard(),
+        adapter.listDesigns(),
+        adapter.listVouchers(),
+        adapter.listRewards(),
+        adapter.getActivity(),
       ]);
       setData({ loading: false, error: null, card, designs, vouchers, rewards, activity });
     } catch (error) {
       setData((d) => ({ ...d, loading: false, error: errorMessage(error, "No pudimos cargar tu cuenta. Intenta de nuevo.") }));
     }
-  }, [member, run]);
+  }, [adapter, member]);
 
   useEffect(() => {
     void load();
@@ -137,16 +161,18 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!card || !member) return;
     try {
-      const stored = localStorage.getItem(TIER_KEY(member.id));
-      localStorage.setItem(TIER_KEY(member.id), String(card.tier.rank));
-      if (stored !== null && Number(stored) < card.tier.rank) {
-        const from = club.TIERS[Number(stored)] ?? club.TIERS[0];
+      const key = TIER_KEY(`${mode}:${member.id}`);
+      const seen = readSeenTier(localStorage.getItem(key));
+      const current: SeenTier = { rank: card.tier.rank, name: card.tier.name, skin: card.tier.skin };
+      localStorage.setItem(key, JSON.stringify(current));
+      if (seen && seen.rank < card.tier.rank) {
+        const from: ClubTier = { ...seen, minLifetimePoints: 0, perk: null };
         setOverlay({ type: "levelup", from, to: card.tier });
       }
     } catch {
       // Sin storage no hay animación de subida, pero la tarjeta ya muestra el nivel nuevo.
     }
-  }, [card, member]);
+  }, [card, member, mode]);
 
   const registerWalletTarget = useCallback((el: HTMLElement | null) => {
     if (!el) return;
@@ -181,7 +207,7 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const redeem = useCallback(
     async (rewardId: string, from?: Element | null) => {
       try {
-        const voucher = await run((ctx) => club.redeemReward(ctx, rewardId));
+        const voucher = await adapter.redeemReward(rewardId);
         notify(Ticket, "Guardado en tu Wallet", `${voucher.title}. Vence en 24 horas.`);
         flyToWallet(voucher, from, () => void load());
         return true;
@@ -190,13 +216,13 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [flyToWallet, load, notify, run],
+    [adapter, flyToWallet, load, notify],
   );
 
   const selectDesign = useCallback(
     async (designId: string) => {
       try {
-        const next = await run((ctx) => club.selectDesign(ctx, designId));
+        const next = await adapter.selectDesign(designId);
         setData((d) => ({ ...d, card: next }));
         const name = data.designs.find((x) => x.id === designId)?.name ?? "tu nuevo diseño";
         notify(Layers, `Tu tarjeta ahora usa ${name}`, "Puedes cambiarla cuando quieras desde Perfil.");
@@ -206,27 +232,33 @@ export function ClubProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-    [data.designs, notify, run],
+    [adapter, data.designs, notify],
   );
 
   const demoActions = useMemo(() => {
-    if (club.CLUB_SOURCE !== "mock") return null;
+    const actions = adapter.demo;
+    if (!actions) return null;
     return {
       tierUp: () => {
-        if (club.demoTierUp(member)) void load();
+        if (actions.tierUp()) void load();
       },
       complaint: (from?: Element | null) => {
-        const voucher = club.demoComplaintGift(member);
+        const voucher = actions.complaintGift();
         if (!voucher) return;
         notify(HeartHandshake, "La Bodega te regaló un postre", `${voucher.note}. Ya está en tu Wallet.`);
         flyToWallet(voucher, from, () => void load());
       },
       toggleVisits: () => {
-        club.demoToggleVisits(member);
+        actions.toggleVisits();
         void load();
       },
     };
-  }, [flyToWallet, load, member, notify]);
+  }, [adapter, flyToWallet, load, notify]);
+
+  const href = useCallback(
+    (sub?: string) => (sub ? `${basePath}/${sub.replace(/^\//, "")}` : basePath),
+    [basePath],
+  );
 
   const activeVouchers = useMemo(
     () =>
@@ -239,8 +271,10 @@ export function ClubProvider({ children }: { children: ReactNode }) {
   const value: ClubValue = {
     ...data,
     member,
-    sessionLoading: club.CLUB_DEMO ? false : session.loading,
-    demo: club.CLUB_DEMO,
+    sessionLoading: demo ? false : session.loading,
+    demo,
+    basePath,
+    href,
     theme,
     themeClass: theme === "day" ? "mc2 day" : "mc2",
     toggleTheme,

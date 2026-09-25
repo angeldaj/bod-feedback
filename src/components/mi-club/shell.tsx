@@ -19,28 +19,35 @@ import {
   Wallet,
   type LucideIcon,
 } from "lucide-react";
-import { CLUB_SOURCE } from "@/lib/club-api";
-import { ClubProvider, useClub } from "./club-provider";
+import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
 import "./mi-club.css";
 
-const TABS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/mi-club", label: "Inicio", icon: House },
-  { href: "/mi-club/wallet", label: "Wallet", icon: Wallet },
-  { href: "/mi-club/canjear", label: "Canjear", icon: Gift },
-  { href: "/mi-club/actividad", label: "Actividad", icon: ReceiptText },
-  { href: "/mi-club/perfil", label: "Perfil", icon: UserRound },
+const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
+  { sub: "", label: "Inicio", icon: House },
+  { sub: "wallet", label: "Wallet", icon: Wallet },
+  { sub: "canjear", label: "Canjear", icon: Gift },
+  { sub: "actividad", label: "Actividad", icon: ReceiptText },
+  { sub: "perfil", label: "Perfil", icon: UserRound },
 ];
 
-const isActive = (pathname: string, href: string) =>
-  href === "/mi-club" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
-
-function TabLinks({ pathname, walletCount, register }: { pathname: string; walletCount: number; register: (el: HTMLElement | null) => void }) {
+function TabLinks({
+  pathname,
+  walletCount,
+  register,
+  basePath,
+}: {
+  pathname: string;
+  walletCount: number;
+  register: (el: HTMLElement | null) => void;
+  basePath: string;
+}) {
   return (
     <>
-      {TABS.map(({ href, label, icon: Icon }) => {
-        const active = isActive(pathname, href);
-        const isWallet = href === "/mi-club/wallet";
+      {TABS.map(({ sub, label, icon: Icon }) => {
+        const href = sub ? `${basePath}/${sub}` : basePath;
+        const active = sub ? pathname === href || pathname.startsWith(`${href}/`) : pathname === href;
+        const isWallet = sub === "wallet";
         return (
           <Link
             key={href}
@@ -66,13 +73,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
-  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload } = useClub();
+  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href } =
+    useClub();
 
   useEffect(() => {
-    if (!sessionLoading && !member) {
+    if (!demo && !sessionLoading && !member) {
       router.replace(`/login?returnTo=${encodeURIComponent(pathname)}`);
     }
-  }, [member, pathname, router, sessionLoading]);
+  }, [demo, member, pathname, router, sessionLoading]);
 
   if (sessionLoading || !member) {
     return (
@@ -94,23 +102,23 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </a>
       <header className="topbar-wrap">
         <div className="topbar">
-          <Link href="/mi-club" className="mark" aria-label="Bodega Club, inicio de mi-club">
+          <Link href={href()} className="mark" aria-label="Bodega Club, inicio del área de socios">
             <span className="mark-logo">
               <Image src="/logo-bodega.png" alt="" width={28} height={28} />
             </span>
             <span>
               <b>Bodega Club</b>
-              <small>Área de socios</small>
+              <small>{demo ? "Demo" : "Área de socios"}</small>
             </span>
           </Link>
           <nav className="top-tabs" aria-label="Secciones de mi-club">
-            <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} />
+            <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} basePath={basePath} />
           </nav>
           <div className="top-actions">
             <button type="button" className="icon-btn" onClick={toggleTheme} aria-label={theme === "day" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}>
               {theme === "day" ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
             </button>
-            <Link href="/mi-club/perfil" className="avatar" aria-label="Tu perfil">
+            <Link href={href("perfil")} className="avatar" aria-label="Tu perfil">
               {initials || "?"}
             </Link>
           </div>
@@ -118,10 +126,13 @@ function ShellInner({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="main" id="mc2-main" tabIndex={-1}>
-        {CLUB_SOURCE === "mock" ? (
+        {demo ? (
           <p className="rule-note" style={{ marginBottom: 18 }}>
             <FlaskConical aria-hidden="true" />
-            <span>Vista previa de Bodega Club v2: la tarjeta, los diseños, la Wallet y la actividad usan datos de ejemplo mientras terminamos el sistema.</span>
+            <span>
+              Demo de Bodega Club con una socia de ejemplo: nada de lo que hagas aquí es real. En Perfil puedes simular una subida de nivel o un
+              regalo de la casa. <Link href="/login?returnTo=%2Fmi-club">Entra a tu cuenta</Link> para ver la tuya.
+            </span>
           </p>
         ) : null}
         {error ? (
@@ -145,7 +156,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             // En <body>: ningún contenedor de la página puede recortar ni tapar la barra fija.
             <div className={themeClass}>
               <nav className="nav" aria-label="Secciones de mi-club">
-                <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} />
+                <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} basePath={basePath} />
               </nav>
             </div>,
             document.body,
@@ -157,10 +168,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Marco de mi-club: sesión, datos del club, navegación y overlays. */
-export function MiClubShell({ children }: { children: React.ReactNode }) {
+/**
+ * Marco del área de socios: sesión, datos del club, navegación y overlays.
+ * `/mi-club` lo monta en modo `live` (backend real); `/club-mock` en `demo`.
+ */
+export function MiClubShell({
+  children,
+  mode = "live",
+  basePath = "/mi-club",
+}: {
+  children: React.ReactNode;
+  mode?: ClubMode;
+  basePath?: string;
+}) {
   return (
-    <ClubProvider>
+    <ClubProvider mode={mode} basePath={basePath}>
       <ShellInner>{children}</ShellInner>
     </ClubProvider>
   );

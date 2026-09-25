@@ -560,3 +560,4 @@
 @media (prefers-reduced-transparency: reduce) {
   .mc2 .nav { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
+.mc2 .rule-note a { color: var(--coral); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
