@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Bike, MapPin, Store as StoreIcon } from "lucide-react";
+import { Bike, Check, MapPin, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChipGroup } from "@/components/satisfaccion/chip-group";
 import { BrandTextArea, BrandTextField } from "@/components/satisfaccion/brand-field";
@@ -59,15 +59,28 @@ export function CheckoutForm({
   data,
   onChange,
   zones,
-  store,
+  canDeliver,
+  pickupStores,
+  pickupStore,
+  onPickupStore,
+  loading,
+  unavailableCount,
   onBack,
   onContinue,
 }: {
   data: CheckoutData;
   onChange: (data: CheckoutData) => void;
   zones: DeliveryZone[];
-  /** Local del pedido: define los modos disponibles y dónde se retira. */
-  store: Store;
+  /** Hay un local que hace delivery. */
+  canDeliver: boolean;
+  /** Locales con retiro: el local solo se elige al retirar. */
+  pickupStores: Store[];
+  pickupStore: Store | null;
+  onPickupStore: (id: string) => void;
+  /** Se está cargando el catálogo o el pago del local elegido. */
+  loading: boolean;
+  /** Líneas del carrito que no se pueden pedir en el local elegido. */
+  unavailableCount: number;
   onBack: () => void;
   onContinue: () => void;
 }) {
@@ -78,8 +91,8 @@ export function CheckoutForm({
   };
 
   const modes = [
-    ...(store.deliveryEnabled ? [MODES.delivery] : []),
-    ...(store.pickupEnabled ? [MODES.retiro] : []),
+    ...(canDeliver ? [MODES.delivery] : []),
+    ...(pickupStores.length > 0 ? [MODES.retiro] : []),
   ];
 
   const submit = () => {
@@ -172,19 +185,68 @@ export function CheckoutForm({
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="flex gap-3 rounded-[16px] border border-hair-div px-4 py-3">
-                <MapPin size={20} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
-                <span className="flex flex-col">
-                  <span className="text-[17px] text-cream">Retiras en {store.name}</span>
-                  {store.address && <span className="text-[14px] text-muted-ink">{store.address}</span>}
-                </span>
-              </div>
+              {pickupStores.length > 1 ? (
+                <div className="flex flex-col gap-2">
+                  <span id="local-label" className={cls.label}>¿En qué local lo retiras?</span>
+                  <div role="radiogroup" aria-labelledby="local-label" className="grid gap-3 md:grid-cols-2">
+                    {pickupStores.map((s) => {
+                      const selected = s.id === pickupStore?.id;
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => onPickupStore(s.id)}
+                          className={`flex w-full items-start gap-3 rounded-[16px] border px-4 py-3 text-left transition-colors ${
+                            selected ? "border-gold bg-[rgba(217,169,74,0.10)]" : "border-hair-div hover:border-hair-chip"
+                          }`}
+                        >
+                          <MapPin size={20} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
+                          <span className="flex flex-1 flex-col">
+                            <span className="text-[17px] text-cream">{s.name}</span>
+                            {s.address && <span className="text-[14px] text-muted-ink">{s.address}</span>}
+                          </span>
+                          {selected && <Check size={20} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                pickupStore && (
+                  <div className="flex gap-3 rounded-[16px] border border-hair-div px-4 py-3">
+                    <MapPin size={20} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
+                    <span className="flex flex-col">
+                      <span className="text-[17px] text-cream">Retiras en {pickupStore.name}</span>
+                      {pickupStore.address && <span className="text-[14px] text-muted-ink">{pickupStore.address}</span>}
+                    </span>
+                  </div>
+                )
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      <Button variant="pop" size="popLg" className="w-full md:ml-auto md:w-[360px]" onClick={submit}>
+      {!loading && unavailableCount > 0 && (
+        <p role="alert" className={cls.error}>
+          {unavailableCount === 1
+            ? "Uno de los productos de tu carrito no está disponible en este local."
+            : `${unavailableCount} productos de tu carrito no están disponibles en este local.`}{" "}
+          <button type="button" onClick={onBack} className="font-semibold underline underline-offset-4">
+            Revisa tu carrito
+          </button>
+        </p>
+      )}
+
+      <Button
+        variant="pop"
+        size="popLg"
+        className="w-full md:ml-auto md:w-[360px]"
+        onClick={submit}
+        disabled={loading || unavailableCount > 0}
+      >
         Ir al pago
       </Button>
     </div>

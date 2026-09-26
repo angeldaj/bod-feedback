@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
-import { CheckCircle2, MapPin } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   createOrder,
@@ -28,7 +28,7 @@ import { CheckoutForm, initialCheckout, type CheckoutData } from "./checkout-for
 import { PaymentView } from "./payment-view";
 import { cls } from "./shared";
 
-type Step = "local" | "catalogo" | "carrito" | "datos" | "pago" | "enviado";
+type Step = "catalogo" | "carrito" | "datos" | "pago" | "enviado";
 
 type StoreData = {
   categories: Category[];
@@ -38,6 +38,7 @@ type StoreData = {
 };
 
 const EMPTY: StoreData = { categories: [], products: [], zones: [], payment: null };
+/** Último local elegido para retirar. */
 const STORE_KEY = "labodega-pedido-local";
 
 function readSavedStore(): string | null {
@@ -46,17 +47,6 @@ function readSavedStore(): string | null {
   } catch {
     return null;
   }
-}
-
-/** Deja el checkout en un modo que el local tenga habilitado, sin zona de otro local. */
-function fitCheckout(current: CheckoutData, store: Store): CheckoutData {
-  const mode =
-    current.mode === "delivery" && !store.deliveryEnabled
-      ? "retiro"
-      : current.mode === "retiro" && !store.pickupEnabled
-        ? "delivery"
-        : current.mode;
-  return { ...current, mode, zoneId: "" };
 }
 
 async function loadStoreData(id: string): Promise<StoreData> {
@@ -75,14 +65,21 @@ function saveStore(id: string) {
 export function PedidosExperience() {
   const reduce = useReducedMotion();
   const [stores, setStores] = useState<Store[] | null>(null);
-  const [storeId, setStoreId] = useState<string | null>(null);
-  const store = stores?.find((s) => s.id === storeId) ?? null;
-  const cart = useCart(storeId);
-  const [step, setStep] = useState<Step>("catalogo");
-  const [data, setData] = useState<StoreData>(EMPTY);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [pickupStoreId, setPickupStoreId] = useState<string | null>(null);
   const [checkout, setCheckout] = useState<CheckoutData>(initialCheckout);
+  // El delivery sale siempre del local que lo hace; el local solo se elige al retirar.
+  const deliveryStore = stores?.find((s) => s.deliveryEnabled) ?? null;
+  const pickupStores = useMemo(() => stores?.filter((s) => s.pickupEnabled) ?? [], [stores]);
+  const pickupStore = pickupStores.find((s) => s.id === pickupStoreId) ?? null;
+  const store = checkout.mode === "delivery" ? deliveryStore : pickupStore;
+  const storeId = store?.id ?? null;
+  const cart = useCart();
+  const [step, setStep] = useState<Step>("catalogo");
+  // Catálogo, zonas y pago por local: volver a un local ya cargado no lo recarga.
+  const [loaded, setLoaded] = useState<Record<string, StoreData>>({});
+  const data = (storeId && loaded[storeId]) || EMPTY;
+  const loading = !storeId || !loaded[storeId];
+  const [loadError, setLoadError] = useState(false);
   const [reference, setReference] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -92,53 +89,42 @@ export function PedidosExperience() {
   // Producto nuevo o línea del carrito que se está editando en el modal.
   const [dialog, setDialog] = useState<{ target: DialogTarget; product?: Product; line?: CartItem } | null>(null);
 
-  // 1) Locales: con uno solo se entra directo; con varios, se recuerda el último elegido.
+  // 1) Locales. Se arranca en delivery si algún local lo hace; para retirar se
+  // preselecciona el último local elegido.
   useEffect(() => {
     let alive = true;
     fetchStores()
       .then((list) => {
         if (!alive) return;
         setStores(list);
+        const pickup = list.filter((s) => s.pickupEnabled);
         const saved = readSavedStore();
-        const initial = list.length === 1 ? list[0] : list.find((s) => s.id === saved);
-        if (initial) {
-          setCheckout((current) => fitCheckout(current, initial));
-          setStoreId(initial.id);
-        } else {
-          setStep("local");
-          setLoading(false);
-        }
+        setPickupStoreId((pickup.find((s) => s.id === saved) ?? pickup[0])?.id ?? null);
+        if (!list.some((s) => s.deliveryEnabled)) setCheckout((current) => ({ ...current, mode: "retiro" }));
       })
       .catch(() => {
-        if (alive) {
-          setLoadError(true);
-          setLoading(false);
-        }
+        if (alive) setLoadError(true);
       });
     return () => {
       alive = false;
     };
   }, []);
 
-  // 2) Catálogo, zonas y pago del local elegido.
-
+  // 2) Catálogo, zonas y pago del local del pedido (cambia al pasar a retiro).
   useEffect(() => {
-    if (!storeId) return;
+    if (!storeId || !loading) return;
     let alive = true;
     loadStoreData(storeId)
       .then((next) => {
-        if (alive) setData(next);
+        if (alive) setLoaded((current) => ({ ...current, [storeId]: next }));
       })
       .catch(() => {
         if (alive) setLoadError(true);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
       });
     return () => {
       alive = false;
     };
-  }, [storeId]);
+  }, [storeId, loading]);
 
   // El carrito guardado toma los precios vigentes del catálogo recién cargado.
   const { sync: syncCart } = cart;
@@ -151,17 +137,9 @@ export function PedidosExperience() {
     window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
   };
 
-  const chooseStore = (id: string) => {
-    const next = stores?.find((s) => s.id === id);
+  const choosePickupStore = (id: string) => {
     saveStore(id);
-    if (next) setCheckout((current) => fitCheckout(current, next));
-    if (id !== storeId) {
-      setData(EMPTY);
-      setLoading(true);
-      setLoadError(false);
-      setStoreId(id);
-    }
-    go("catalogo");
+    setPickupStoreId(id);
   };
 
   /** Lo del carrito que ya no se puede pedir (se agotó o salió de la tienda). */
@@ -244,8 +222,9 @@ export function PedidosExperience() {
       if (error instanceof PedidosApiError && error.status === 409) {
         // Algo se agotó o cambió mientras pagabas: refrescamos para marcarlo en el carrito.
         setSubmitError(`${error.message} Te llevamos al carrito para que lo revises.`);
-        await loadStoreData(store.id)
-          .then(setData)
+        const id = store.id;
+        await loadStoreData(id)
+          .then((next) => setLoaded((current) => ({ ...current, [id]: next })))
           .catch(() => undefined);
         setTimeout(() => go("carrito"), 1800);
       } else {
@@ -282,7 +261,7 @@ export function PedidosExperience() {
           <p role="alert" className="py-24 text-center text-[17px] text-coral">
             No pudimos cargar el catálogo. Revisa tu conexión e intenta de nuevo.
           </p>
-        ) : stores && stores.length === 0 ? (
+        ) : stores && !deliveryStore && pickupStores.length === 0 ? (
           <p className="py-24 text-center text-[17px] text-body">La tienda en línea no está disponible por ahora. Vuelve pronto.</p>
         ) : (
           <AnimatePresence mode="wait" initial={false}>
@@ -295,42 +274,12 @@ export function PedidosExperience() {
               // En web el catálogo usa todo el ancho; los pasos del checkout, una columna cómoda.
               className={step === "catalogo" ? undefined : "mx-auto w-full max-w-[960px]"}
             >
-              {step === "local" && stores && (
-                <div className="flex flex-col gap-6 pt-16">
-                  <div className="flex flex-col gap-2 text-center">
-                    <span className={cls.eyebrow}>Pedidos · Delivery y retiro</span>
-                    <h1 className={cls.title}>¿Desde qué local pides?</h1>
-                  </div>
-                  <ul className="grid gap-3 md:grid-cols-2">
-                    {stores.map((s) => (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          onClick={() => chooseStore(s.id)}
-                          className={`${cls.panel} flex w-full items-start gap-3 p-5 text-left transition-colors hover:border-hair-chip`}
-                        >
-                          <MapPin size={22} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
-                          <span className="flex flex-col gap-1">
-                            <span className="text-[19px] font-semibold text-cream">{s.name}</span>
-                            {s.address && <span className="text-[15px] text-muted-ink">{s.address}</span>}
-                            <span className="text-[13px] uppercase tracking-[0.14em] text-label">
-                              {[s.deliveryEnabled && "Delivery", s.pickupEnabled && "Retiro"].filter(Boolean).join(" · ")}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
               {step === "catalogo" && (
                 <CatalogView
                   categories={data.categories}
                   products={data.products}
                   cart={cart.items}
                   loading={loading}
-                  storeName={store?.name}
-                  onChangeStore={stores && stores.length > 1 ? () => go("local") : undefined}
                   onSelect={openProduct}
                 />
               )}
@@ -346,12 +295,17 @@ export function PedidosExperience() {
                   onContinue={() => go("datos")}
                 />
               )}
-              {step === "datos" && store && (
+              {step === "datos" && stores && (
                 <CheckoutForm
                   data={checkout}
                   onChange={setCheckout}
-                  zones={data.zones}
-                  store={store}
+                  zones={(deliveryStore && loaded[deliveryStore.id]?.zones) || []}
+                  canDeliver={!!deliveryStore}
+                  pickupStores={pickupStores}
+                  pickupStore={pickupStore}
+                  onPickupStore={choosePickupStore}
+                  loading={loading}
+                  unavailableCount={cart.items.filter((i) => unavailable.has(i.productId)).length}
                   onBack={() => go("carrito")}
                   onContinue={() => go("pago")}
                 />
