@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { BrandTextArea } from "@/components/satisfaccion/brand-field";
 import { formatUsd } from "./format";
-import { QtyStepper } from "./shared";
+import { QtyStepper, type Flow } from "./shared";
+import { MAX_QTY } from "./use-cart";
 
 export type DialogTarget = {
   name: string;
@@ -30,10 +31,14 @@ export function ProductDialog({
   target,
   onClose,
   onConfirm,
+  flow = "pedido",
+  maxQty = MAX_QTY,
 }: {
   target: DialogTarget | null;
   onClose: () => void;
   onConfirm: (quantity: number, note: string) => void;
+  flow?: Flow;
+  maxQty?: number;
 }) {
   return (
     <Dialog open={target !== null} onOpenChange={(open) => !open && onClose()}>
@@ -43,7 +48,9 @@ export function ProductDialog({
         className="pedidos-scroll top-auto bottom-0 left-0 flex max-h-[92dvh] w-full max-w-full translate-x-0 translate-y-0 flex-col gap-0 overflow-y-auto rounded-t-[28px] rounded-b-none border border-hair-div bg-[#120e0a] p-0 text-cream ring-0 data-open:slide-in-from-bottom-10 data-open:zoom-in-100 sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-w-[520px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[28px]"
       >
         {/* key: reinicia cantidad/nota cada vez que se abre con otro producto. */}
-        {target && <DialogBody key={`${target.name}-${target.editing}`} target={target} onConfirm={onConfirm} />}
+        {target && (
+          <DialogBody key={`${target.name}-${target.editing}`} target={target} onConfirm={onConfirm} flow={flow} maxQty={maxQty} />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -52,10 +59,15 @@ export function ProductDialog({
 function DialogBody({
   target,
   onConfirm,
+  flow,
+  maxQty,
 }: {
   target: DialogTarget;
   onConfirm: (quantity: number, note: string) => void;
+  flow: Flow;
+  maxQty: number;
 }) {
+  const encargo = flow === "encargo";
   const [quantity, setQuantity] = useState(target.quantity);
   const [note, setNote] = useState(target.note);
 
@@ -77,23 +89,28 @@ function DialogBody({
           </DialogTitle>
           <DialogDescription className="text-[16px] leading-snug text-body">{target.description}</DialogDescription>
           <span className="font-serif text-[24px] font-semibold text-gold-accent">{formatUsd(target.price)}</span>
+          {encargo && (
+            <span className="text-[14px] leading-snug text-muted-ink">
+              Precio referencial: un asesor te confirma el precio final según lo que pidas.
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-between gap-4">
           <span className="text-[13px] font-medium uppercase tracking-[0.14em] text-label">Cantidad</span>
-          <QtyStepper value={quantity} onChange={setQuantity} />
+          <QtyStepper value={quantity} onChange={setQuantity} max={maxQty} />
         </div>
 
         <BrandTextArea
-          label="Indicaciones (opcional)"
+          label={encargo ? "Cambios o detalles (opcional)" : "Indicaciones (opcional)"}
           value={note}
           onChange={setNote}
-          placeholder="Ej.: sin cebolla, bien tostado…"
+          placeholder={encargo ? "Ej.: rebanado, sin azúcar, con el nombre “Ana”…" : "Ej.: sin cebolla, bien tostado…"}
           rows={2}
         />
 
         <Button variant="pop" size="popLg" className="w-full" onClick={() => onConfirm(quantity, note)}>
-          {target.editing ? "Guardar cambios" : "Agregar"} · {formatUsd(target.price * quantity)}
+          {target.editing ? "Guardar cambios" : encargo ? "Agregar al encargo" : "Agregar"} · {formatUsd(target.price * quantity)}
         </Button>
       </div>
     </>

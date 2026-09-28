@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Search, X } from "lucide-react";
 import type { Category, Product } from "@/lib/pedidos-api";
 import type { CartItem } from "./use-cart";
 import { ProductCard } from "./product-card";
+import type { Flow } from "./shared";
 
 const ALL = "todos";
 
@@ -19,12 +20,17 @@ export function CatalogView({
   cart,
   loading,
   onSelect,
+  flow = "pedido",
+  intro,
 }: {
   categories: Category[];
   products: Product[];
   cart: CartItem[];
   loading: boolean;
   onSelect: (product: Product) => void;
+  flow?: Flow;
+  /** Aviso bajo el header (p. ej. cómo funciona un encargo). */
+  intro?: ReactNode;
 }) {
   const [category, setCategory] = useState(ALL);
   const [query, setQuery] = useState("");
@@ -55,7 +61,7 @@ export function CatalogView({
             La Bodega
           </span>
           <span className="pl-[0.1em] text-[10.5px] font-medium uppercase tracking-[0.28em] text-label">
-            Pedidos · Delivery y retiro
+            {flow === "encargo" ? "Encargos · Para la fecha que elijas" : "Pedidos · Delivery y retiro"}
           </span>
         </div>
 
@@ -100,6 +106,8 @@ export function CatalogView({
         </nav>
       </header>
 
+      {intro}
+
       <section aria-label="Productos" className="grid grid-cols-1 gap-3 pt-4 md:grid-cols-2 md:gap-4 md:pt-6 xl:grid-cols-3">
         {loading ? (
           Array.from({ length: 5 }, (_, i) => (
@@ -125,6 +133,7 @@ export function CatalogView({
                   product={product}
                   inCart={qtyByProduct.get(product.id) ?? 0}
                   onSelect={() => onSelect(product)}
+                  flow={flow}
                 />
               </motion.div>
             ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Bike, Check, MapPin, Store as StoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,12 @@ export function CheckoutForm({
   unavailableCount,
   onBack,
   onContinue,
+  eyebrow = "Paso 2 de 3",
+  submitLabel = "Ir al pago",
+  submitting = false,
+  error = null,
+  validateExtra,
+  children,
 }: {
   data: CheckoutData;
   onChange: (data: CheckoutData) => void;
@@ -83,6 +89,15 @@ export function CheckoutForm({
   unavailableCount: number;
   onBack: () => void;
   onContinue: () => void;
+  eyebrow?: string;
+  submitLabel?: string;
+  /** El envío está en curso (el encargo se registra en este paso). */
+  submitting?: boolean;
+  error?: string | null;
+  /** Valida los campos de `children`; false frena el envío. */
+  validateExtra?: () => boolean;
+  /** Campos propios del flujo (fecha y nota del encargo). */
+  children?: ReactNode;
 }) {
   const [errors, setErrors] = useState<Errors>({});
   const set = <K extends keyof CheckoutData>(key: K, value: CheckoutData[K]) => {
@@ -98,12 +113,13 @@ export function CheckoutForm({
   const submit = () => {
     const next = validate(data);
     setErrors(next);
-    if (Object.keys(next).length === 0) onContinue();
+    const extraOk = validateExtra ? validateExtra() : true;
+    if (Object.keys(next).length === 0 && extraOk) onContinue();
   };
 
   return (
     <div className="flex flex-col gap-6 pt-6">
-      <StepHeader eyebrow="Paso 2 de 3" title="Tus datos" onBack={onBack} />
+      <StepHeader eyebrow={eyebrow} title="Tus datos" onBack={onBack} />
 
       <div className="flex flex-col gap-5">
         <div className="grid gap-5 md:grid-cols-2">
@@ -229,6 +245,8 @@ export function CheckoutForm({
         </AnimatePresence>
       </div>
 
+      {children}
+
       {!loading && unavailableCount > 0 && (
         <p role="alert" className={cls.error}>
           {unavailableCount === 1
@@ -240,14 +258,20 @@ export function CheckoutForm({
         </p>
       )}
 
+      {error && (
+        <p role="alert" className={cls.error}>
+          {error}
+        </p>
+      )}
+
       <Button
         variant="pop"
         size="popLg"
         className="w-full md:ml-auto md:w-[360px]"
         onClick={submit}
-        disabled={loading || unavailableCount > 0}
+        disabled={loading || submitting || unavailableCount > 0}
       >
-        Ir al pago
+        {submitting ? "Enviando…" : submitLabel}
       </Button>
     </div>
   );

@@ -5,6 +5,9 @@ import { ArrowLeft, Minus, Plus } from "lucide-react";
 import { springBouncy } from "@/components/satisfaccion/motion";
 import { MAX_QTY } from "./use-cart";
 
+/** Pedido inmediato (071) o encargo con fecha que cotiza un asesor (075). */
+export type Flow = "pedido" | "encargo";
+
 export const cls = {
   eyebrow: "text-[12px] font-semibold uppercase tracking-[0.2em] text-gold",
   title: "m-0 text-[34px] font-semibold uppercase leading-[0.95] tracking-[0.01em] text-cream",
@@ -45,11 +48,13 @@ export function QtyStepper({
   value,
   onChange,
   min = 1,
+  max = MAX_QTY,
   size = "md",
 }: {
   value: number;
   onChange: (value: number) => void;
   min?: number;
+  max?: number;
   size?: "sm" | "md";
 }) {
   const reduce = useReducedMotion();
@@ -79,8 +84,8 @@ export function QtyStepper({
       <motion.button
         type="button"
         aria-label="Agregar uno"
-        disabled={value >= MAX_QTY}
-        onClick={() => onChange(Math.min(MAX_QTY, value + 1))}
+        disabled={value >= max}
+        onClick={() => onChange(Math.min(max, value + 1))}
         whileTap={reduce ? undefined : { scale: 0.88 }}
         transition={springBouncy}
         className={`${btn} inline-flex items-center justify-center rounded-full text-cream transition-colors hover:bg-[rgba(247,242,231,0.08)] disabled:opacity-35`}

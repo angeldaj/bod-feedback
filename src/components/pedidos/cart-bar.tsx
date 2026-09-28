@@ -10,10 +10,12 @@ export function CartBar({
   count,
   subtotal,
   onOpen,
+  label = "Ver pedido",
 }: {
   count: number;
   subtotal: number;
   onOpen: () => void;
+  label?: string;
 }) {
   return (
     <AnimatePresence>
@@ -42,7 +44,7 @@ export function CartBar({
                 {count}
               </motion.span>
             </span>
-            <span className="flex-1 pl-2 text-[16px] font-semibold uppercase tracking-[0.1em]">Ver pedido</span>
+            <span className="flex-1 pl-2 text-[16px] font-semibold uppercase tracking-[0.1em]">{label}</span>
             <span className="text-[18px] font-semibold">{formatUsd(subtotal)}</span>
           </button>
         </motion.div>
