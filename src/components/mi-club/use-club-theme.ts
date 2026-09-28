@@ -10,7 +10,7 @@ export type Theme = "day" | "night";
  * across /bodega-club, /login and /mi-club.
  */
 export function useClubTheme() {
-  const [theme, setTheme] = useState<Theme>("night");
+  const [theme, setTheme] = useState<Theme>("day");
 
   useEffect(() => {
     try {
