@@ -21,11 +21,13 @@ import {
 } from "lucide-react";
 import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
+import { WheelIcon } from "./club-visuals";
 import "./mi-club.css";
 
 const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "", label: "Inicio", icon: House },
   { sub: "wallet", label: "Wallet", icon: Wallet },
+  { sub: "ruleta", label: "Ruleta", icon: WheelIcon },
   { sub: "canjear", label: "Canjear", icon: Gift },
   { sub: "actividad", label: "Actividad", icon: ReceiptText },
   { sub: "perfil", label: "Perfil", icon: UserRound },
@@ -34,31 +36,44 @@ const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
 function TabLinks({
   pathname,
   walletCount,
+  spinCount,
+  showRuleta,
   register,
   basePath,
 }: {
   pathname: string;
   walletCount: number;
+  spinCount: number;
+  /** Sin ruleta activa (`wheel: null`) la pestaña no aparece. */
+  showRuleta: boolean;
   register: (el: HTMLElement | null) => void;
   basePath: string;
 }) {
   return (
     <>
-      {TABS.map(({ sub, label, icon: Icon }) => {
+      {TABS.filter(({ sub }) => sub !== "ruleta" || showRuleta).map(({ sub, label, icon: Icon }) => {
         const href = sub ? `${basePath}/${sub}` : basePath;
         const active = sub ? pathname === href || pathname.startsWith(`${href}/`) : pathname === href;
         const isWallet = sub === "wallet";
+        const isRuleta = sub === "ruleta";
         return (
           <Link
             key={href}
             href={href}
             ref={isWallet ? register : undefined}
             aria-current={active ? "page" : undefined}
-            aria-label={isWallet && walletCount ? `Wallet, ${walletCount} vouchers activos` : undefined}
+            aria-label={
+              isWallet && walletCount
+                ? `Wallet, ${walletCount} vouchers activos`
+                : isRuleta && spinCount
+                  ? `Ruleta, ${spinCount} ${spinCount === 1 ? "tirada disponible" : "tiradas disponibles"}`
+                  : undefined
+            }
           >
             <Icon aria-hidden="true" strokeWidth={1.8} />
             {label}
             {isWallet && walletCount ? <span className="count" aria-hidden="true">{walletCount}</span> : null}
+            {isRuleta && spinCount ? <span className="count" aria-hidden="true">{spinCount}</span> : null}
           </Link>
         );
       })}
@@ -73,8 +88,11 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
-  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href } =
+  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href, spins, spinsLoaded } =
     useClub();
+  // Mientras carga se muestra la pestaña: ocultarla solo cuando sabemos que no hay ruleta evita que la barra salte.
+  const showRuleta = !spinsLoaded || !!spins?.wheel;
+  const spinCount = spins?.wheel ? spins.available : 0;
 
   useEffect(() => {
     if (!demo && !sessionLoading && !member) {
@@ -112,7 +130,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <nav className="top-tabs" aria-label="Secciones de mi-club">
-            <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} basePath={basePath} />
+            <TabLinks
+              pathname={pathname}
+              walletCount={activeVouchers.length}
+              spinCount={spinCount}
+              showRuleta={showRuleta}
+              register={registerWalletTarget}
+              basePath={basePath}
+            />
           </nav>
           <div className="top-actions">
             <button type="button" className="icon-btn" onClick={toggleTheme} aria-label={theme === "day" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}>
@@ -156,7 +181,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             // En <body>: ningún contenedor de la página puede recortar ni tapar la barra fija.
             <div className={themeClass}>
               <nav className="nav" aria-label="Secciones de mi-club">
-                <TabLinks pathname={pathname} walletCount={activeVouchers.length} register={registerWalletTarget} basePath={basePath} />
+                <TabLinks
+              pathname={pathname}
+              walletCount={activeVouchers.length}
+              spinCount={spinCount}
+              showRuleta={showRuleta}
+              register={registerWalletTarget}
+              basePath={basePath}
+            />
               </nav>
             </div>,
             document.body,

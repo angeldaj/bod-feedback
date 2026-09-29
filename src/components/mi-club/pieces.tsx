@@ -4,7 +4,7 @@ import { ImageIcon } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { Voucher } from "@/lib/club-api";
 import { useClub } from "./club-provider";
-import { expiryLabel, voucherIcon, voucherKindClass, type Tone } from "./club-visuals";
+import { ORIGIN_SHORT, expiryLabel, voucherIcon, voucherKindClass, type Tone } from "./club-visuals";
 
 /**
  * Espacio para foto. Mientras no haya fotografía real, muestra un recuadro
@@ -59,7 +59,7 @@ export function WalletPocket({ vouchers, compact = false }: { vouchers: Voucher[
             className={`vch ${voucherKindClass(v)}`}
             style={{ "--i": i } as React.CSSProperties}
             onClick={() => openOverlay({ type: "voucher", id: v.id })}
-            aria-label={`${v.title}, ${v.origin === "redemption" ? "canje" : "regalo"}, ${expiry}`}
+            aria-label={`${v.title}, ${ORIGIN_SHORT(v).toLowerCase()}, ${expiry}`}
           >
             <span className="vch-l">
               <span className="ic">
@@ -68,7 +68,7 @@ export function WalletPocket({ vouchers, compact = false }: { vouchers: Voucher[
               <span>
                 <b>{v.title}</b>
                 <small>
-                  {v.origin === "redemption" ? "Canje" : "Regalo"}, {expiry.toLowerCase()}
+                  {ORIGIN_SHORT(v)}, {expiry.toLowerCase()}
                 </small>
               </span>
             </span>

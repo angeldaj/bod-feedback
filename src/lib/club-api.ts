@@ -3,7 +3,8 @@
 //
 // Contrato: spec 075 de bodega-api (`GET /loyalty/me/card`, `/me/card-designs`,
 // `PUT /me/card-design`, `/me/vouchers`, `/me/rewards`, `POST /me/redemptions`,
-// `/me/timeline`). Dos adaptadores con la misma interfaz:
+// `/me/timeline`) y spec 077 para la ruleta (`GET/POST /loyalty/me/spins`).
+// Dos adaptadores con la misma interfaz:
 // - `createLiveClubAdapter`: el backend real con la sesión Bearer del socio
 //   (lo usa `/mi-club`).
 // - `createMockClubAdapter`: datos de ejemplo en memoria, sin login, para la
@@ -68,7 +69,7 @@ export type CardDesign = {
   unlockLabel: string;
 };
 
-export type VoucherOrigin = "redemption" | "grant";
+export type VoucherOrigin = "redemption" | "grant" | "spin";
 export type GrantReason = "manual" | "segment" | "complaint" | "tier_up";
 export type VoucherKind = "percent" | "amount" | "product";
 export type VoucherStatus = "active" | "used" | "expired" | "cancelled";
@@ -136,12 +137,60 @@ export type ClubActivity = {
   thisMonth: { spent: number; points: number; visits: number; favoriteBranch: string | null };
 };
 
+// Ruleta (spec 077). Sin pesos ni stock: eso solo lo ve club-web.
+export type SpinPrizeType = "points" | "voucher";
+
+export type SpinSegment = {
+  id: string;
+  label: string;
+  prizeType: SpinPrizeType;
+  /** Clave de diseño (`crema`, `mostaza`...); el color real vive en el frontend. */
+  color: string;
+  /** Clave de diseño (`coin`, `coffee`...); el ícono real vive en el frontend. */
+  icon: string;
+  order: number;
+};
+
+export type SpinWheel = { versionId: string; segments: SpinSegment[] };
+
+export type SpinRecord = {
+  id: string;
+  segmentId: string;
+  label: string;
+  prizeType: SpinPrizeType;
+  pointsAwarded: number | null;
+  voucherId: string | null;
+  createdAt: string;
+};
+
+export type SpinState = {
+  available: number;
+  /** Compras elegibles hacia la próxima tirada: `{ current: 2, required: 3 }` → 2/3. */
+  progress: { current: number; required: number };
+  /** `null` = sin ruleta activa: la tarjeta de la ruleta no se muestra. */
+  wheel: SpinWheel | null;
+  /** Últimas 10, recientes primero. */
+  recent: SpinRecord[];
+};
+
+export type SpinResult = {
+  spinId: string;
+  /** La rueda aterriza en este segmento. */
+  segmentId: string;
+  prize: { type: SpinPrizeType; points: number | null; label: string };
+  voucher: Voucher | null;
+  available: number;
+};
+
 export class ClubApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Código de negocio (`NO_SPINS_AVAILABLE`, `NO_ACTIVE_WHEEL`...), si el backend lo manda. */
+  code: string | null;
+  constructor(message: string, status: number, code: string | null = null) {
     super(message);
     this.name = "ClubApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -166,7 +215,9 @@ async function request<T>(path: string, accessToken: string, init?: RequestInit)
       body && typeof body === "object" && "message" in body
         ? String((body as { message: unknown }).message)
         : `Error ${response.status}`;
-    throw new ClubApiError(message, response.status);
+    const code =
+      body && typeof body === "object" && "code" in body ? String((body as { code: unknown }).code) : null;
+    throw new ClubApiError(message, response.status, code);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
@@ -279,6 +330,29 @@ const MOCK_REWARDS: ClubReward[] = [
   { id: "r7", name: "Parrilla para dos", category: "Almuerzo", description: "Carne, pollo, chorizo, yuca y guasacaca.", points: 1200, imageUrl: null, featured: false },
 ];
 
+// Ruleta sembrada por la migración de la spec 077 (v1): mismas etiquetas, claves
+// de color/ícono y pesos. Los pesos y premios solo los conoce el mock (en
+// producción el sorteo es del servidor).
+const PURCHASES_PER_SPIN = 3;
+const PRIZE_VOUCHER_TTL_DAYS = 7;
+
+type MockSegment = SpinSegment & {
+  weight: number;
+  points?: number;
+  voucher?: { kind: VoucherKind; valueLabel: string };
+};
+
+const MOCK_WHEEL: MockSegment[] = [
+  { id: "ruleta-v1-s1", order: 1, label: "+5 pts", prizeType: "points", color: "crema", icon: "coin", weight: 30, points: 5 },
+  { id: "ruleta-v1-s2", order: 2, label: "+10 pts", prizeType: "points", color: "mostaza", icon: "coins", weight: 20, points: 10 },
+  { id: "ruleta-v1-s3", order: 3, label: "Café americano", prizeType: "voucher", color: "cafe", icon: "coffee", weight: 12, voucher: { kind: "product", valueLabel: "Gratis" } },
+  { id: "ruleta-v1-s4", order: 4, label: "10% en tu próxima compra", prizeType: "voucher", color: "tomate", icon: "percent", weight: 10, voucher: { kind: "percent", valueLabel: "10%" } },
+  { id: "ruleta-v1-s5", order: 5, label: "+25 pts", prizeType: "points", color: "oro", icon: "star", weight: 8, points: 25 },
+  { id: "ruleta-v1-s6", order: 6, label: "Cachito de jamón", prizeType: "voucher", color: "trigo", icon: "croissant", weight: 8, voucher: { kind: "product", valueLabel: "Gratis" } },
+  { id: "ruleta-v1-s7", order: 7, label: "Postre del día", prizeType: "voucher", color: "frambuesa", icon: "cake", weight: 8, voucher: { kind: "product", valueLabel: "Gratis" } },
+  { id: "ruleta-v1-s8", order: 8, label: "Jugo natural", prizeType: "voucher", color: "naranja", icon: "juice", weight: 4, voucher: { kind: "product", valueLabel: "Gratis" } },
+];
+
 type MockStore = {
   memberKey: string;
   holderName: string;
@@ -290,6 +364,7 @@ type MockStore = {
   designId: string;
   vouchers: Voucher[];
   activity: ActivityItem[];
+  spins: { available: number; pending: number; recent: SpinRecord[]; byKey: Map<string, SpinResult> };
 };
 
 let store: MockStore | null = null;
@@ -341,6 +416,8 @@ function seedStore(member: Member | null): MockStore {
       { id: "a7", type: "purchase", occurredAt: isoDaysAgo(28, 13), title: "Almuerzo en mesa", branch: "Sede Villa Colombia", channel: "Mesa", payment: "Pago móvil", amount: 41, points: 41, lines: [{ name: "Asado negro", qty: 1, amount: 16 }, { name: "Hervido de gallina", qty: 1, amount: 12.5 }, { name: "Papelón con limón", qty: 2, amount: 6 }, { name: "Bienmesabe", qty: 1, amount: 6.5 }] },
       { id: "a8", type: "purchase", occurredAt: isoDaysAgo(36, 8), title: "Panadería para llevar", branch: "Sede Alta Vista", channel: "Para llevar", payment: "Efectivo", amount: 9.8, points: 9, lines: [{ name: "Pan francés", qty: 4, amount: 4 }, { name: "Acemita", qty: 1, amount: 2.6 }, { name: "Pan dulce", qty: 1, amount: 3.2 }] },
     ],
+    // Bienvenida + tirada de lanzamiento, y una compra hacia la próxima.
+    spins: { available: 2, pending: 1, recent: [], byKey: new Map() },
   };
 }
 
@@ -433,6 +510,54 @@ function buildActivity(s: MockStore): ClubActivity {
   };
 }
 
+function buildSpinState(s: MockStore): SpinState {
+  return {
+    available: s.spins.available,
+    progress: { current: s.spins.pending, required: PURCHASES_PER_SPIN },
+    wheel: {
+      versionId: "ruleta-v1",
+      segments: MOCK_WHEEL.map(({ id, label, prizeType, color, icon, order }) => ({ id, label, prizeType, color, icon, order })),
+    },
+    recent: [...s.spins.recent],
+  };
+}
+
+/** Sorteo ponderado local (en producción lo hace el servidor) y su efecto en el store. */
+function drawSpin(s: MockStore): SpinResult {
+  const total = MOCK_WHEEL.reduce((sum, seg) => sum + seg.weight, 0);
+  let roll = Math.random() * total;
+  const seg = MOCK_WHEEL.find((x) => (roll -= x.weight) < 0) ?? MOCK_WHEEL[0];
+  const now = new Date().toISOString();
+  s.spins.available -= 1;
+  let voucher: Voucher | null = null;
+  if (seg.points) {
+    s.balance += seg.points;
+    s.lifetime += seg.points;
+  } else if (seg.voucher) {
+    const code = randomCode();
+    voucher = {
+      id: `v-${code}`, origin: "spin", grantReason: null, kind: seg.voucher.kind, title: seg.label,
+      valueLabel: seg.voucher.valueLabel, category: null, code, qrValue: `LBVCH:${code}`,
+      expiresAt: new Date(Date.now() + PRIZE_VOUCHER_TTL_DAYS * DAY).toISOString(), status: "active",
+      note: "Premio de la ruleta", usedAt: null, usedAtBranch: null,
+    };
+    s.vouchers.unshift(voucher);
+    s.activity.unshift({ id: `a-${code}`, type: "grant", occurredAt: now, title: `Ganaste en la ruleta: ${seg.label.toLowerCase()}`, detail: "Guardado en tu Wallet", points: 0, category: null });
+  }
+  const spinId = `sp-${randomCode()}`;
+  s.spins.recent = [
+    { id: spinId, segmentId: seg.id, label: seg.label, prizeType: seg.prizeType, pointsAwarded: seg.points ?? null, voucherId: voucher?.id ?? null, createdAt: now },
+    ...s.spins.recent,
+  ].slice(0, 10);
+  return {
+    spinId,
+    segmentId: seg.id,
+    prize: { type: seg.prizeType, points: seg.points ?? null, label: seg.label },
+    voucher,
+    available: s.spins.available,
+  };
+}
+
 const delay = <T,>(value: T, ms = 220) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
 // ---------------------------------------------------------------------------
@@ -443,6 +568,8 @@ export type ClubDemoActions = {
   tierUp: () => boolean;
   complaintGift: () => Voucher | null;
   toggleVisits: () => number;
+  /** Suma una compra elegible; devuelve las tiradas ganadas con ella (0 o 1). */
+  purchase: () => number;
 };
 
 export interface ClubAdapter {
@@ -453,6 +580,9 @@ export interface ClubAdapter {
   listRewards(): Promise<ClubReward[]>;
   redeemReward(rewardId: string): Promise<Voucher>;
   getActivity(): Promise<ClubActivity>;
+  getSpins(): Promise<SpinState>;
+  /** Una tirada. Misma `idempotencyKey` → la misma tirada, sin descontar otra. */
+  spin(idempotencyKey: string): Promise<SpinResult>;
   /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
   demo: ClubDemoActions | null;
 }
@@ -475,6 +605,11 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
         }),
       ).then((r) => r.voucher),
     getActivity: () => authed((t) => request<ClubActivity>("/loyalty/me/timeline", t)),
+    getSpins: () => authed((t) => request<SpinState>("/loyalty/me/spins", t)),
+    spin: (idempotencyKey) =>
+      authed((t) =>
+        request<SpinResult>("/loyalty/me/spins", t, { method: "POST", headers: { "Idempotency-Key": idempotencyKey } }),
+      ),
     demo: null,
   };
 }
@@ -524,10 +659,25 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
       return delay(voucher, 380);
     },
     getActivity: () => delay(buildActivity(s())),
+    getSpins: () => delay(buildSpinState(s())),
+    async spin(idempotencyKey) {
+      const store = s();
+      // Mismo orden que el backend: el replay por clave va antes que el saldo.
+      const replay = store.spins.byKey.get(idempotencyKey);
+      if (replay) return delay({ ...replay, available: store.spins.available }, 600);
+      if (store.spins.available < 1) {
+        throw new ClubApiError("No tienes tiradas disponibles.", 409, "NO_SPINS_AVAILABLE");
+      }
+      const result = drawSpin(store);
+      store.spins.byKey.set(idempotencyKey, result);
+      // Latencia creíble: la rueda ya está girando mientras tanto.
+      return delay(result, 600 + Math.random() * 500);
+    },
     demo: {
       tierUp: () => demoTierUp(member),
       complaintGift: () => demoComplaintGift(member),
       toggleVisits: () => demoToggleVisits(member),
+      purchase: () => demoPurchase(member),
     },
   };
 }
@@ -597,4 +747,14 @@ function demoToggleVisits(member: Member | null): number {
   s.visits = s.visits >= 10 ? 7 : 10;
   if (s.visits < 10 && s.designId === "confluencia") s.designId = "clasica";
   return s.visits;
+}
+
+/** Suma una compra elegible; cada 3 se gana una tirada. Solo mock. */
+function demoPurchase(member: Member | null): number {
+  const s = ensureStore(member);
+  s.spins.pending += 1;
+  if (s.spins.pending < PURCHASES_PER_SPIN) return 0;
+  s.spins.pending = 0;
+  s.spins.available += 1;
+  return 1;
 }
