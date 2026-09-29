@@ -561,3 +561,98 @@
   .mc2 .nav { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 .mc2 .rule-note a { color: var(--coral); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---------- ruleta (spec 077) ---------- */
+/* Colores de segmento: fijos en día y noche, como las pieles de la tarjeta. */
+.mc2 .seg-crema { --seg: #fff0d6; --seg-ink: #6b4a22; }
+.mc2 .seg-mostaza { --seg: #e3a92f; --seg-ink: #3a2406; }
+.mc2 .seg-cafe { --seg: #6f4428; --seg-ink: #fbe7c6; }
+.mc2 .seg-tomate { --seg: #e2492a; --seg-ink: #fff1e4; }
+.mc2 .seg-oro { --seg: #f6cf6a; --seg-ink: #4a2e06; }
+.mc2 .seg-trigo { --seg: #c8955a; --seg-ink: #2e1806; }
+.mc2 .seg-frambuesa { --seg: #c73a63; --seg-ink: #fff0f3; }
+.mc2 .seg-naranja { --seg: #ff8c42; --seg-ink: #3a1405; }
+.mc2 .seg-default { --seg: #efe3d0; --seg-ink: #4a3526; }
+.mc2 .k-ruleta { --v-bg: linear-gradient(120deg, #ffd6df, #f593ab); --v-ink: #3a0f1c; }
+
+.mc2 .wheel { position: relative; width: min(100%, 380px); aspect-ratio: 1; margin-inline: auto; }
+.mc2 .wheel-rotor { position: absolute; inset: 0; border-radius: 50%; will-change: transform; box-shadow: 0 34px 50px -30px rgba(90, 40, 10, 0.65), 0 10px 20px -14px rgba(90, 40, 10, 0.4); }
+.mc2 .wheel-rotor svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mc2 .wheel-rim { fill: #2a1a11; }
+.mc2 .wheel-rim-hi { fill: none; stroke: rgba(255, 236, 205, 0.16); stroke-width: 2; }
+.mc2 .wheel-stud { fill: #f7dfae; }
+.mc2 .wheel-div { stroke: #fffaf2; stroke-width: 2.5; stroke-opacity: 0.9; }
+.mc2 .seg path { fill: var(--seg); transition: opacity 0.35s var(--ease); }
+.mc2 .seg g { color: var(--seg-ink); transition: opacity 0.35s var(--ease); }
+.mc2 .seg path { stroke: transparent; stroke-width: 0; }
+.mc2 .wheel[data-won] .seg:not(.win) path, .mc2 .wheel[data-won] .seg:not(.win) g { opacity: 0.58; }
+.mc2 .wheel[data-won] .seg.win path { stroke: #fffaf2; stroke-width: 6; stroke-linejoin: round; paint-order: stroke; }
+.mc2 .wheel-hub { position: absolute; left: 50%; top: 50%; width: 21%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3a2a1f, #150e09 72%); box-shadow: 0 0 0 4px #fffaf2, 0 8px 16px -6px rgba(20, 10, 4, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12); display: grid; place-items: center; }
+.mc2 .wheel-hub img { width: 62%; height: auto; }
+.mc2 .wheel-pointer { position: absolute; left: 50%; top: -4.5%; width: 11%; margin-left: -5.5%; transform-origin: 50% 35%; filter: drop-shadow(0 5px 6px rgba(60, 20, 5, 0.45)); }
+.mc2 .wheel-pointer path { fill: var(--coral-fill); stroke: #2a1a11; stroke-width: 2.5; }
+.mc2 .wheel-pointer circle { fill: #fffaf2; }
+.mc2 .wheel.mini { width: 64px; }
+.mc2 .wheel.mini .wheel-rotor { box-shadow: 0 8px 14px -8px rgba(90, 40, 10, 0.55); }
+.mc2 .wheel.mini .wheel-hub { width: 30%; box-shadow: 0 0 0 2px #fffaf2; }
+.mc2 .wheel.mini .wheel-pointer { width: 20%; margin-left: -10%; top: -9%; }
+.mc2 .wheel.mini .wheel-div { stroke-width: 4; }
+
+.mc2 .spin-tile { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.mc2 .st-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mc2 .st-top h3 { font-size: 1.3rem; font-weight: 600; text-transform: uppercase; line-height: 1.05; }
+.mc2 .st-badge { display: inline-flex; align-items: center; min-height: 26px; padding: 0 10px; border-radius: 999px; background: var(--coral-fill); color: #2a0f05; font-size: 0.85rem; font-weight: 700; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+.mc2 .st-cta { justify-self: end; }
+.mc2 .spin-prog { display: grid; gap: 6px; margin-top: 6px; }
+.mc2 .spin-prog .marks { display: flex; gap: 6px; }
+.mc2 .spin-prog .marks i { width: 14px; height: 14px; border-radius: 50%; background: var(--track); box-shadow: inset 0 0 0 1.5px var(--div-strong); }
+.mc2 .spin-prog .marks i[data-on] { background: linear-gradient(135deg, var(--gold-hi), var(--coral-hi)); box-shadow: none; }
+.mc2 .spin-prog .track { height: 8px; }
+.mc2 .spin-prog .track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold), var(--coral-hi)); }
+.mc2 .spin-prog small { color: var(--muted); font-size: 0.9rem; font-weight: 600; }
+
+.mc2 .ruleta-stage { display: grid; gap: 18px; justify-items: center; padding-top: 8px; }
+.mc2 .wheel-wrap { width: 100%; padding-top: 4%; }
+.mc2 .spin-btn { min-width: min(100%, 280px); min-height: 58px; font-size: 1.15rem; }
+.mc2 .spin-btn svg { width: 21px; height: 21px; }
+.mc2 .spin-btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+.mc2 .spin-btn[data-busy] { opacity: 0.85; cursor: progress; }
+.mc2 .spin-count { min-width: 26px; height: 26px; padding: 0 7px; border-radius: 999px; background: rgba(42, 22, 8, 0.86); color: #ffe7b8; display: grid; place-items: center; font-size: 0.9rem; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.mc2 .spin-empty { width: 100%; max-width: 420px; display: grid; gap: 2px; }
+.mc2 .ruleta-msg { width: 100%; max-width: 420px; margin: 0; }
+.mc2 .prize { width: 100%; max-width: 420px; animation: mc2-rise 0.36s var(--ease); }
+.mc2 .prize h2:focus { outline: none; }
+.mc2 .prize h2:focus-visible { outline: 3px solid var(--coral-fill); outline-offset: 3px; }
+.mc2 .prize-pts { display: flex; gap: 14px; align-items: center; padding: 16px 18px; border-radius: 22px; background: var(--surface); box-shadow: var(--lift); }
+.mc2 .prize-pts h2 { font-family: var(--serif); font-size: 2.6rem; font-weight: 600; line-height: 0.95; color: var(--gold-text); font-variant-numeric: lining-nums tabular-nums; }
+.mc2 .prize-pts p { color: var(--body); }
+.mc2 .prize-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: var(--seg); color: var(--seg-ink); flex: none; }
+.mc2 .prize-ic svg { width: 28px; height: 28px; }
+.mc2 .prize-vch .prize-cta { justify-self: start; margin-top: 8px; background: rgba(255, 255, 255, 0.7); color: #3a0f1c; box-shadow: none; }
+.mc2 .ruleta-side { display: grid; gap: 22px; align-content: start; }
+.mc2 .seg-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.mc2 .seg-chips li { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 14px 4px 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--lift); font-weight: 600; font-size: 0.98rem; transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease); }
+.mc2 .seg-chips li.win { box-shadow: 0 0 0 2px var(--coral-fill), var(--lift); transform: translateY(-2px); }
+.mc2 .seg-chips .sw { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--seg); color: var(--seg-ink); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
+.mc2 .seg-chips .sw svg { width: 17px; height: 17px; }
+.mc2 .ruleta-side > .link { justify-self: start; gap: 6px; }
+.mc2 .empty b { font-weight: 600; font-size: 1.1rem; color: var(--ink); }
+
+@keyframes mc2-rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+@keyframes mc2-swap { from { opacity: 0.35; } }
+
+@media (min-width: 1024px) {
+  .mc2 .view-ruleta { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); column-gap: 48px; align-items: start; }
+  .mc2 .view-ruleta > .v-head { grid-column: 1 / -1; }
+  .mc2 .ruleta-side { padding-top: 12px; }
+  .mc2 .spin-btn { min-height: 52px; font-size: 1.05rem; }
+  .mc2 .prize-pts h2 { font-size: 2.2rem; }
+  .mc2 .st-top h3 { font-size: 1.15rem; }
+}
+
+/* Movimiento reducido: sin giro; el revelado es un fundido corto (gana en especificidad a la regla general). */
+@media (prefers-reduced-motion: reduce) {
+  .mc2 .prize { animation: mc2-fade 0.2s ease-out !important; }
+  .mc2 .rm-swap .wheel-rotor { animation: mc2-swap 0.2s ease-out !important; }
+  .mc2 .seg-chips li.win { transform: none; }
+}

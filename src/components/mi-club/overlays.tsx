@@ -34,6 +34,7 @@ import {
   expiryLabel,
   toFace,
   voucherKindClass,
+  WheelIcon,
 } from "./club-visuals";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -91,7 +92,7 @@ function VoucherSheet({ voucher, onClose }: { voucher: Voucher; onClose: () => v
       <div className={`ticket ${voucherKindClass(voucher)}`}>
         <div className="t-main">
           <span className="t-chip">
-            {voucher.origin === "redemption" ? <Coins aria-hidden="true" /> : <Gift aria-hidden="true" />}
+            {voucher.origin === "redemption" ? <Coins aria-hidden="true" /> : voucher.origin === "spin" ? <WheelIcon aria-hidden="true" /> : <Gift aria-hidden="true" />}
             {ORIGIN_LABEL(voucher)}
           </span>
           <Dialog.Title render={<h2 />}>{voucher.title}</Dialog.Title>

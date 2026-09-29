@@ -18,6 +18,7 @@ import {
   Mail,
   MessageCircle,
   Footprints,
+  ShoppingBag,
 } from "lucide-react";
 import { useMember } from "@/lib/member-session";
 import * as loyaltyApi from "@/lib/loyalty-api";
@@ -226,8 +227,8 @@ export function PerfilScreen() {
             <section className="tile demo-tile" aria-labelledby="pf-demo">
               <h2 id="pf-demo">Simular en la demo</h2>
               <p className="muted-sm" style={{ marginBottom: 12 }}>
-                En producción estas cosas las dispara el club: subir de nivel al sumar puntos, un regalo al compensar una queja y llegar a 10
-                visitas.
+                En producción estas cosas las dispara el club: subir de nivel al sumar puntos, un regalo al compensar una queja, llegar a 10
+                visitas y las compras que suman tiradas de la ruleta.
               </p>
               <div className="fields">
                 <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.tierUp} disabled={!card?.nextTier}>
@@ -241,6 +242,10 @@ export function PerfilScreen() {
                 <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.toggleVisits}>
                   <Footprints aria-hidden="true" />
                   {card && card.visits >= 10 ? "Volver a 7 visitas" : "Llegar a 10 visitas"}
+                </button>
+                <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.purchase}>
+                  <ShoppingBag aria-hidden="true" />
+                  Sumar una compra
                 </button>
               </div>
             </section>

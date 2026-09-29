@@ -9,6 +9,7 @@ import { useClub } from "../club-provider";
 import { MembershipCard } from "../membership-card";
 import { SKIN_NAME, fmtPts, toFace } from "../club-visuals";
 import { Skeleton, WalletPocket } from "../pieces";
+import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -55,6 +56,37 @@ function TierProgress({ card }: { card: ClubCard }) {
           </span>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/** Tarjeta de la ruleta: progreso hacia la próxima tirada y acceso a girar. Sin ruleta activa no se muestra. */
+function SpinTile() {
+  const { spins, href } = useClub();
+  if (!spins?.wheel) return null;
+  const { available, progress } = spins;
+  return (
+    <div className="tile spin-tile">
+      <Wheel segments={sortedSegments(spins.wheel)} mini />
+      <div className="st-body">
+        <div className="st-top">
+          <h3>Ruleta</h3>
+          {available > 0 ? (
+            <span className="st-badge">{available === 1 ? "1 tirada" : `${available} tiradas`}</span>
+          ) : null}
+        </div>
+        <SpinProgress current={progress.current} required={progress.required} />
+      </div>
+      {available > 0 ? (
+        <Link href={href("ruleta")} className="btn btn-pop btn-sm st-cta">
+          Girar
+        </Link>
+      ) : (
+        <Link href={href("ruleta")} className="link st-cta" aria-label="Ver la ruleta">
+          Ver
+          <ChevronRight aria-hidden="true" />
+        </Link>
+      )}
     </div>
   );
 }
@@ -109,6 +141,7 @@ export function HomeScreen() {
 
       <div className="home-side">
         <TierProgress card={card} />
+        <SpinTile />
         <div className="sec-head">
           <h2>Tu Wallet</h2>
           <Link href={href("wallet")} className="link">
