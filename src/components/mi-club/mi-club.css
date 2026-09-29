@@ -190,7 +190,7 @@
   .bal svg { width: 17px; height: 17px; }
 
   /* ---------- bottom nav (phone) / top tabs (desktop) ---------- */
-  .nav { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; padding: 6px; border-radius: 30px; max-width: 520px; margin: 0 auto; isolation: isolate; overflow: hidden;
+  .nav { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 40; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 2px; padding: 6px; border-radius: 30px; max-width: 520px; margin: 0 auto; isolation: isolate; overflow: hidden;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.08)), color-mix(in oklab, var(--surface) 42%, transparent);
     border: 1px solid rgba(255, 255, 255, 0.45);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(255, 255, 255, 0.18), 0 20px 44px -18px rgba(40, 20, 5, 0.45); }
@@ -655,4 +655,9 @@
   .mc2 .prize { animation: mc2-fade 0.2s ease-out !important; }
   .mc2 .rm-swap .wheel-rotor { animation: mc2-swap 0.2s ease-out !important; }
   .mc2 .seg-chips li.win { transform: none; }
+}
+
+/* Barra inferior con 6 pestañas (Ruleta, spec 077): en teléfonos angostos la etiqueta se compacta para que "Actividad" quepa. */
+@media (max-width: 400px) {
+  .mc2 .nav a { font-size: 0.74rem; letter-spacing: 0.02em; }
 }
