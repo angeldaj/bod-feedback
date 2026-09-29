@@ -8,6 +8,7 @@ import {
   Sparkles,
   Truck,
   UtensilsCrossed,
+  createLucideIcon,
   type LucideIcon,
 } from "lucide-react";
 import type { CardSkin, ClubCard, Voucher } from "@/lib/club-api";
@@ -50,16 +51,30 @@ export function rewardIcon(name: string, category: string): LucideIcon {
   return categoryIcon(category);
 }
 
-export const voucherIcon = (v: Voucher): LucideIcon =>
-  v.grantReason === "tier_up" && !v.category ? Sparkles : categoryIcon(v.category);
+/** Ruleta en trazo Lucide (misma familia que el resto de íconos): aro, cuatro radios y el eje. */
+export const WheelIcon = createLucideIcon("BodegaWheel", [
+  ["circle", { cx: "12", cy: "12", r: "9", key: "rim" }],
+  ["path", { d: "M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4", key: "spokes" }],
+  ["circle", { cx: "12", cy: "12", r: "2.2", key: "hub" }],
+]);
 
-/** Clase de color del voucher: canje dorado, regalo papel, compensación coral. */
+export const voucherIcon = (v: Voucher): LucideIcon => {
+  if (v.origin === "spin" && !v.category) return WheelIcon;
+  return v.grantReason === "tier_up" && !v.category ? Sparkles : categoryIcon(v.category);
+};
+
+/** Clase de color del voucher: canje dorado, regalo papel, compensación coral, ruleta frambuesa. */
 export function voucherKindClass(v: Voucher): string {
   if (v.origin === "redemption") return "k-canje";
+  if (v.origin === "spin") return "k-ruleta";
   return v.grantReason === "complaint" ? "k-queja" : "k-regalo";
 }
 
-export const ORIGIN_LABEL = (v: Voucher) => (v.origin === "redemption" ? "Canje con puntos" : "Regalo de la casa");
+export const ORIGIN_LABEL = (v: Voucher) =>
+  v.origin === "redemption" ? "Canje con puntos" : v.origin === "spin" ? "Premio de la ruleta" : "Regalo de la casa";
+
+/** Etiqueta corta del origen, para el bolsillo de la Wallet. */
+export const ORIGIN_SHORT = (v: Voucher) => (v.origin === "redemption" ? "Canje" : v.origin === "spin" ? "Ruleta" : "Regalo");
 
 export const fmtPts = (n: number) => n.toLocaleString("es-VE");
 export const money = (n: number) => `$${n.toFixed(2).replace(".", ",")}`;

@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { HeartHandshake, Layers, Ticket, TriangleAlert } from "lucide-react";
+import { HeartHandshake, Layers, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
 import { useMember } from "@/lib/member-session";
 import * as club from "@/lib/club-api";
 import type {
@@ -21,6 +21,8 @@ import type {
   ClubCard,
   ClubReward,
   ClubTier,
+  SpinResult,
+  SpinState,
   Voucher,
 } from "@/lib/club-api";
 import type { Member } from "@/lib/loyalty-api";
@@ -62,6 +64,13 @@ type ClubValue = ClubData & {
   toggleTheme: () => void;
   activeVouchers: Voucher[];
   reload: () => Promise<void>;
+  /** Ruleta: `null` mientras carga, si falla o si no hay ruleta que mostrar. */
+  spins: SpinState | null;
+  /** Ya terminó el primer intento de cargar la ruleta (bien o mal). */
+  spinsLoaded: boolean;
+  reloadSpins: () => Promise<SpinState | null>;
+  /** Tirada; no toca `spins` ni la tarjeta: la pantalla refresca al revelar el premio. */
+  spin: (idempotencyKey: string) => Promise<SpinResult>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
   selectDesign: (designId: string) => Promise<boolean>;
   overlay: Overlay;
@@ -71,7 +80,12 @@ type ClubValue = ClubData & {
   notify: (icon: LucideIcon, title: string, sub: string) => void;
   flights: Flight[];
   registerWalletTarget: (el: HTMLElement | null) => void;
-  demoActions: { tierUp: () => void; complaint: (from?: Element | null) => void; toggleVisits: () => void } | null;
+  demoActions: {
+    tierUp: () => void;
+    complaint: (from?: Element | null) => void;
+    toggleVisits: () => void;
+    purchase: () => void;
+  } | null;
 };
 
 const ClubCtx = createContext<ClubValue | null>(null);
@@ -116,6 +130,8 @@ export function ClubProvider({
   const member = demo ? club.DEMO_MEMBER : session.member;
   const { theme, toggleTheme } = useClubTheme();
   const [data, setData] = useState<ClubData>(EMPTY);
+  const [spins, setSpins] = useState<SpinState | null>(null);
+  const [spinsLoaded, setSpinsLoaded] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -152,9 +168,31 @@ export function ClubProvider({
     }
   }, [adapter, member]);
 
+  // Aparte de `load`: si la ruleta falla (o el backend aún no la tiene) el resto del club sigue.
+  const loadSpins = useCallback(async () => {
+    if (!member) return null;
+    try {
+      const next = await adapter.getSpins();
+      setSpins(next);
+      return next;
+    } catch {
+      setSpins(null);
+      return null;
+    } finally {
+      setSpinsLoaded(true);
+    }
+  }, [adapter, member]);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadSpins();
+  }, [load, loadSpins]);
+
+  const reload = useCallback(async () => {
+    await Promise.all([load(), loadSpins()]);
+  }, [load, loadSpins]);
+
+  const spin = useCallback((idempotencyKey: string) => adapter.spin(idempotencyKey), [adapter]);
 
   // Subida de nivel: se compara el rango actual con el último que vio este socio.
   const card = data.card;
@@ -252,8 +290,13 @@ export function ClubProvider({
         actions.toggleVisits();
         void load();
       },
+      purchase: () => {
+        const won = actions.purchase();
+        notify(ShoppingBag, won ? "¡Ganaste una tirada!" : "Compra registrada", won ? "Entra a la ruleta y gira." : "Suma una compra hacia tu próxima tirada.");
+        void loadSpins();
+      },
     };
-  }, [adapter, flyToWallet, load, notify]);
+  }, [adapter, flyToWallet, load, loadSpins, notify]);
 
   const href = useCallback(
     (sub?: string) => (sub ? `${basePath}/${sub.replace(/^\//, "")}` : basePath),
@@ -279,7 +322,11 @@ export function ClubProvider({
     themeClass: theme === "day" ? "mc2 day" : "mc2",
     toggleTheme,
     activeVouchers,
-    reload: load,
+    reload,
+    spins,
+    spinsLoaded,
+    reloadSpins: loadSpins,
+    spin,
     redeem,
     selectDesign,
     overlay,
