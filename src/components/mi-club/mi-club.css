@@ -563,6 +563,10 @@
 .mc2 .rule-note a { color: var(--coral); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 /* ---------- ruleta (spec 077) ---------- */
+/* El rotor es un cuadrado: al girar su caja crece hasta ~1,4× y desbordaba la página en móvil.
+   Se recorta en la raíz (ancho de pantalla, así la sombra de la rueda respira); clip, a diferencia
+   de hidden, no crea contenedor de scroll y no rompe los elementos sticky. */
+.mc2 { overflow-x: clip; }
 /* Colores de segmento: fijos en día y noche, como las pieles de la tarjeta. */
 .mc2 .seg-crema { --seg: #fff0d6; --seg-ink: #6b4a22; }
 .mc2 .seg-mostaza { --seg: #e3a92f; --seg-ink: #3a2406; }
