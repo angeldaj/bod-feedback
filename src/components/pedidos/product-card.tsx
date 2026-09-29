@@ -5,25 +5,30 @@ import { Plus } from "lucide-react";
 import { Photo } from "@/components/landing/photo";
 import type { Product } from "@/lib/pedidos-api";
 import { formatUsd } from "./format";
+import type { Flow } from "./shared";
 
 export function ProductCard({
   product,
   inCart,
   onSelect,
+  flow = "pedido",
 }: {
   product: Product;
   /** Unidades de este producto ya en el carrito. */
   inCart: number;
   onSelect: () => void;
+  flow?: Flow;
 }) {
   const reduce = useReducedMotion();
+  // En un encargo el agotado de hoy no importa: se prepara para la fecha.
+  const blocked = product.soldOut && flow === "pedido";
   return (
     <motion.button
       type="button"
       onClick={onSelect}
-      disabled={product.soldOut}
-      aria-label={product.soldOut ? `${product.name}, agotado` : undefined}
-      whileTap={reduce || product.soldOut ? undefined : { scale: 0.98 }}
+      disabled={blocked}
+      aria-label={blocked ? `${product.name}, agotado` : undefined}
+      whileTap={reduce || blocked ? undefined : { scale: 0.98 }}
       className="group flex w-full items-stretch gap-4 rounded-[22px] border border-hair-div bg-[rgba(247,242,231,0.035)] p-3 text-left transition-colors hover:border-hair-chip disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:border-hair-div"
     >
       <span className="relative aspect-square w-[108px] shrink-0 overflow-hidden rounded-[16px]">
@@ -40,8 +45,11 @@ export function ProductCard({
         </span>
         <span className="line-clamp-2 text-[15px] leading-snug text-muted-ink">{product.description}</span>
         <span className="mt-auto flex items-center justify-between pt-2">
-          <span className="font-serif text-[22px] font-semibold text-gold-accent">{formatUsd(product.price)}</span>
-          {product.soldOut ? (
+          <span className="flex flex-col">
+            <span className="font-serif text-[22px] font-semibold text-gold-accent">{formatUsd(product.price)}</span>
+            {flow === "encargo" && <span className="text-[12px] uppercase tracking-[0.12em] text-label">Precio referencial</span>}
+          </span>
+          {blocked ? (
             <span className="rounded-full border border-hair-div px-4 py-2 text-[14px] font-semibold text-muted-ink">Agotado</span>
           ) : (
             <span className="pop-btn-gold inline-flex items-center gap-1 rounded-full px-4 py-2 text-[14px] font-semibold">

@@ -6,7 +6,8 @@ import { Photo } from "@/components/landing/photo";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "./use-cart";
 import { formatUsd } from "./format";
-import { cls, QtyStepper, StepHeader } from "./shared";
+import { cls, QtyStepper, StepHeader, type Flow } from "./shared";
+import { MAX_QTY } from "./use-cart";
 
 export function CartView({
   items,
@@ -17,6 +18,8 @@ export function CartView({
   onQuantity,
   onRemove,
   onContinue,
+  flow = "pedido",
+  maxQty = MAX_QTY,
 }: {
   items: CartItem[];
   subtotal: number;
@@ -27,18 +30,32 @@ export function CartView({
   onQuantity: (item: CartItem, quantity: number) => void;
   onRemove: (item: CartItem) => void;
   onContinue: () => void;
+  flow?: Flow;
+  maxQty?: number;
 }) {
+  const encargo = flow === "encargo";
   return (
     <div className="flex flex-col gap-6 pt-6">
-      <StepHeader eyebrow="Paso 1 de 3" title="Tu pedido" onBack={onBack} />
+      <StepHeader eyebrow={encargo ? "Paso 1 de 2" : "Paso 1 de 3"} title={encargo ? "Tu encargo" : "Tu pedido"} onBack={onBack} />
 
       {items.length === 0 ? (
         <div className={`${cls.panel} flex flex-col items-center gap-4 px-6 py-12 text-center`}>
           <ShoppingBag size={36} className="text-label" />
-          <p className="text-[17px] text-body">Tu carrito está vacío. Agrega algo del catálogo.</p>
-          <Button variant="popGhost" size="popMd" onClick={onBack}>
-            Ver catálogo
-          </Button>
+          <p className="text-[17px] text-body">
+            {encargo
+              ? "Todavía no agregas productos. Elige del catálogo o continúa y descríbenos lo que necesitas."
+              : "Tu carrito está vacío. Agrega algo del catálogo."}
+          </p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button variant="popGhost" size="popMd" onClick={onBack}>
+              Ver catálogo
+            </Button>
+            {encargo && (
+              <Button variant="pop" size="popMd" onClick={onContinue}>
+                Describir mi encargo
+              </Button>
+            )}
+          </div>
         </div>
       ) : (
         <>
@@ -71,7 +88,7 @@ export function CartView({
                       </p>
                     )}
                     <div className="mt-1 flex items-center justify-between gap-2">
-                      <QtyStepper size="sm" value={item.quantity} onChange={(q) => onQuantity(item, q)} />
+                      <QtyStepper size="sm" value={item.quantity} max={maxQty} onChange={(q) => onQuantity(item, q)} />
                       <div className="flex gap-1">
                         <button
                           type="button"
@@ -98,9 +115,14 @@ export function CartView({
           </ul>
 
           <div className="flex items-center justify-between border-t border-hair-div pt-4">
-            <span className={cls.label}>Subtotal</span>
+            <span className={cls.label}>{encargo ? "Subtotal referencial" : "Subtotal"}</span>
             <span className="font-serif text-[28px] font-semibold text-cream">{formatUsd(subtotal)}</span>
           </div>
+          {encargo && (
+            <p className="-mt-3 text-[14px] leading-snug text-muted-ink">
+              Un asesor revisa tu encargo y te confirma el precio final por WhatsApp.
+            </p>
+          )}
 
           <Button
             variant="pop"

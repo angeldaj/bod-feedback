@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
     return [
       { source: "/satisfaccion", destination: "/feedback?tab=encuesta", permanent: false },
       { source: "/reportar", destination: "/feedback?tab=urgente", permanent: false },
+      // Menús por local, alojados en YourQuickMenu. Temporales por la misma
+      // razón: si cambia el menú, el QR sigue sirviendo sin caché vieja.
+      {
+        source: "/menu/2",
+        destination: "https://www.yourquickmenu.com/menu/cmrm6e1ud000004ldvljcpd4o",
+        permanent: false,
+      },
+      {
+        source: "/menu/3",
+        destination: "https://www.yourquickmenu.com/menu/cmu2momrw001n6ghu9m26tetg",
+        permanent: false,
+      },
     ];
   },
   images: {

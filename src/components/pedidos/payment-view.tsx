@@ -132,7 +132,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CopyRow({ label, value, display }: { label: string; value: string; display?: string }) {
+export function CopyRow({ label, value, display }: { label: string; value: string; display?: string }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {

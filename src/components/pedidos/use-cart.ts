@@ -16,7 +16,7 @@ export type CartItem = {
 
 type Action =
   | { type: "hydrate"; items: CartItem[] }
-  | { type: "add"; product: Product; quantity: number; note: string }
+  | { type: "add"; product: Product; quantity: number; note: string; max: number }
   | { type: "update"; lineId: string; quantity: number; note: string }
   | { type: "remove"; lineId: string }
   | { type: "sync"; products: readonly Product[] }
@@ -24,6 +24,8 @@ type Action =
 
 const STORAGE_KEY = "labodega-pedido";
 export const MAX_QTY = 20;
+/** Un encargo admite cantidades de evento (spec 075). */
+export const ENCARGO_MAX_QTY = 200;
 
 type CartState = {
   items: CartItem[];
@@ -39,7 +41,7 @@ function itemsReducer(items: CartItem[], action: Exclude<Action, { type: "hydrat
       const existing = items.find((i) => i.productId === action.product.id && i.note === note);
       if (existing) {
         return items.map((i) =>
-          i === existing ? { ...i, quantity: Math.min(MAX_QTY, i.quantity + action.quantity) } : i,
+          i === existing ? { ...i, quantity: Math.min(action.max, i.quantity + action.quantity) } : i,
         );
       }
       const { id, name, price, image } = action.product;
@@ -79,36 +81,37 @@ function reducer(state: CartState, action: Action): CartState {
 
 /**
  * Un solo carrito: el catálogo es el mismo en todos los locales (solo cambia qué
- * está agotado en cada uno), así que cambiar de local no lo vacía.
+ * está agotado en cada uno), así que cambiar de local no lo vacía. Pedidos y
+ * encargos guardan carritos separados (`storageKey`).
  */
-export function useCart() {
+export function useCart({ storageKey = STORAGE_KEY, maxQty = MAX_QTY }: { storageKey?: string; maxQty?: number } = {}) {
   const [{ items, loaded }, dispatch] = useReducer(reducer, { items: [], loaded: false });
 
   // Se lee de localStorage tras montar, para no desalinear la hidratación.
   useEffect(() => {
     let saved: CartItem[] = [];
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKey);
       if (raw) saved = JSON.parse(raw) as CartItem[];
     } catch {
       // Sin almacenamiento el carrito funciona igual, solo no persiste.
     }
     dispatch({ type: "hydrate", items: saved });
-  }, []);
+  }, [storageKey]);
 
   // Solo se escribe después de leer, para no pisar el carrito guardado con uno vacío.
   useEffect(() => {
     if (!loaded) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(storageKey, JSON.stringify(items));
     } catch {
       // Persistencia opcional.
     }
-  }, [items, loaded]);
+  }, [items, loaded, storageKey]);
 
   const add = useCallback(
-    (product: Product, quantity: number, note: string) => dispatch({ type: "add", product, quantity, note }),
-    [],
+    (product: Product, quantity: number, note: string) => dispatch({ type: "add", product, quantity, note, max: maxQty }),
+    [maxQty],
   );
   const update = useCallback(
     (lineId: string, quantity: number, note: string) => dispatch({ type: "update", lineId, quantity, note }),

@@ -80,7 +80,8 @@ export class PedidosApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+/** Fetch a `/storefront/*` con los errores de la API traducidos a `PedidosApiError`. */
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init);
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
