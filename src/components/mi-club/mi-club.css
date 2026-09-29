@@ -582,11 +582,11 @@
 .mc2 .wheel-rim-hi { fill: none; stroke: rgba(255, 236, 205, 0.16); stroke-width: 2; }
 .mc2 .wheel-stud { fill: #f7dfae; }
 .mc2 .wheel-div { stroke: #fffaf2; stroke-width: 2.5; stroke-opacity: 0.9; }
-.mc2 .seg path { fill: var(--seg); transition: opacity 0.35s var(--ease); }
+.mc2 .seg > path { fill: var(--seg); transition: opacity 0.35s var(--ease); }
 .mc2 .seg g { color: var(--seg-ink); transition: opacity 0.35s var(--ease); }
-.mc2 .seg path { stroke: transparent; stroke-width: 0; }
-.mc2 .wheel[data-won] .seg:not(.win) path, .mc2 .wheel[data-won] .seg:not(.win) g { opacity: 0.58; }
-.mc2 .wheel[data-won] .seg.win path { stroke: #fffaf2; stroke-width: 6; stroke-linejoin: round; paint-order: stroke; }
+.mc2 .seg > path { stroke: transparent; stroke-width: 0; }
+.mc2 .wheel[data-won] .seg:not(.win) > path, .mc2 .wheel[data-won] .seg:not(.win) g { opacity: 0.58; }
+.mc2 .wheel[data-won] .seg.win > path { stroke: #fffaf2; stroke-width: 6; stroke-linejoin: round; paint-order: stroke; }
 .mc2 .wheel-hub { position: absolute; left: 50%; top: 50%; width: 21%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #3a2a1f, #150e09 72%); box-shadow: 0 0 0 4px #fffaf2, 0 8px 16px -6px rgba(20, 10, 4, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12); display: grid; place-items: center; }
 .mc2 .wheel-hub img { width: 62%; height: auto; }
 .mc2 .wheel-pointer { position: absolute; left: 50%; top: -4.5%; width: 11%; margin-left: -5.5%; transform-origin: 50% 35%; filter: drop-shadow(0 5px 6px rgba(60, 20, 5, 0.45)); }
