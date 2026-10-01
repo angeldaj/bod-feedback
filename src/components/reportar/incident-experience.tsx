@@ -176,6 +176,8 @@ export function IncidentExperience({
     }
     if (name === "what") {
       if (state.categories.length === 0) out.categories = "Marca al menos una opción para seguir.";
+    }
+    if (name === "tellUs") {
       if (state.categories.includes("other") && !state.description.trim() && !audio) {
         out.description = "Si eliges “Otro”, cuéntanos qué pasó por escrito o con una nota de voz.";
       }
@@ -322,7 +324,6 @@ export function IncidentExperience({
 
   // ---- Paso 2: ¿Qué pasó? ----
   function renderWhat() {
-    const otherRequired = state.categories.includes("other");
     return (
       <>
         <StepHeading
@@ -371,17 +372,31 @@ export function IncidentExperience({
         ))}
         <FieldError id={errId("categories")} message={errors.categories} />
 
-        <Item className="flex flex-col gap-3 border-t border-hair-div pt-6">
+      </>
+    );
+  }
+
+  // ---- Paso 3: Cuéntanos ----
+  function renderTellUs() {
+    const otherRequired = state.categories.includes("other");
+    return (
+      <>
+        <StepHeading
+          eyebrow="Paso tres"
+          title="Cuéntanos"
+          lead="Cuéntanoslo como se lo contarías a un amigo. Una foto o video también nos ayuda a entender qué pasó."
+          headingRef={headingRef}
+        />
+        <Item className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="m-0 text-[24px] font-semibold uppercase leading-none tracking-[0.01em] text-cream">
-              Cuéntanos
-              {!otherRequired && (
-                <span className="ml-2 align-middle text-[13px] font-medium normal-case tracking-normal text-muted-ink">
-                  (opcional)
-                </span>
-              )}
-            </h3>
-            <div className="inline-flex rounded-full border border-hair-div bg-[var(--lb-input)] p-1">
+            <p className="m-0 text-[14px] text-muted-ink">
+              {otherRequired ? "Necesario porque elegiste «Otro»." : "Puedes omitir este paso."}
+            </p>
+            <div
+              role="group"
+              aria-label="Formato de respuesta"
+              className="inline-flex rounded-full border border-hair-div bg-[var(--lb-input)] p-1"
+            >
               {(["text", "audio"] as const).map((m) => (
                 <button
                   key={m}
@@ -428,7 +443,7 @@ export function IncidentExperience({
           </div>
         </Item>
 
-        <Item className="flex flex-col gap-3">
+        <Item className="flex flex-col gap-3 border-t border-hair-div pt-6">
           <GroupLabel icon={Camera}>
             Foto o video <span className="normal-case tracking-normal text-muted-ink">(opcional)</span>
           </GroupLabel>
@@ -441,12 +456,12 @@ export function IncidentExperience({
     );
   }
 
-  // ---- Paso 3: ¿Cómo te contactamos? ----
+  // ---- Paso 4: ¿Cómo te contactamos? ----
   function renderContact() {
     return (
       <>
         <StepHeading
-          eyebrow="Paso tres"
+          eyebrow="Paso cuatro"
           title="¿Cómo te contactamos?"
           lead="Déjanos tu WhatsApp para atenderte de inmediato. Un encargado te escribe personalmente, no un robot."
           headingRef={headingRef}
@@ -574,6 +589,7 @@ export function IncidentExperience({
           <>
             {name === "where" && renderWhere()}
             {name === "what" && renderWhat()}
+            {name === "tellUs" && renderTellUs()}
             {name === "contact" && renderContact()}
 
             <motion.div variants={popStepItem} className="mt-1 flex flex-col gap-4 border-t border-hair-div pt-6">
