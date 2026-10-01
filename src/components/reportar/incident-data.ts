@@ -3,13 +3,14 @@
 
 import type { Channel, IncidentCategory } from "@/components/feedback/feedback-catalog";
 
-export const INCIDENT_STEPS = ["where", "what", "contact"] as const;
+export const INCIDENT_STEPS = ["where", "what", "tellUs", "contact"] as const;
 export type IncidentStep = (typeof INCIDENT_STEPS)[number];
 
 export const INCIDENT_STEP_ANNOUNCE: Record<IncidentStep, string> = {
-  where: "Paso 1 de 3, ¿dónde fue?",
-  what: "Paso 2 de 3, ¿qué pasó?",
-  contact: "Paso 3 de 3, ¿cómo te contactamos?",
+  where: "Paso 1 de 4, ¿dónde fue?",
+  what: "Paso 2 de 4, ¿qué pasó?",
+  tellUs: "Paso 3 de 4, cuéntanos",
+  contact: "Paso 4 de 4, ¿cómo te contactamos?",
 };
 
 export type IncidentState = {
