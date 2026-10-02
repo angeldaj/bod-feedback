@@ -25,12 +25,11 @@ Permitir que un socio autenticado vea una campaña activa, obtenga un código pe
 - Recompensas por likes, shares, seguir la cuenta, etiquetas, historias o publicaciones creadas por socios.
 - Premios en vouchers; la campaña otorga puntos. La cantidad de puntos se configura por campaña. Como valor inicial recomendado, usar 10 puntos.
 - Automatización de campañas publicitarias o publicación de contenido en Instagram.
-- Un panel visual de administración. Las campañas se crean y administran mediante endpoints autenticados de la API.
 - Asociación general de identidad entre las cuentas personales de Instagram y los perfiles del Club. El código es específico para una campaña y sirve para atribuir esa participación.
 
 ## Experiencia del socio
 
-1. El socio inicia sesión en Mi Club y encuentra una tarjeta de campaña activa con la publicación, las instrucciones, el premio, el cierre y las condiciones principales.
+1. El socio inicia sesión en Mi Club y encuentra el apartado **Campañas** debajo de la tarjeta de membresía en la pantalla de inicio. Ahí ve la publicación, las instrucciones, el premio, el cierre y las condiciones principales de cada campaña activa.
 2. Pulsa **Obtener mi código**. La API crea o devuelve su único código activo para esa campaña, con vencimiento no posterior al cierre.
 3. El socio abre la publicación oficial desde Mi Club y comenta el código. La interfaz aclara que el código será visible públicamente porque se escribe en un comentario.
 4. Cuando Instagram entrega el evento del comentario y la API lo valida, la campaña pasa a completada y los puntos aparecen en saldo e historial.
@@ -53,7 +52,7 @@ La tarjeta puede mostrar: título, texto breve, enlace a la publicación, puntos
 
 ### Landing (`bodega-landing`)
 
-- Añadir una sección de campañas sociales a Mi Club, visible solo con sesión y solo cuando haya campaña activa.
+- Añadir el apartado **Campañas** debajo de la tarjeta de membresía en la pantalla de inicio de Mi Club (`home-screen.tsx`). Mostrarlo solo cuando haya al menos una campaña activa.
 - Extender el adapter `club-api.ts` con operaciones tipadas para listar campaña(s) activas y obtener el código personal.
 - Refrescar el estado de la tarjeta de campaña después de obtener código y al regresar a Mi Club; mostrar la recompensa solo cuando la API confirme la acreditación.
 - Añadir el nuevo movimiento de puntos al historial. Debe leerse como puntos ganados por participar en un reto de Instagram, no como voucher en el Wallet.
@@ -64,11 +63,21 @@ La tarjeta puede mostrar: título, texto breve, enlace a la publicación, puntos
 - Agregar persistencia para campañas sociales, códigos/participaciones y eventos de comentario procesados.
 - Añadir un tipo de movimiento de puntos que identifique el origen social sin reutilizar `adjust` ni `survey`.
 - Crear endpoints de socio con sesión para listar campañas activas y obtener el código de una campaña.
-- Crear endpoints administrativos para crear/editar/activar/cerrar campañas y registrar las publicaciones elegibles. No se requiere panel de administración en este piloto.
+- Crear endpoints administrativos para crear/listar/editar/activar/cerrar campañas y consultar resultados, protegidos por el rol `loyalty.admin`.
 - Incorporar un webhook público para el proceso de verificación de Meta y los eventos de comentarios. Validar la firma de los eventos, aceptar solo la cuenta profesional configurada, comprobar la publicación, el código y el estado/fecha de la campaña.
 - Procesar de manera transaccional la participación y el movimiento de puntos; usar restricciones únicas para bloquear duplicados y carreras entre eventos repetidos.
 - Añadir el movimiento al timeline del socio con una etiqueta y un motivo claros.
 - Guardar los secretos de Meta en la configuración segura del backend. Documentar el alta de la app, cuenta profesional, permisos, webhook y suscripción requeridos en el despliegue.
+
+### Administración interna (`bodega-soft-nx/apps/club-web`)
+
+- Añadir una pantalla y entrada de navegación **Campañas**, hermana de **Eventos**, **Obsequios** y **Ruleta**, accesible solo a `loyalty.admin`.
+- Permitir administrar título y texto, publicaciones elegibles, enlace público, puntos, fechas de inicio/cierre y estado de campaña.
+- En el listado, mostrar códigos emitidos, participaciones validadas y puntos otorgados para revisar el piloto.
+- Consumir el contrato de `bodega-api` mediante el cliente generado desde OpenAPI.
+- No mostrar ni gestionar secretos de Meta en `club-web`; esos se configuran de forma segura en el backend.
+
+**No reutilizar la pantalla Eventos como editor de campañas sociales.** El `ClubEvent` actual representa anuncios y actividades (`descuento`, `evento`, `cumple`) con título, fecha libre, descripción, sucursal y estado. No modela publicaciones elegibles, códigos por socio ni acreditación de puntos. La propiedad `LoyaltyConfig.campaigns` configura multiplicadores de puntos por fecha/sucursal para compras y tampoco representa campañas sociales. Estas tendrán modelo, endpoints y gestión propios.
 
 ### Instagram / Meta
 
@@ -85,7 +94,7 @@ Las rutas exactas se fijarán en la spec contraparte de `bodega-api` y se export
 - `POST /loyalty/me/social-campaigns/:campaignId/code` — obtiene el código idempotente del socio para una campaña activa.
 - `GET /loyalty/webhooks/instagram` — verificación de webhook solicitada por Meta.
 - `POST /loyalty/webhooks/instagram` — recepción de eventos de comentarios.
-- Rutas administrativas para crear y gestionar campañas, sujetas a roles administrativos existentes.
+- Rutas administrativas para crear/listar/editar/activar/cerrar campañas y consultar resultados, protegidas por `loyalty.admin`.
 
 Respuesta conceptual del código: `campaignId`, `code`, `expiresAt`. Respuesta conceptual de campaña: `id`, `title`, `description`, `postUrl`, `points`, `endsAt`, `status`, `participationStatus`.
 
@@ -126,6 +135,9 @@ Evaluar al cerrar la campaña: tasa de uso de códigos, coste en puntos, nuevos 
 - Reintentar el mismo webhook, reclamar el código otra vez o procesar comentarios repetidos no vuelve a acreditar.
 - Comentarios en publicaciones no configuradas, campañas fuera de plazo y códigos vencidos no acreditan puntos.
 - El socio ve el estado de participación y el movimiento correcto en el timeline.
+- El apartado Campañas aparece debajo de la tarjeta de membresía en la pantalla de inicio y se oculta si no hay campañas activas.
+- Un usuario con `loyalty.admin` puede crear, editar, activar, cerrar y consultar resultados desde Campañas en `club-web`; otros roles no pueden administrar campañas ni mediante la UI ni llamando a la API.
+- Eventos y multiplicadores de puntos por compras permanecen separados de las campañas sociales.
 - La actividad social no aparece como voucher en Wallet ni como compra.
 - Los webhooks inválidos no pueden alterar saldos.
 - Los tokens y secretos de Meta permanecen exclusivamente en el backend.
@@ -137,4 +149,4 @@ Evaluar al cerrar la campaña: tasa de uso de códigos, coste en puntos, nuevos 
 - Fijar endpoint, esquema de eventos y estrategia de reintentos según la versión de Graph API habilitada en la app.
 - Fijar la política de retención concreta para IDs de comentario y códigos vencidos.
 - Elegir campaña inicial, publicación elegible, fechas y valor final de puntos; 10 puntos es solo el valor inicial sugerido.
-- El trabajo es una feature vertical coordinada entre `bodega-api` y `bodega-landing`; el backend debe entregar OpenAPI antes de cablear el adapter de la landing.
+- El trabajo es una feature vertical coordinada entre `bodega-api`, `bodega-soft-nx` y `bodega-landing`; el backend debe entregar OpenAPI antes de cablear sus clientes.
