@@ -611,6 +611,18 @@ function ClubFooter() {
 export function BodegaClubPage() {
   const { theme, toggleTheme } = useClubTheme();
   const [registrationOpen, setRegistrationOpen] = useState(false);
+  const [referralCode, setReferralCode] = useState<string>();
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase();
+    if (code && /^[A-F0-9]{12}$/.test(code)) {
+      const openReferralRegistration = window.setTimeout(() => {
+        setReferralCode(code);
+        setRegistrationOpen(true);
+      }, 0);
+      return () => window.clearTimeout(openReferralRegistration);
+    }
+  }, []);
 
   return (
     <div className={`${theme === "day" ? "day " : ""}club-page relative min-h-dvh overflow-x-hidden`}>
@@ -630,7 +642,7 @@ export function BodegaClubPage() {
         </main>
         <ClubFooter />
       </div>
-      <RegistrationDialog open={registrationOpen} onOpenChange={setRegistrationOpen} theme={theme} />
+      <RegistrationDialog open={registrationOpen} onOpenChange={setRegistrationOpen} theme={theme} referralCode={referralCode} />
     </div>
   );
 }

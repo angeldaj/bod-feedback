@@ -7,14 +7,7 @@
 // cookie): la landing (labodega.com) es cross-site respecto a la API, así que
 // la cookie de terceros es frágil (ver 069 §"Decisiones de diseño").
 //
-// IMPORTANTE — contrato asumido: al escribir esto, `bodega-api/openapi.json`
-// todavía no incluía el módulo `loyalty` (se está regenerando en paralelo).
-// Las formas de request/response de abajo están tomadas de
-// `bodega-api/specs/069-club-loyalty/plan.md` y
-// `bodega-api/specs/070-club-engagement-encuesta/plan.md` (modelo Prisma +
-// tabla de endpoints), en camelCase como el resto del repo (ver
-// `feedback-api.ts`). Hay que reconciliar los DTOs exactos contra el
-// `openapi.json` final del backend.
+// Los DTOs siguen los endpoints documentados en el módulo loyalty de bodega-api.
 
 import type { ClubEvent, PointsPoint, Purchase, Reward } from "@/components/mi-club/data";
 
@@ -125,21 +118,18 @@ export type Member = {
   memberSince: string; // etiqueta: "Marzo 2025"
   tier: MemberTier | null;
   points: { balance: number; lifetime: number };
+  referralCode: string;
+  profileCompletionPoints: number;
   notificationPreferences: NotificationPreferences;
 };
 
 export type RegisterPayload = {
   nationality: "V" | "E";
   cedula: string; // solo dígitos
-  name: string;
-  whatsapp: string;
   email: string;
   password: string;
-  username?: string;
-  birthday?: string;
-  homeBranchId?: string;
-  preferences: string[];
-  acceptsMarketing: boolean;
+  username: string;
+  referralCode?: string;
 };
 
 export type RegisterResult = {
@@ -162,13 +152,26 @@ export type UpdateMemberPayload = Partial<{
   acceptsMarketing: boolean;
 }>;
 
+export type MemberProfileUpdate = { member: Member; pointsAwarded: number };
+export type MemberReferralSummary = {
+  code: string;
+  referredMembersCount: number;
+  signupPointsEarned: number;
+  redemptionPointsEarned: number;
+  totalPointsEarned: number;
+  signupPoints: number;
+  redemptionPercent: number;
+};
+
 export type PointsMovementType =
   | "welcome_bonus"
   | "earn"
   | "redeem"
   | "adjust"
   | "expire"
-  | "survey";
+  | "survey"
+  | "profile_completion"
+  | "referral";
 
 export type PointsMovement = {
   id: string;
@@ -216,8 +219,8 @@ type MemberDto = {
   id: string;
   nationality: "V" | "E";
   ci: number | string;
-  name: string;
-  whatsapp: string;
+  name: string | null;
+  whatsapp: string | null;
   email: string;
   username: string | null;
   birthday: string | null;
@@ -232,6 +235,9 @@ type MemberDto = {
   notifyWhatsapp?: boolean;
   notifyEmail?: boolean;
   notifyOffers?: boolean;
+  referralCode: string;
+  profileCompletionPoints: number;
+  profilePointsAwarded?: number;
 };
 
 type PointsEntryDto = {
@@ -333,7 +339,7 @@ function formatMemberSince(iso: string | null | undefined): string {
 
 function mapMember(dto: MemberDto): Member {
   const ciDigits = String(dto.ci);
-  const fullName = dto.name;
+  const fullName = dto.name ?? "";
   const points = dto.points ?? dto.state ?? { balance: 0, lifetime: 0 };
   const tier = dto.tier ?? (dto.state?.tierName ? {
     name: dto.state.tierName,
@@ -342,14 +348,14 @@ function mapMember(dto: MemberDto): Member {
   } : null);
   return {
     id: dto.id,
-    firstName: fullName.split(" ")[0] ?? fullName,
+    firstName: fullName.split(" ")[0] || "socio",
     fullName,
     username: dto.username,
     nationality: dto.nationality,
     ciDigits,
     cedula: formatCedula(dto.nationality, ciDigits),
     memberNo: dto.memberNo,
-    whatsapp: dto.whatsapp,
+    whatsapp: dto.whatsapp ?? "",
     email: dto.email,
     birthday: dto.birthday,
     homeBranchId: dto.homeBranchId,
@@ -358,6 +364,8 @@ function mapMember(dto: MemberDto): Member {
     memberSince: formatMemberSince(dto.createdAt),
     tier,
     points,
+    referralCode: dto.referralCode,
+    profileCompletionPoints: dto.profileCompletionPoints,
     notificationPreferences: {
       whatsapp: dto.notifyWhatsapp ?? true,
       email: dto.notifyEmail ?? false,
@@ -490,21 +498,15 @@ function mapNotification(dto: NotificationDto): MemberNotification {
 // ---------------------------------------------------------------------------
 
 export async function register(payload: RegisterPayload): Promise<RegisterResult> {
-  const homeBranchId = payload.homeBranchId;
   const body = {
     nationality: payload.nationality,
     // The API validates `ci` as an integer. Keep it as text in the form so
     // input editing is safe, then normalize it at the request boundary.
     ci: Number(payload.cedula),
-    name: payload.name,
-    whatsapp: payload.whatsapp,
     email: payload.email,
     password: payload.password,
-    username: payload.username || undefined,
-    birthday: payload.birthday || undefined,
-    homeBranchId: homeBranchId || undefined,
-    preferences: payload.preferences,
-    acceptsMarketing: payload.acceptsMarketing,
+    username: payload.username,
+    referralCode: payload.referralCode || undefined,
   };
   const dto = await request<{
     accessToken: string;
@@ -553,9 +555,13 @@ export async function getMe(accessToken: string): Promise<Member> {
   return mapMember(dto);
 }
 
-export async function updateMe(accessToken: string, patch: UpdateMemberPayload): Promise<Member> {
+export async function updateMe(accessToken: string, patch: UpdateMemberPayload): Promise<MemberProfileUpdate> {
   const dto = await request<MemberDto>("/loyalty/me", jsonInit("PATCH", patch, accessToken));
-  return mapMember(dto);
+  return { member: mapMember(dto), pointsAwarded: dto.profilePointsAwarded ?? 0 };
+}
+
+export async function getReferralSummary(accessToken: string): Promise<MemberReferralSummary> {
+  return request<MemberReferralSummary>("/loyalty/me/referral", authedGet(accessToken));
 }
 
 export async function getActivity(accessToken: string): Promise<Activity> {

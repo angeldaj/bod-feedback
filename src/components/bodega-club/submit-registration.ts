@@ -1,19 +1,12 @@
 import { register as registerMember, type Member, type RegisterPayload } from "@/lib/loyalty-api";
 
 export type ClubRegistrationPayload = {
-  name: string;
   nationality: "V" | "E";
   cedula: string; // solo dígitos
-  whatsapp: string;
   email: string;
   password: string;
   username: string;
-  birthday: string;
-  /** Id de la sucursal (catálogo real de `feedback/branches`), o "" si no eligió. */
-  branch: string;
-  preferences: string[];
-  acceptsMembership: boolean;
-  acceptsMarketing: boolean;
+  referralCode?: string;
 };
 
 export type ClubRegistrationResult = {
@@ -39,15 +32,10 @@ export async function submitClubRegistration(
   const registerPayload: RegisterPayload = {
     nationality: payload.nationality,
     cedula: payload.cedula,
-    name: payload.name,
-    whatsapp: payload.whatsapp,
     email: payload.email,
     password: payload.password,
-    username: payload.username || undefined,
-    birthday: payload.birthday || undefined,
-    homeBranchId: payload.branch || undefined,
-    preferences: payload.preferences,
-    acceptsMarketing: payload.acceptsMarketing,
+    username: payload.username,
+    referralCode: payload.referralCode,
   };
 
   const result = await registerMember(registerPayload);

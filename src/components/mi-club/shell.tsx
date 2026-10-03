@@ -111,7 +111,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const initials = member.fullName.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
+  const initials = member.fullName.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "BC";
 
   return (
     <div className={`${themeClass} mc2-page`}>

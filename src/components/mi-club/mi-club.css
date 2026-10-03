@@ -315,7 +315,15 @@
   .field { display: grid; gap: 6px; }
   .field span { font-weight: 600; font-size: 0.98rem; }
   .field input { min-height: 48px; border-radius: 16px; border: 1.5px solid var(--div-strong); background: var(--surface-2); color: var(--ink); padding: 0 14px; font: inherit; font-size: 1rem; }
+  .field select { min-height: 48px; border-radius: 16px; border: 1.5px solid var(--div-strong); background: var(--surface-2); color: var(--ink); padding: 0 14px; font: inherit; font-size: 1rem; }
   .field input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .field select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-soft); }
+  .profile-preferences { display: flex; flex-wrap: wrap; gap: 8px; }
+  .profile-preference { border: 1px solid var(--div-strong); border-radius: 999px; padding: 8px 12px; background: var(--surface-2); color: var(--ink); font: inherit; font-size: 0.9rem; cursor: pointer; }
+  .profile-preference[aria-pressed="true"] { border-color: var(--gold); background: var(--gold-soft); }
+  .profile-marketing { display: flex; align-items: flex-start; gap: 10px; margin-top: 14px; color: var(--muted-ink); font-size: 0.9rem; }
+  .profile-marketing input { margin-top: 4px; accent-color: var(--coral); }
+  .referral-code { margin: 14px 0; border: 1px dashed var(--div-strong); border-radius: 14px; padding: 12px 16px; font: 600 1.25rem/1.2 ui-monospace, monospace; letter-spacing: 0.12em; }
   .fields { display: grid; gap: 12px; }
   .meta-line { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 0.95rem; margin-top: 12px; }
   .meta-line span { display: inline-flex; align-items: center; gap: 6px; }
