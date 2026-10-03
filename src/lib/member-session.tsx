@@ -43,7 +43,7 @@ type MemberSessionContextValue = {
     member: Member;
   }) => void;
   refreshMember: () => Promise<Member | null>;
-  updateProfile: (patch: UpdateMemberPayload) => Promise<Member>;
+  updateProfile: (patch: UpdateMemberPayload) => Promise<loyaltyApi.MemberProfileUpdate>;
   /**
    * Ejecuta una llamada autenticada; si responde 401, intenta refrescar la
    * sesión UNA vez y reintenta. Si el refresh falla, limpia la sesión y
@@ -202,9 +202,9 @@ export function MemberSessionProvider({ children }: { children: ReactNode }) {
 
   const updateProfile = useCallback(
     async (patch: UpdateMemberPayload) => {
-      const me = await authedRequest((token) => loyaltyApi.updateMe(token, patch));
-      setMember(me);
-      return me;
+      const result = await authedRequest((token) => loyaltyApi.updateMe(token, patch));
+      setMember(result.member);
+      return result;
     },
     [authedRequest],
   );

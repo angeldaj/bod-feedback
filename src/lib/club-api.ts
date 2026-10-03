@@ -704,6 +704,8 @@ export const DEMO_MEMBER: Member = {
   memberSince: "marzo 2025",
   tier: { name: "Plata", minLifetimePoints: 400, benefits: [] },
   points: { balance: 340, lifetime: 820 },
+  referralCode: "DEMO12345678",
+  profileCompletionPoints: 10,
   notificationPreferences: { whatsapp: true, email: false, offers: true },
 };
 

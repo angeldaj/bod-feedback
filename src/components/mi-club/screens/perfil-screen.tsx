@@ -23,8 +23,11 @@ import {
 import { useMember } from "@/lib/member-session";
 import * as loyaltyApi from "@/lib/loyalty-api";
 import type { MemberNotification, NotificationPreferences } from "@/lib/loyalty-api";
+import type { MemberReferralSummary } from "@/lib/loyalty-api";
+import { useBranches } from "@/lib/use-branches";
 import { useClub } from "../club-provider";
 import { SKIN_NAME } from "../club-visuals";
+import { PREFERENCES } from "@/components/bodega-club/club-data";
 
 type PrefKey = keyof NotificationPreferences;
 
@@ -43,11 +46,18 @@ export function PerfilScreen() {
   const router = useRouter();
   const session = useMember();
   const { member, card, designs, demo, demoActions, openOverlay, notify } = useClub();
+  const { branches } = useBranches();
 
   const [name, setName] = useState(member?.fullName ?? "");
   const [username, setUsername] = useState(member?.username ?? "");
   const [whatsapp, setWhatsapp] = useState(member?.whatsapp ?? "");
   const [email, setEmail] = useState(member?.email ?? "");
+  const [birthday, setBirthday] = useState(member?.birthday ?? "");
+  const [homeBranchId, setHomeBranchId] = useState(member?.homeBranchId ?? "");
+  const [foodPreferences, setFoodPreferences] = useState<string[]>(member?.preferences ?? []);
+  const [acceptsMarketing, setAcceptsMarketing] = useState(member?.acceptsMarketing ?? false);
+  const [referral, setReferral] = useState<MemberReferralSummary | null>(null);
+  const [shareStatus, setShareStatus] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState("");
   const [prefs, setPrefs] = useState<NotificationPreferences>(
@@ -69,6 +79,17 @@ export function PerfilScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);
 
+  useEffect(() => {
+    if (demo) return;
+    let alive = true;
+    session.authedRequest((token) => loyaltyApi.getReferralSummary(token))
+      .then((summary) => alive && setReferral(summary))
+      .catch(() => undefined);
+    return () => { alive = false; };
+    // Cargar el resumen una vez al entrar a Perfil.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
+
   if (!member) return null;
   const designName = designs.find((d) => d.id === card?.designId)?.name ?? "Clásica";
 
@@ -82,14 +103,35 @@ export function PerfilScreen() {
       return;
     }
     try {
-      await session.updateProfile({ name: name.trim(), username: username.trim() || undefined, whatsapp: whatsapp.trim(), email: email.trim() });
+      const result = await session.updateProfile({ name: name.trim(), username: username.trim() || undefined, whatsapp: whatsapp.trim(), email: email.trim(), birthday, homeBranchId, preferences: foodPreferences, acceptsMarketing });
       setStatus("saved");
+      if (result.pointsAwarded > 0) notify(Check, "Perfil completado", `Sumaste ${result.pointsAwarded} puntos.`);
+      await session.refreshMember();
       window.setTimeout(() => setStatus("idle"), 2400);
     } catch (error) {
       setStatus("error");
       setSaveError(error instanceof Error ? error.message : "No pudimos guardar los cambios.");
     }
   }
+
+  async function shareReferralCode() {
+    const code = referral?.code ?? member?.referralCode ?? "";
+    const link = `${window.location.origin}/bodega-club?ref=${encodeURIComponent(code)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setShareStatus("Enlace copiado");
+    } catch {
+      setShareStatus(link);
+    }
+  }
+
+  function toggleFoodPreference(preference: string) {
+    setFoodPreferences((current) => current.includes(preference) ? current.filter((item) => item !== preference) : [...current, preference]);
+  }
+
+  const missingProfileFields = [
+    !name.trim(), !whatsapp.trim(), !birthday, !homeBranchId, foodPreferences.length === 0,
+  ].filter(Boolean).length;
 
   async function togglePref(key: PrefKey) {
     const next = !prefs[key];
@@ -119,7 +161,7 @@ export function PerfilScreen() {
       <div className="v-head">
         <h1>Perfil</h1>
         <p>
-          {member.fullName}, {member.cedula}
+          {member.fullName ? `${member.fullName}, ` : ""}{member.cedula}
         </p>
       </div>
 
@@ -141,7 +183,10 @@ export function PerfilScreen() {
           </div>
 
           <section className="tile" aria-labelledby="pf-account">
-            <h2 id="pf-account">Datos de la cuenta</h2>
+            <h2 id="pf-account">Completar perfil</h2>
+            <p className="muted-sm" style={{ marginTop: -4, marginBottom: 12 }}>
+              Completa los datos pendientes y gana {member.profileCompletionPoints} puntos por cada uno. {missingProfileFields ? `Te faltan ${missingProfileFields}.` : "Tu perfil está completo."}
+            </p>
             <div className="fields">
               <label className="field">
                 <span>Nombre</span>
@@ -159,7 +204,25 @@ export function PerfilScreen() {
                 <span>Correo</span>
                 <input id="pf-mail" value={email} onChange={(e) => setEmail(e.target.value)} type="email" inputMode="email" autoComplete="email" />
               </label>
+              <label className="field">
+                <span>Fecha de cumpleaños</span>
+                <input id="pf-birthday" value={birthday} onChange={(e) => setBirthday(e.target.value)} type="date" max={new Date().toISOString().slice(0, 10)} />
+              </label>
+              <label className="field">
+                <span>Sucursal favorita</span>
+                <select id="pf-branch" value={homeBranchId} onChange={(e) => setHomeBranchId(e.target.value)}>
+                  <option value="">Elige una sucursal</option>
+                  {branches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name}</option>)}
+                </select>
+              </label>
             </div>
+            <fieldset style={{ marginTop: 14, border: 0, padding: 0 }}>
+              <legend className="muted-sm" style={{ marginBottom: 8 }}>¿Qué disfrutas más?</legend>
+              <div className="profile-preferences">
+                {PREFERENCES.map((preference) => <button type="button" key={preference} aria-pressed={foodPreferences.includes(preference)} className="profile-preference" onClick={() => toggleFoodPreference(preference)}>{preference}</button>)}
+              </div>
+            </fieldset>
+            <label className="profile-marketing"><input type="checkbox" checked={acceptsMarketing} onChange={(event) => setAcceptsMarketing(event.target.checked)} />Quiero recibir beneficios y novedades por WhatsApp (opcional)</label>
             <div className="meta-line">
               <span>
                 <IdCard aria-hidden="true" />
@@ -205,6 +268,14 @@ export function PerfilScreen() {
             ) : (
               <p className="muted-sm">Todavía no tienes avisos. Aquí aparecerán tus puntos, canjes y regalos.</p>
             )}
+          </section>
+
+          <section className="tile" aria-labelledby="pf-referral">
+            <h2 id="pf-referral">Invita y gana</h2>
+            <p className="muted-sm">Comparte tu enlace. Recibes {referral?.signupPoints ?? 100} puntos cuando alguien se registra y {referral?.redemptionPercent ?? 5}% de los puntos que canjee.</p>
+            <div className="referral-code" aria-label="Tu código de referido">{referral?.code ?? member.referralCode}</div>
+            <button type="button" className="btn btn-ghost" onClick={shareReferralCode}><Check aria-hidden="true" />{shareStatus || "Copiar enlace de invitación"}</button>
+            {referral ? <p className="muted-sm" style={{ marginTop: 10 }}>Invitaciones: {referral.referredMembersCount} · Puntos ganados: {referral.totalPointsEarned}</p> : null}
           </section>
 
           <section className="tile" aria-labelledby="pf-notif">
