@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="240" height="240" viewBox="0 0 240 240">
+  <defs>
+    <g id="g">
+      <ellipse cx="-4.6" cy="0" rx="3.6" ry="7.6" transform="rotate(-26 -4.6 0)"/>
+      <ellipse cx="4.6" cy="0" rx="3.6" ry="7.6" transform="rotate(26 4.6 0)"/>
+    </g>
+    <g id="ear">
+      <path d="M0 64 Q3 20 0 -50" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"/>
+      <use xlink:href="#g" y="-8"/>
+      <use xlink:href="#g" y="-19"/>
+      <use xlink:href="#g" y="-30"/>
+      <use xlink:href="#g" y="-41"/>
+      <use xlink:href="#g" y="-52"/>
+      <ellipse cx="0" cy="-62" rx="3" ry="7"/>
+      <path d="M-6 -48 L-13 -72 M6 -48 L13 -72 M-6 -37 L-15 -58 M6 -37 L15 -58 M0 -68 L0 -84" stroke="#000" stroke-width="1" stroke-linecap="round" fill="none"/>
+    </g>
+  </defs>
+  <use xlink:href="#ear" transform="translate(62 128) rotate(-22)"/>
+  <use xlink:href="#ear" transform="translate(176 170) rotate(16) scale(.78)"/>
+  <use xlink:href="#ear" transform="translate(178 58) rotate(58) scale(.55)"/>
+  <circle cx="118" cy="214" r="2.2"/>
+  <circle cx="22" cy="30" r="1.8"/>
+  <circle cx="214" cy="118" r="1.6"/>
+</svg>

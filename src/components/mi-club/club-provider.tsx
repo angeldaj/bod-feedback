@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { HeartHandshake, Layers, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
+import { Camera, HeartHandshake, Layers, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
 import { useMember } from "@/lib/member-session";
 import * as club from "@/lib/club-api";
 import type {
@@ -27,6 +27,7 @@ import type {
 } from "@/lib/club-api";
 import type { Member } from "@/lib/loyalty-api";
 import { useClubTheme, type Theme } from "./use-club-theme";
+import { blobToDataUrl, squareAvatar } from "./avatar-image";
 
 export type Overlay =
   | { type: "voucher"; id: string }
@@ -73,6 +74,10 @@ type ClubValue = ClubData & {
   spin: (idempotencyKey: string) => Promise<SpinResult>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
   selectDesign: (designId: string) => Promise<boolean>;
+  /** Foto de perfil del socio (en la demo vive solo en este navegador). */
+  avatarUrl: string | null;
+  /** Recorta, sube y guarda la foto (`null` la quita). Devuelve si salió bien. */
+  setAvatar: (file: File | null) => Promise<boolean>;
   overlay: Overlay;
   openOverlay: (overlay: Overlay) => void;
   closeOverlay: () => void;
@@ -98,6 +103,7 @@ export function useClub(): ClubValue {
 
 const EMPTY: ClubData = { loading: true, error: null, card: null, designs: [], vouchers: [], rewards: [], activity: null };
 const TIER_KEY = (memberId: string) => `bodega-club-tier:${memberId}`;
+const DEMO_AVATAR_KEY = "bodega-club-avatar:demo";
 type SeenTier = Pick<ClubTier, "rank" | "name" | "skin">;
 
 function readSeenTier(raw: string | null): SeenTier | null {
@@ -138,6 +144,16 @@ export function ClubProvider({
   const noticeTimer = useRef<number | undefined>(undefined);
   const seq = useRef(0);
   const walletTargets = useRef(new Set<HTMLElement>());
+  const [demoAvatar, setDemoAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!demo) return;
+    try {
+      setDemoAvatar(localStorage.getItem(DEMO_AVATAR_KEY));
+    } catch {
+      // Sin storage la demo arranca sin foto.
+    }
+  }, [demo]);
 
   const { authedRequest } = session;
   const adapter = useMemo<ClubAdapter>(
@@ -273,6 +289,36 @@ export function ClubProvider({
     [adapter, data.designs, notify],
   );
 
+  const { setAvatar: saveSessionAvatar } = session;
+  const setAvatar = useCallback(
+    async (file: File | null) => {
+      try {
+        const image = file ? await squareAvatar(file) : null;
+        if (demo) {
+          const url = image ? await blobToDataUrl(image) : null;
+          setDemoAvatar(url);
+          try {
+            if (url) localStorage.setItem(DEMO_AVATAR_KEY, url);
+            else localStorage.removeItem(DEMO_AVATAR_KEY);
+          } catch {
+            // La foto queda solo en memoria si el navegador no deja guardarla.
+          }
+        } else {
+          await saveSessionAvatar(image);
+        }
+        notify(Camera, file ? "Foto de perfil lista" : "Quitamos tu foto", file ? "Así te verán en el club." : "Volvemos a tus iniciales.");
+        return true;
+      } catch (error) {
+        const status = (error as { status?: number } | null)?.status;
+        // 404/405: el backend todavía no expone la foto de perfil (contrato propuesto en loyalty-api.ts).
+        const sub = status === 404 || status === 405 ? "Las fotos de perfil llegan muy pronto." : errorMessage(error, "Intenta de nuevo en un momento.");
+        notify(TriangleAlert, "No pudimos guardar tu foto", sub);
+        return false;
+      }
+    },
+    [demo, notify, saveSessionAvatar],
+  );
+
   const demoActions = useMemo(() => {
     const actions = adapter.demo;
     if (!actions) return null;
@@ -329,6 +375,8 @@ export function ClubProvider({
     spin,
     redeem,
     selectDesign,
+    avatarUrl: demo ? demoAvatar : (member?.avatarUrl ?? null),
+    setAvatar,
     overlay,
     openOverlay: setOverlay,
     closeOverlay: () => setOverlay(null),

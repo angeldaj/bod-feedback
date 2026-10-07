@@ -707,6 +707,7 @@ export const DEMO_MEMBER: Member = {
   referralCode: "DEMO12345678",
   profileCompletionPoints: 10,
   notificationPreferences: { whatsapp: true, email: false, offers: true },
+  avatarUrl: null,
 };
 
 /** Sube al socio al siguiente nivel y emite el regalo del nivel. Solo mock. */
