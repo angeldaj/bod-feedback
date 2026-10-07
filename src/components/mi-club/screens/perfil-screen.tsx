@@ -6,6 +6,7 @@ import {
   ArrowBigUpDash,
   AtSign,
   Bell,
+  Camera,
   Check,
   ChevronRight,
   CircleAlert,
@@ -19,6 +20,7 @@ import {
   MessageCircle,
   Footprints,
   ShoppingBag,
+  Trash2,
 } from "lucide-react";
 import { useMember } from "@/lib/member-session";
 import * as loyaltyApi from "@/lib/loyalty-api";
@@ -27,6 +29,7 @@ import type { MemberReferralSummary } from "@/lib/loyalty-api";
 import { useBranches } from "@/lib/use-branches";
 import { useClub } from "../club-provider";
 import { SKIN_NAME } from "../club-visuals";
+import { MemberAvatar } from "../bakery-scene";
 import { PREFERENCES } from "@/components/bodega-club/club-data";
 
 type PrefKey = keyof NotificationPreferences;
@@ -45,7 +48,8 @@ const DEMO_INBOX: MemberNotification[] = [
 export function PerfilScreen() {
   const router = useRouter();
   const session = useMember();
-  const { member, card, designs, demo, demoActions, openOverlay, notify } = useClub();
+  const { member, card, designs, demo, demoActions, openOverlay, notify, avatarUrl, setAvatar } = useClub();
+  const [photoBusy, setPhotoBusy] = useState(false);
   const { branches } = useBranches();
 
   const [name, setName] = useState(member?.fullName ?? "");
@@ -114,6 +118,12 @@ export function PerfilScreen() {
     }
   }
 
+  async function changePhoto(file: File | null) {
+    setPhotoBusy(true);
+    await setAvatar(file);
+    setPhotoBusy(false);
+  }
+
   async function shareReferralCode() {
     const code = referral?.code ?? member?.referralCode ?? "";
     const link = `${window.location.origin}/bodega-club?ref=${encodeURIComponent(code)}`;
@@ -167,6 +177,39 @@ export function PerfilScreen() {
 
       <div className="prof-grid">
         <div className="view" style={{ gap: 16, alignContent: "start" }}>
+          <section className="tile photo-tile" aria-labelledby="pf-photo" aria-busy={photoBusy}>
+            <span className="photo-av" data-busy={photoBusy ? "" : undefined}>
+              <MemberAvatar name={member.fullName} src={avatarUrl} size="lg" />
+            </span>
+            <div className="photo-body">
+              <h2 id="pf-photo">Tu foto</h2>
+              <p className="muted-sm">Así te reconocemos en el club. La recortamos en cuadrado.</p>
+              <div className="photo-actions">
+                <label className="btn btn-pop btn-sm" data-disabled={photoBusy ? "" : undefined}>
+                  <Camera aria-hidden="true" />
+                  {photoBusy ? "Subiendo" : avatarUrl ? "Cambiar foto" : "Subir foto"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,image/avif"
+                    className="sr-only"
+                    disabled={photoBusy}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = "";
+                      if (file) void changePhoto(file);
+                    }}
+                  />
+                </label>
+                {avatarUrl ? (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => void changePhoto(null)} disabled={photoBusy}>
+                    <Trash2 aria-hidden="true" />
+                    Quitar
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
           <div className="list">
             <button type="button" className="row row-btn" onClick={() => openOverlay({ type: "gallery" })}>
               <span className="ic">

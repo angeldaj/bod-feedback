@@ -9,6 +9,8 @@ import { useClub } from "../club-provider";
 import { MembershipCard } from "../membership-card";
 import { SKIN_NAME, fmtPts, toFace } from "../club-visuals";
 import { Skeleton, WalletPocket } from "../pieces";
+import { BakingLoaf } from "../bakery-scene";
+import { PixelKitchen } from "../pixel-sprites";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 
 function TierProgress({ card }: { card: ClubCard }) {
@@ -113,10 +115,17 @@ export function HomeScreen() {
   return (
     <div className="view view-home">
       <div className="hello">
-        <h1>Hola, {member.firstName}.</h1>
-        <p>
-          Nivel <b>{card.tier.name}</b>, en el club desde {card.memberSince}. Tienes <b className="tab-nums">{fmtPts(card.balance)}</b> pts para canjear.
-        </p>
+        <div className="hello-copy">
+          <div className="hello-title">
+            <h1>Hola, {member.firstName}.</h1>
+            <BakingLoaf className="hello-oven" />
+          </div>
+          <p className="hello-aside">Tu pan ya está saliendo del horno.</p>
+          <p>
+            Nivel <b>{card.tier.name}</b>, en el club desde {card.memberSince}. Tienes <b className="tab-nums">{fmtPts(card.balance)}</b> pts para canjear.
+          </p>
+        </div>
+        <PixelKitchen className="hello-kitchen" />
       </div>
 
       <div className="card-hero">

@@ -11,7 +11,6 @@ import {
   FlaskConical,
   Gift,
   House,
-  LoaderCircle,
   Moon,
   ReceiptText,
   Sun,
@@ -22,7 +21,10 @@ import {
 import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
 import { WheelIcon } from "./club-visuals";
+import { BakeryBackdrop, BakingLoaf, MemberAvatar, WheatField } from "./bakery-scene";
 import "./mi-club.css";
+import "./panaderia.css";
+import "./pixel.css";
 
 const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "", label: "Inicio", icon: House },
@@ -88,7 +90,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
-  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href, spins, spinsLoaded } =
+  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href, spins, spinsLoaded, avatarUrl } =
     useClub();
   // Mientras carga se muestra la pestaña: ocultarla solo cuando sabemos que no hay ruleta evita que la barra salte.
   const showRuleta = !spinsLoaded || !!spins?.wheel;
@@ -102,19 +104,19 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   if (sessionLoading || !member) {
     return (
-      <div className={`${themeClass} mc2-page`} style={{ display: "grid", placeItems: "center" }}>
-        <p style={{ display: "flex", gap: 10, alignItems: "center", color: "var(--body)" }}>
-          <LoaderCircle className="animate-spin" aria-hidden="true" />
-          Cargando tu cuenta…
-        </p>
+      <div className={`${themeClass} mc2-page mc2-loading`}>
+        <BakeryBackdrop />
+        <div className="oven-wait" role="status">
+          <BakingLoaf loop />
+          <p>Horneando tu cuenta…</p>
+        </div>
       </div>
     );
   }
 
-  const initials = member.fullName.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "BC";
-
   return (
     <div className={`${themeClass} mc2-page`}>
+      <BakeryBackdrop />
       <a href="#mc2-main" className="sr-only">
         Saltar al contenido
       </a>
@@ -143,8 +145,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <button type="button" className="icon-btn" onClick={toggleTheme} aria-label={theme === "day" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}>
               {theme === "day" ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
             </button>
-            <Link href={href("perfil")} className="avatar" aria-label="Tu perfil">
-              {initials || "?"}
+            <Link href={href("perfil")} className="avatar-link" aria-label="Tu perfil">
+              <MemberAvatar name={member.fullName} src={avatarUrl} size="sm" />
             </Link>
           </div>
         </div>
@@ -176,19 +178,27 @@ function ShellInner({ children }: { children: React.ReactNode }) {
         </motion.div>
       </main>
 
+      <footer className="field-foot">
+        <div className="field-copy">
+          <b>Bodega Club</b>
+          <span>Pan del día, café y puntos en cada visita.</span>
+        </div>
+        <WheatField />
+      </footer>
+
       {isClient
         ? createPortal(
             // En <body>: ningún contenedor de la página puede recortar ni tapar la barra fija.
             <div className={themeClass}>
               <nav className="nav" aria-label="Secciones de mi-club">
                 <TabLinks
-              pathname={pathname}
-              walletCount={activeVouchers.length}
-              spinCount={spinCount}
-              showRuleta={showRuleta}
-              register={registerWalletTarget}
-              basePath={basePath}
-            />
+                  pathname={pathname}
+                  walletCount={activeVouchers.length}
+                  spinCount={spinCount}
+                  showRuleta={showRuleta}
+                  register={registerWalletTarget}
+                  basePath={basePath}
+                />
               </nav>
             </div>,
             document.body,
