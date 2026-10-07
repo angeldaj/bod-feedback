@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32" height="32" viewBox="-16 -40 32 82">
+  <defs>
+    <g id="g">
+      <ellipse cx="-4.4" cy="0" rx="3.6" ry="7.4" transform="rotate(-26 -4.4 0)"/>
+      <ellipse cx="4.4" cy="0" rx="3.6" ry="7.4" transform="rotate(26 4.4 0)"/>
+    </g>
+  </defs>
+  <path d="M0 40 Q2 12 0 -20" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+  <use xlink:href="#g" y="16"/>
+  <use xlink:href="#g" y="5"/>
+  <use xlink:href="#g" y="-6"/>
+  <use xlink:href="#g" y="-17"/>
+  <ellipse cx="0" cy="-28" rx="3.2" ry="7.6"/>
+</svg>

@@ -1,0 +1,360 @@
+/*
+ * Bodega Club · capa "Panadería" (rediseño 2026-10).
+ * Se carga después de mi-club.css y redefine la piel del área de socios:
+ * fondo de trigo en relieve, superficies de papel de panadería con bandeja
+ * (doble bisel), botones de corteza, bolsa de pan para la Wallet, el horno del
+ * saludo y el trigal del pie. La lógica y las clases de la tarjeta, la Wallet
+ * y la ruleta no cambian.
+ */
+
+.mc2 {
+  /* noche: el obrador con el horno encendido */
+  --ground: #140e09; --surface: #1e160f; --surface-2: #261c13; --ink: #f8efdd; --body: #dccbaa; --muted: #bba580;
+  --crust-a: #f3c873; --crust-b: #d98c3c; --crust-c: #b8622a; --crust-ink: #2a1306;
+  --wheat: #e2b35d;
+  --relief-hi: rgba(255, 232, 196, 0.09); --relief-lo: rgba(0, 0, 0, 0.7); --relief-face: #18100a;
+  --oven-glow: rgba(226, 89, 42, 0.2); --flour: rgba(255, 240, 215, 0.4);
+  --bezel: rgba(255, 228, 190, 0.035); --bezel-line: rgba(255, 228, 190, 0.08);
+  --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .78  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --brick: #5e2b16; --brick-joint: rgba(0, 0, 0, 0.35); --peel: #6b4126; --steam: rgba(255, 244, 228, 0.75);
+  --field-hill-b: #2a1d12; --field-hill-f: #1d140c; --field-l0: #6c522e; --field-l1: #a97c38; --field-grass: #34401d; --field-grass-2: #4a5526;
+  --lift: inset 0 1px 0 rgba(255, 236, 205, 0.06), 0 22px 40px -26px rgba(0, 0, 0, 0.9);
+  --lift-hover: inset 0 1px 0 rgba(255, 236, 205, 0.08), 0 30px 46px -24px rgba(0, 0, 0, 0.95);
+  --ease-heavy: cubic-bezier(0.32, 0.72, 0, 1);
+
+  &.day {
+    /* día: harina, papel y luz de mañana */
+    --ground: #fff3e4; --surface: #fffaf2; --surface-2: #fff4e6; --ink: #2a1a11; --body: #6a5142; --muted: #7e6150;
+    --relief-hi: rgba(255, 255, 255, 1); --relief-lo: rgba(160, 100, 45, 0.34); --relief-face: #fcecd6;
+    --oven-glow: rgba(240, 160, 70, 0.16); --flour: rgba(255, 255, 255, 0.95);
+    --bezel: rgba(170, 110, 50, 0.055); --bezel-line: rgba(170, 110, 50, 0.1);
+    --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    --brick: #a4502a; --brick-joint: rgba(70, 25, 8, 0.32); --peel: #8a5532; --steam: rgba(255, 255, 255, 0.9);
+    --field-hill-b: #f0d9a8; --field-hill-f: #e4c48a; --field-l0: #d9b46c; --field-l1: #c48d38; --field-grass: #7f8a3c; --field-grass-2: #67742f;
+    --lift: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 18px 36px -24px rgba(130, 70, 20, 0.45);
+    --lift-hover: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 28px 44px -24px rgba(130, 70, 20, 0.55);
+  }
+}
+
+/* ---------- fondo: trigo en bajorrelieve + harina en el aire ---------- */
+.mc2 .bk-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.mc2 .bk-relief { position: absolute; inset: -6px; }
+.mc2 .bk-relief i {
+  position: absolute; inset: 0;
+  -webkit-mask: url(/club/panaderia/trigo-relieve.svg) 0 0 / 240px 240px repeat;
+  mask: url(/club/panaderia/trigo-relieve.svg) 0 0 / 240px 240px repeat;
+}
+.mc2 .bk-relief .hi { background: var(--relief-hi); transform: translate(-1.2px, -1.2px); }
+.mc2 .bk-relief .lo { background: var(--relief-lo); transform: translate(1.4px, 1.8px); }
+.mc2 .bk-relief .face { background: var(--relief-face); }
+.mc2 .bk-wash {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(56% 42% at 50% 22%, color-mix(in oklab, var(--ground) 85%, transparent) 0%, transparent 72%),
+    radial-gradient(70% 38% at 50% 108%, var(--oven-glow), transparent 72%);
+}
+.mc2 .bk-flour i {
+  position: absolute; top: 0; border-radius: 50%; background: var(--flour); opacity: 0;
+  animation-name: mc2-flour; animation-timing-function: linear; animation-iteration-count: infinite;
+}
+.mc2.day .bk-flour i { box-shadow: 0 0 0 0.5px rgba(150, 100, 50, 0.22); }
+@keyframes mc2-flour {
+  0% { opacity: 0; transform: translate3d(0, -4vh, 0); }
+  12% { opacity: 0.8; }
+  85% { opacity: 0.5; }
+  100% { opacity: 0; transform: translate3d(var(--drift, 0px), 104vh, 0); }
+}
+
+/* el contenido flota sobre el fondo */
+.mc2.mc2-page { background: var(--ground); }
+.mc2 .main, .mc2 .field-foot { position: relative; z-index: 1; }
+
+/* ---------- barra superior: isla flotante ---------- */
+.mc2 .topbar-wrap { background: transparent; box-shadow: none; padding: 10px 10px 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.mc2 .topbar {
+  height: 62px; padding: 0 8px 0 10px; border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 74%, transparent);
+  box-shadow: 0 0 0 1px var(--bezel-line), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 34px -22px rgba(60, 25, 5, 0.55);
+}
+.mc2 .topbar { -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
+.mc2 .mark-logo { border-radius: 999px; background: radial-gradient(circle at 35% 30%, #3a2717, #160d07 72%); box-shadow: 0 0 0 2px color-mix(in oklab, var(--wheat) 55%, transparent); }
+.mc2 .mark b { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 1.35rem; font-weight: 600; }
+.mc2 .icon-btn { background: var(--surface-2); border-color: var(--bezel-line); transition: transform 0.4s var(--ease-heavy), background 0.3s; }
+.mc2 .icon-btn:hover svg { transform: rotate(-18deg); }
+.mc2 .icon-btn svg { transition: transform 0.6s var(--ease-heavy); }
+.mc2 .avatar-link { display: inline-flex; border-radius: 999px; text-decoration: none; transition: transform 0.4s var(--ease-heavy); }
+.mc2 .avatar-link:hover { transform: rotate(-6deg) scale(1.04); }
+.mc2 .avatar-link:active { transform: scale(0.95); }
+
+/* ---------- avatar con corona de espigas ---------- */
+.mc2 .mav { position: relative; display: inline-grid; place-items: center; flex: none; width: var(--s); height: var(--s); --s: 44px; }
+.mc2 .mav-md { --s: 64px; }
+.mc2 .mav-lg { --s: 116px; }
+.mc2 .mav-ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--crust-a), var(--crust-b), var(--crust-c), var(--crust-b), var(--crust-a));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+}
+.mc2 .mav-lg .mav-ring {
+  inset: -12px;
+  background: repeating-conic-gradient(from 4deg, var(--wheat) 0 6deg, transparent 6deg 11deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9.5px), #000 calc(100% - 1px), transparent);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9.5px), #000 calc(100% - 1px), transparent);
+  transition: transform 1.2s var(--ease-heavy);
+}
+.mc2 .photo-tile:hover .mav-lg .mav-ring { transform: rotate(40deg); }
+.mc2 .mav-core {
+  position: absolute; inset: 4px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(150deg, var(--crust-a), var(--crust-b) 60%, var(--crust-c)); color: var(--crust-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.6), inset 0 -3px 6px rgba(90, 35, 10, 0.25);
+}
+.mc2 .mav-lg .mav-core { inset: 0; box-shadow: 0 0 0 4px var(--surface), 0 18px 30px -16px rgba(90, 40, 10, 0.6); }
+.mc2 .mav-core img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mc2 .mav-ini { font-weight: 700; font-size: calc(var(--s) * 0.36); letter-spacing: 0.02em; line-height: 1; }
+.mc2 .mav-lg .mav-ini { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 3rem; }
+
+/* ---------- superficies: papel de panadería sobre bandeja ---------- */
+.mc2 :is(.tile, .list, .rc, .ac, .prize-pts) {
+  background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px;
+  border-radius: 26px;
+  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift);
+}
+.mc2 :is(.rc, .ac):hover { box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift-hover); }
+.mc2 .rc, .mc2 .ac { transition: transform 0.6s var(--ease-heavy), box-shadow 0.6s var(--ease-heavy); }
+.mc2 .demo-tile { box-shadow: none; background-image: none; background-color: transparent; }
+.mc2 .view, .mc2 .home-side, .mc2 .prof-grid { gap: 26px; }
+.mc2 .rc-grid { gap: 22px 18px; }
+
+/* títulos: espiga junto a los de sección, cortes de pan bajo los de página */
+.mc2 .sec-head h2, .mc2 .sec-head h3 { display: inline-flex; align-items: center; gap: 8px; }
+.mc2 .sec-head h2::before, .mc2 .sec-head h3::before {
+  content: ""; width: 20px; height: 22px; flex: none; background: var(--gold-text); transform: rotate(-24deg);
+  -webkit-mask: url(/club/panaderia/espiga.svg) center / contain no-repeat; mask: url(/club/panaderia/espiga.svg) center / contain no-repeat;
+}
+.mc2 .v-head h1::after, .mc2 .v-head h2::after {
+  content: ""; display: block; width: 72px; height: 7px; margin-top: 12px; border-radius: 7px;
+  background: repeating-linear-gradient(118deg, var(--crust-b) 0 9px, transparent 9px 14px);
+  opacity: 0.85;
+}
+.mc2 .v-head h1, .mc2 .hello h1 { font-size: 2.7rem; letter-spacing: -0.015em; }
+
+/* ---------- botones de corteza ---------- */
+.mc2 .btn { transition: transform 0.45s var(--ease-heavy), box-shadow 0.45s var(--ease-heavy), opacity 0.2s, background 0.3s; }
+.mc2 .btn:active { transform: scale(0.97) translateY(1px); }
+.mc2 .btn-pop {
+  position: relative; isolation: isolate; overflow: hidden;
+  background: linear-gradient(165deg, var(--crust-a) 0%, var(--crust-b) 58%, var(--crust-c) 112%);
+  color: var(--crust-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.7), inset 0 -2px 0 rgba(90, 35, 10, 0.22), 0 14px 24px -14px rgba(150, 70, 20, 0.75);
+}
+.mc2 .btn-pop::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 250, 235, 0.5) 50%, transparent 70%);
+  transform: translateX(-130%); transition: transform 0.9s var(--ease-heavy);
+}
+.mc2 .btn-pop:hover::after { transform: translateX(130%); }
+.mc2 .btn-pop:hover { box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.7), inset 0 -2px 0 rgba(90, 35, 10, 0.22), 0 18px 30px -14px rgba(150, 70, 20, 0.85); }
+.mc2 .btn-ghost { border-color: color-mix(in oklab, var(--crust-b) 45%, var(--div-strong)); }
+.mc2 .btn-ghost:hover { background: color-mix(in oklab, var(--crust-a) 12%, transparent); }
+.mc2 .btn-soft { background: var(--surface-2); }
+.mc2 label.btn { cursor: pointer; }
+.mc2 label.btn:focus-within { outline: 3px solid var(--coral-fill); outline-offset: 2px; }
+.mc2 label.btn[data-disabled] { opacity: 0.6; pointer-events: none; }
+
+/* progreso: masa dorándose */
+.mc2 .track { background: color-mix(in oklab, var(--wheat) 16%, transparent); box-shadow: inset 0 1px 2px rgba(80, 35, 10, 0.18); }
+.mc2 .track > span, .mc2 .spin-prog .track > span {
+  background: repeating-linear-gradient(118deg, rgba(255, 245, 225, 0.22) 0 6px, transparent 6px 14px), linear-gradient(90deg, var(--crust-a), var(--crust-b) 70%, var(--crust-c));
+}
+.mc2 .pill { background: color-mix(in oklab, var(--wheat) 18%, transparent); }
+
+/* ---------- navegación ---------- */
+.mc2 .nav a[aria-current="page"], .mc2 .top-tabs a[aria-current="page"] {
+  background: linear-gradient(165deg, var(--crust-a), var(--crust-b) 80%); color: var(--crust-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.65), 0 8px 16px -10px rgba(150, 70, 20, 0.7);
+}
+.mc2 .nav a[aria-current="page"] svg, .mc2 .top-tabs a[aria-current="page"] svg { color: var(--crust-ink); }
+.mc2 .nav a, .mc2 .top-tabs a { transition: background 0.4s var(--ease-heavy), color 0.3s, transform 0.4s var(--ease-heavy); }
+.mc2 .nav a:active { transform: scale(0.94); }
+.mc2 .fchip[aria-pressed="true"] { background: linear-gradient(165deg, var(--crust-a), var(--crust-b)); border-color: transparent; color: var(--crust-ink); }
+
+/* ---------- saludo con horno ---------- */
+.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 16px; }
+.mc2 .hello-copy { min-width: 0; }
+.mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 8px; padding-bottom: 2px; }
+.mc2 .hello-title { display: flex; align-items: flex-end; gap: 12px; }
+.mc2 .hello-oven { width: 64px; height: auto; flex: none; margin-bottom: -2px; }
+.mc2 .hello-kitchen { width: min(100%, 440px); margin: 0; padding: 0; }
+@media (max-width: 719px) {
+  .mc2 .hello { grid-template-columns: 1fr; }
+  .mc2 .hello-kitchen { width: 100%; max-width: 420px; justify-self: center; }
+}
+
+/* el horno */
+.mc2 .bake { display: block; overflow: visible; }
+.mc2 .bk-vault { fill: var(--brick); }
+.mc2 .bk-bricks { fill: none; stroke: var(--brick-joint); stroke-width: 3; stroke-dasharray: 15 4; }
+.mc2 .bk-bricks.thin { stroke-width: 2; stroke-dasharray: none; }
+.mc2 .bk-mouth { fill: #1b0e07; }
+.mc2 .bk-fire { transform-box: fill-box; transform-origin: 50% 100%; animation: mc2-fire 2.2s ease-in-out infinite alternate; }
+.mc2 .bk-ember { fill: #ffb25a; animation: mc2-ember 1.6s ease-in-out infinite alternate; }
+.mc2 .bk-ember.e2 { animation-delay: -0.6s; }
+.mc2 .bk-ember.e3 { animation-delay: -1.1s; }
+.mc2 .bk-loaf { transform-box: fill-box; transform-origin: 50% 100%; animation: mc2-proof 2.8s var(--ease-heavy) 0.2s both; }
+.mc2 .bk-crust { animation: mc2-brown 3.4s cubic-bezier(0.45, 0, 0.2, 1) 0.5s both; }
+.mc2 .bk-score { fill: none; stroke: #f7e3b9; stroke-linecap: round; stroke-width: 3.4; animation: mc2-score 2.4s var(--ease-heavy) 1.4s both; }
+.mc2 .bk-sheen { fill: rgba(255, 248, 230, 0.38); animation: mc2-brown 2.6s ease-out 1.8s both; }
+.mc2 .bk-peel { fill: var(--peel); }
+.mc2 .bk-steam path {
+  fill: none; stroke: var(--steam); stroke-width: 3.6; stroke-linecap: round; opacity: 0;
+  transform-box: fill-box; transform-origin: 50% 100%; animation: mc2-steam 3.6s ease-out infinite;
+}
+.mc2 .bk-steam .s1 { animation-delay: 2.6s; }
+.mc2 .bk-steam .s2 { animation-delay: 3.5s; }
+.mc2 .bk-steam .s3 { animation-delay: 4.4s; }
+/* pantalla de carga: el horneado se repite */
+.mc2 .bake.loop .bk-loaf { animation: mc2-proof-loop 4.4s var(--ease-heavy) infinite; }
+.mc2 .bake.loop .bk-crust { animation: mc2-brown-loop 4.4s ease-in-out infinite; }
+.mc2 .bake.loop .bk-score { animation: mc2-score-loop 4.4s var(--ease-heavy) infinite; }
+.mc2 .bake.loop .bk-sheen { animation: mc2-brown-loop 4.4s ease-in-out infinite; }
+.mc2 .bake.loop .bk-steam path { animation-delay: 0s; }
+.mc2 .bake.loop .bk-steam .s2 { animation-delay: 1.2s; }
+.mc2 .bake.loop .bk-steam .s3 { animation-delay: 2.4s; }
+
+@keyframes mc2-fire { from { opacity: 0.72; transform: scaleY(0.93); } to { opacity: 1; transform: scaleY(1.05); } }
+@keyframes mc2-ember { from { opacity: 0.35; } to { opacity: 1; } }
+@keyframes mc2-proof { from { transform: scale(0.84, 0.56); } }
+@keyframes mc2-brown { from { opacity: 0; } }
+@keyframes mc2-score { from { stroke-width: 0; opacity: 0; } }
+@keyframes mc2-steam {
+  0% { opacity: 0; transform: translateY(10px) scaleY(0.55); }
+  30% { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-24px) scaleY(1.1); }
+}
+@keyframes mc2-proof-loop {
+  0% { opacity: 0; transform: scale(0.84, 0.56); }
+  8% { opacity: 1; }
+  55%, 88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: none; }
+}
+@keyframes mc2-brown-loop { 0%, 18% { opacity: 0; } 70%, 100% { opacity: 1; } }
+@keyframes mc2-score-loop { 0%, 40% { stroke-width: 0; opacity: 0; } 75%, 100% { stroke-width: 3.4; opacity: 1; } }
+
+/* carga de la cuenta */
+.mc2.mc2-loading { display: grid; place-items: center; }
+.mc2 .oven-wait { position: relative; z-index: 1; display: grid; justify-items: center; gap: 12px; }
+.mc2 .oven-wait .bake { width: 190px; }
+.mc2 .oven-wait p { font-family: var(--serif); font-style: italic; font-size: 1.45rem; color: var(--body); }
+
+/* ---------- bolsa de pan (Wallet) ---------- */
+.mc2 .pocket {
+  border-radius: 4px 4px 24px 24px;
+  background:
+    var(--paper),
+    radial-gradient(90% 70% at 30% 10%, rgba(255, 236, 200, 0.35), transparent 60%),
+    linear-gradient(180deg, #dcae72 0%, #cc9a5c 60%, #bf8b4e 100%);
+  background-size: 180px 180px, auto, auto;
+  color: #3a2210; padding-top: 34px;
+  box-shadow: inset 0 -6px 14px rgba(110, 60, 20, 0.22), 0 24px 40px -22px rgba(80, 40, 10, 0.7);
+  -webkit-mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  mask: conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+}
+.mc2 .pocket::before {
+  content: ""; left: 12px; right: 12px; top: 22px; width: auto; height: 0; transform: none; border-radius: 0; background: none;
+  border-top: 1.5px solid rgba(110, 60, 20, 0.28); box-shadow: 0 1px 0 rgba(255, 238, 205, 0.4);
+}
+.mc2 .pocket::after {
+  content: ""; position: absolute; right: 16px; bottom: 16px; width: 54px; height: 54px; border-radius: 50%;
+  border: 2px solid rgba(110, 50, 15, 0.32); transform: rotate(-14deg);
+  background: url(/club/panaderia/espiga.svg) center / 26px 26px no-repeat; opacity: 0.55;
+}
+.mc2 .pocket-stitch { display: none; }
+.mc2 .pocket-c .big { color: #6b2f0e; }
+.mc2 .pocket-c b { color: #3a2210; }
+.mc2 .pocket-c small, .mc2 .pocket-empty { color: #5a3a1f; }
+
+/* ---------- foto de perfil ---------- */
+.mc2 .photo-tile { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 22px; align-items: center; padding: 26px 20px 22px 26px; }
+.mc2 .photo-body h2 { margin-bottom: 6px; }
+.mc2 .photo-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.mc2 .photo-av { position: relative; display: inline-grid; margin: 4px; }
+.mc2 .photo-av[data-busy] .mav-core::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 248, 230, 0.6) 50%, transparent 80%);
+  animation: mc2-shimmer-x 1.2s ease-in-out infinite;
+}
+@keyframes mc2-shimmer-x { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@media (max-width: 420px) {
+  .mc2 .photo-tile { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .mc2 .photo-actions { justify-content: center; }
+}
+
+/* ---------- pie: trigal ---------- */
+.mc2 .field-foot {
+  margin-top: 8px;
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent calc(100% - 86px - env(safe-area-inset-bottom, 0px)), var(--field-hill-f) 0);
+}
+.mc2 .field-copy {
+  max-width: 1136px; margin: 0 auto; padding: 0 18px 2px; display: flex; flex-wrap: wrap; gap: 4px 10px;
+  justify-content: center; align-items: baseline; text-align: center; color: var(--muted); font-size: 0.95rem;
+}
+.mc2 .field-copy b { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.25rem; color: var(--gold-text); }
+/* el alto sigue la proporción del dibujo (1200×218, con aire arriba) para que en pantallas anchas no se corten las espigas */
+.mc2 .wheat-field { display: block; width: 100%; height: clamp(170px, calc(100vw * 218 / 1200), 400px); touch-action: pan-y; }
+.mc2 .wheat-field .hill.back { fill: var(--field-hill-b); }
+.mc2 .wheat-field .hill.front { fill: var(--field-hill-f); }
+.mc2 .wheat-field .blade, .mc2 .wheat-field .gust { transform-box: fill-box; transform-origin: 50% 100%; }
+.mc2 .wheat-field .stem { fill: none; stroke-linecap: round; }
+.mc2 .wheat-field .l0 { color: var(--field-l0); }
+.mc2 .wheat-field .l1 { color: var(--field-l1); }
+.mc2 .wheat-field .l0 .stem { stroke: currentColor; stroke-width: 1.5; }
+.mc2 .wheat-field .l1 .stem { stroke: currentColor; stroke-width: 2.2; }
+.mc2 .wheat-field .ear { fill: currentColor; }
+.mc2 .wheat-field .awn { fill: none; stroke: currentColor; stroke-width: 0.8; stroke-linecap: round; }
+.mc2 .wheat-field .grass { fill: var(--field-grass); }
+.mc2 .wheat-field .l2:nth-child(3n) .grass { fill: var(--field-grass-2); }
+.mc2 .wheat-field[data-run] .blade { animation: mc2-sway var(--dur, 4.4s) ease-in-out var(--delay, 0s) infinite alternate; }
+.mc2 .wheat-field.gusting .gust { animation: mc2-gust 1.9s var(--ease-heavy) var(--gd, 0s) both; }
+@keyframes mc2-sway { from { transform: rotate(calc(var(--amp, 4deg) * -1)); } to { transform: rotate(var(--amp, 4deg)); } }
+@keyframes mc2-gust { 0% { transform: none; } 32% { transform: rotate(11deg); } 66% { transform: rotate(-3deg); } 100% { transform: none; } }
+
+/* ---------- entradas al hacer scroll (CSS scroll-driven, sin listeners) ---------- */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .mc2 .main :is(.tile, .rc, .ac, .list) {
+      animation: mc2-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 45%;
+    }
+  }
+}
+@keyframes mc2-reveal { from { opacity: 0; transform: translateY(28px) scale(0.985); } }
+
+/* ---------- overlays ---------- */
+.mc2.mc2-sheet { background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px; }
+.mc2.lu { background: radial-gradient(70% 50% at 50% 70%, rgba(226, 89, 42, 0.35), transparent 70%), radial-gradient(80% 60% at 50% 38%, #2c1d12, #0b0805 75%); }
+
+/* ---------- escritorio ---------- */
+@media (min-width: 1024px) {
+  .mc2 .topbar-wrap { padding: 14px 24px 0; }
+  .mc2 .main { padding-top: 40px; }
+  .mc2 .hello { grid-template-columns: minmax(0, 1fr) auto; }
+  .mc2 .hello h1, .mc2 .v-head h1 { font-size: 3.1rem; }
+  .mc2 .hello-oven { width: 80px; }
+  .mc2 .field-foot { padding-bottom: 0; background: none; margin-top: 24px; }
+  .mc2 .view-home { row-gap: 30px; }
+}
+
+/* ---------- movimiento reducido: todo quieto, el pan ya horneado ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .mc2 .bk-flour { display: none; }
+  .mc2 .bake .bk-loaf, .mc2 .bake .bk-crust, .mc2 .bake .bk-score, .mc2 .bake .bk-sheen, .mc2 .bk-fire, .mc2 .bk-ember { animation: none !important; opacity: 1; transform: none; }
+  .mc2 .bk-steam path { animation: none !important; opacity: 0.55; }
+  .mc2 .wheat-field .blade, .mc2 .wheat-field .gust { animation: none !important; }
+  .mc2 .btn-pop::after { display: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mc2 .topbar { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
