@@ -310,7 +310,7 @@ export function ClubProvider({
         return true;
       } catch (error) {
         const status = (error as { status?: number } | null)?.status;
-        // 404/405: el backend todavía no expone la foto de perfil (contrato propuesto en loyalty-api.ts).
+        // 404/405: bodega-api 085 implementado pero aún no desplegado a producción.
         const sub = status === 404 || status === 405 ? "Las fotos de perfil llegan muy pronto." : errorMessage(error, "Intenta de nuevo en un momento.");
         notify(TriangleAlert, "No pudimos guardar tu foto", sub);
         return false;

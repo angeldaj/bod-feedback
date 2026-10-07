@@ -565,14 +565,15 @@ export async function updateMe(accessToken: string, patch: UpdateMemberPayload):
 }
 
 /**
- * Foto de perfil. Contrato propuesto para bodega-api: `PUT /loyalty/me/avatar`
- * (multipart, campo `file`, imagen cuadrada ya recortada en el navegador) y
- * `DELETE /loyalty/me/avatar`; ambos devuelven el socio con `avatarUrl`.
+ * Foto de perfil (bodega-api spec 085): `POST /loyalty/me/avatar` (multipart,
+ * campo `file`, imagen cuadrada ya recortada en el navegador) sube o
+ * reemplaza; `DELETE /loyalty/me/avatar` la quita. Ambos devuelven el socio
+ * con `avatarUrl`.
  */
 export async function uploadAvatar(accessToken: string, image: Blob): Promise<Member> {
   const body = new FormData();
   body.append("file", image, image.type === "image/webp" ? "avatar.webp" : "avatar.jpg");
-  const dto = await request<MemberDto>("/loyalty/me/avatar", { method: "PUT", body, headers: { Authorization: `Bearer ${accessToken}` } });
+  const dto = await request<MemberDto>("/loyalty/me/avatar", { method: "POST", body, headers: { Authorization: `Bearer ${accessToken}` } });
   return mapMember(readObject<MemberDto>(dto, "tu perfil"));
 }
 
