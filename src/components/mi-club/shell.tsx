@@ -13,6 +13,7 @@ import {
   House,
   Moon,
   ReceiptText,
+  ShoppingBag,
   Sun,
   UserRound,
   Wallet,
@@ -31,6 +32,7 @@ const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "wallet", label: "Wallet", icon: Wallet },
   { sub: "ruleta", label: "Ruleta", icon: WheelIcon },
   { sub: "canjear", label: "Canjear", icon: Gift },
+  { sub: "pedidos", label: "Pedidos", icon: ShoppingBag },
   { sub: "actividad", label: "Actividad", icon: ReceiptText },
   { sub: "perfil", label: "Perfil", icon: UserRound },
 ];
@@ -42,6 +44,7 @@ function TabLinks({
   showRuleta,
   register,
   basePath,
+  bar = false,
 }: {
   pathname: string;
   walletCount: number;
@@ -50,10 +53,12 @@ function TabLinks({
   showRuleta: boolean;
   register: (el: HTMLElement | null) => void;
   basePath: string;
+  /** En la barra inferior no cabe Perfil: se llega desde el avatar de arriba. */
+  bar?: boolean;
 }) {
   return (
     <>
-      {TABS.filter(({ sub }) => sub !== "ruleta" || showRuleta).map(({ sub, label, icon: Icon }) => {
+      {TABS.filter(({ sub }) => (sub !== "ruleta" || showRuleta) && !(bar && sub === "perfil")).map(({ sub, label, icon: Icon }) => {
         const href = sub ? `${basePath}/${sub}` : basePath;
         const active = sub ? pathname === href || pathname.startsWith(`${href}/`) : pathname === href;
         const isWallet = sub === "wallet";
@@ -192,6 +197,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
             <div className={themeClass}>
               <nav className="nav" aria-label="Secciones de mi-club">
                 <TabLinks
+                  bar
                   pathname={pathname}
                   walletCount={activeVouchers.length}
                   spinCount={spinCount}
