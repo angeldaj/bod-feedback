@@ -121,6 +121,8 @@ export type Member = {
   referralCode: string;
   profileCompletionPoints: number;
   notificationPreferences: NotificationPreferences;
+  /** Foto de perfil (URL pública ya redimensionada por el backend), o `null` si no subió ninguna. */
+  avatarUrl: string | null;
 };
 
 export type RegisterPayload = {
@@ -238,6 +240,7 @@ type MemberDto = {
   referralCode: string;
   profileCompletionPoints: number;
   profilePointsAwarded?: number;
+  avatarUrl?: string | null;
 };
 
 type PointsEntryDto = {
@@ -371,6 +374,7 @@ function mapMember(dto: MemberDto): Member {
       email: dto.notifyEmail ?? false,
       offers: dto.notifyOffers ?? true,
     },
+    avatarUrl: dto.avatarUrl ?? null,
   };
 }
 
@@ -558,6 +562,23 @@ export async function getMe(accessToken: string): Promise<Member> {
 export async function updateMe(accessToken: string, patch: UpdateMemberPayload): Promise<MemberProfileUpdate> {
   const dto = await request<MemberDto>("/loyalty/me", jsonInit("PATCH", patch, accessToken));
   return { member: mapMember(dto), pointsAwarded: dto.profilePointsAwarded ?? 0 };
+}
+
+/**
+ * Foto de perfil. Contrato propuesto para bodega-api: `PUT /loyalty/me/avatar`
+ * (multipart, campo `file`, imagen cuadrada ya recortada en el navegador) y
+ * `DELETE /loyalty/me/avatar`; ambos devuelven el socio con `avatarUrl`.
+ */
+export async function uploadAvatar(accessToken: string, image: Blob): Promise<Member> {
+  const body = new FormData();
+  body.append("file", image, image.type === "image/webp" ? "avatar.webp" : "avatar.jpg");
+  const dto = await request<MemberDto>("/loyalty/me/avatar", { method: "PUT", body, headers: { Authorization: `Bearer ${accessToken}` } });
+  return mapMember(readObject<MemberDto>(dto, "tu perfil"));
+}
+
+export async function removeAvatar(accessToken: string): Promise<Member> {
+  const dto = await request<MemberDto>("/loyalty/me/avatar", { method: "DELETE", headers: { Authorization: `Bearer ${accessToken}` } });
+  return mapMember(readObject<MemberDto>(dto, "tu perfil"));
 }
 
 export async function getReferralSummary(accessToken: string): Promise<MemberReferralSummary> {

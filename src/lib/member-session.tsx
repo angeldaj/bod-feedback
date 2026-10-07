@@ -44,6 +44,8 @@ type MemberSessionContextValue = {
   }) => void;
   refreshMember: () => Promise<Member | null>;
   updateProfile: (patch: UpdateMemberPayload) => Promise<loyaltyApi.MemberProfileUpdate>;
+  /** Sube (`Blob`) o quita (`null`) la foto de perfil y deja el socio actualizado. */
+  setAvatar: (image: Blob | null) => Promise<Member>;
   /**
    * Ejecuta una llamada autenticada; si responde 401, intenta refrescar la
    * sesión UNA vez y reintenta. Si el refresh falla, limpia la sesión y
@@ -209,6 +211,15 @@ export function MemberSessionProvider({ children }: { children: ReactNode }) {
     [authedRequest],
   );
 
+  const setAvatar = useCallback(
+    async (image: Blob | null) => {
+      const next = await authedRequest((token) => (image ? loyaltyApi.uploadAvatar(token, image) : loyaltyApi.removeAvatar(token)));
+      setMember(next);
+      return next;
+    },
+    [authedRequest],
+  );
+
   const value = useMemo<MemberSessionContextValue>(
     () => ({
       member,
@@ -219,9 +230,10 @@ export function MemberSessionProvider({ children }: { children: ReactNode }) {
       adoptSession,
       refreshMember,
       updateProfile,
+      setAvatar,
       authedRequest,
     }),
-    [member, accessToken, loading, login, logout, adoptSession, refreshMember, updateProfile, authedRequest],
+    [member, accessToken, loading, login, logout, adoptSession, refreshMember, updateProfile, setAvatar, authedRequest],
   );
 
   return <MemberSessionContext.Provider value={value}>{children}</MemberSessionContext.Provider>;
