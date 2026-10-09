@@ -19,6 +19,7 @@ import {
   Mail,
   MessageCircle,
   Footprints,
+  MessageCircleHeart,
   ShoppingBag,
   Trash2,
 } from "lucide-react";
@@ -342,7 +343,7 @@ export function PerfilScreen() {
               <h2 id="pf-demo">Simular en la demo</h2>
               <p className="muted-sm" style={{ marginBottom: 12 }}>
                 En producción estas cosas las dispara el club: subir de nivel al sumar puntos, un regalo al compensar una queja, llegar a 10
-                visitas y las compras que suman tiradas de la ruleta.
+                visitas, las compras que suman tiradas de la ruleta y el comentario validado de una campaña de Instagram.
               </p>
               <div className="fields">
                 <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.tierUp} disabled={!card?.nextTier}>
@@ -360,6 +361,10 @@ export function PerfilScreen() {
                 <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.purchase}>
                   <ShoppingBag aria-hidden="true" />
                   Sumar una compra
+                </button>
+                <button type="button" className="btn btn-soft btn-sm" onClick={demoActions.socialComment}>
+                  <MessageCircleHeart aria-hidden="true" />
+                  Validar comentario en Instagram
                 </button>
               </div>
             </section>

@@ -3,7 +3,9 @@
 //
 // Contrato: spec 075 de bodega-api (`GET /loyalty/me/card`, `/me/card-designs`,
 // `PUT /me/card-design`, `/me/vouchers`, `/me/rewards`, `POST /me/redemptions`,
-// `/me/timeline`) y spec 077 para la ruleta (`GET/POST /loyalty/me/spins`).
+// `/me/timeline`), spec 077 para la ruleta (`GET/POST /loyalty/me/spins`) y
+// spec 087 para las campañas de Instagram (`GET /loyalty/me/social-campaigns`,
+// `POST /loyalty/me/social-campaigns/:id/code`).
 // Dos adaptadores con la misma interfaz:
 // - `createLiveClubAdapter`: el backend real con la sesión Bearer del socio
 //   (lo usa `/mi-club`).
@@ -121,7 +123,8 @@ export type ActivityItem =
     }
   | {
       id: string;
-      type: "redemption" | "grant";
+      /** `social`: puntos por un comentario validado en Instagram (spec 087). */
+      type: "redemption" | "grant" | "social";
       occurredAt: string;
       title: string;
       detail: string;
@@ -135,6 +138,33 @@ export type ClubActivity = {
   items: ActivityItem[];
   monthly: MonthlyPoints[];
   thisMonth: { spent: number; points: number; visits: number; favoriteBranch: string | null };
+};
+
+// Campañas de Instagram (spec 087). El backend valida el comentario con el
+// webhook de Meta; la landing nunca habla con Instagram ni declara un premio.
+export type SocialParticipation = "available" | "pending" | "completed" | "closed";
+
+export type SocialCampaign = {
+  id: string;
+  title: string;
+  instructions: string;
+  /** Enlace a la publicación oficial. */
+  postUrl: string;
+  points: number;
+  startsAt: string;
+  endsAt: string;
+  status: "draft" | "active" | "paused" | "closed";
+  participationStatus: SocialParticipation;
+  /** Código personal `BC-XXXXXX`; null si aún no lo pidió o la campaña cerró. */
+  code: string | null;
+  completedAt: string | null;
+};
+
+export type SocialCampaignCode = {
+  campaignId: string;
+  code: string;
+  expiresAt: string;
+  participationStatus: SocialParticipation;
 };
 
 // Ruleta (spec 077). Sin pesos ni stock: eso solo lo ve club-web.
@@ -365,6 +395,7 @@ type MockStore = {
   vouchers: Voucher[];
   activity: ActivityItem[];
   spins: { available: number; pending: number; recent: SpinRecord[]; byKey: Map<string, SpinResult> };
+  social: SocialCampaign[];
 };
 
 let store: MockStore | null = null;
@@ -418,6 +449,21 @@ function seedStore(member: Member | null): MockStore {
     ],
     // Bienvenida + tirada de lanzamiento, y una compra hacia la próxima.
     spins: { available: 2, pending: 1, recent: [], byKey: new Map() },
+    social: [
+      {
+        id: "sc-demo",
+        title: "Comenta tu pan favorito",
+        instructions: "Copia tu código y escríbelo en un comentario de la publicación. Cuenta un premio por socio.",
+        postUrl: "https://www.instagram.com/",
+        points: 10,
+        startsAt: new Date(now - 2 * DAY).toISOString(),
+        endsAt: new Date(now + 12 * DAY).toISOString(),
+        status: "active",
+        participationStatus: "available",
+        code: null,
+        completedAt: null,
+      },
+    ],
   };
 }
 
@@ -570,6 +616,8 @@ export type ClubDemoActions = {
   toggleVisits: () => number;
   /** Suma una compra elegible; devuelve las tiradas ganadas con ella (0 o 1). */
   purchase: () => number;
+  /** Simula que Instagram validó el comentario con el código. Devuelve la campaña premiada. */
+  socialComment: () => SocialCampaign | null;
 };
 
 export interface ClubAdapter {
@@ -583,6 +631,10 @@ export interface ClubAdapter {
   getSpins(): Promise<SpinState>;
   /** Una tirada. Misma `idempotencyKey` → la misma tirada, sin descontar otra. */
   spin(idempotencyKey: string): Promise<SpinResult>;
+  /** Campañas de Instagram vigentes y las que el socio empezó hace poco. */
+  listSocialCampaigns(): Promise<SocialCampaign[]>;
+  /** Código personal para la campaña. Idempotente: siempre el mismo. */
+  requestSocialCode(campaignId: string): Promise<SocialCampaignCode>;
   /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
   demo: ClubDemoActions | null;
 }
@@ -609,6 +661,13 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
     spin: (idempotencyKey) =>
       authed((t) =>
         request<SpinResult>("/loyalty/me/spins", t, { method: "POST", headers: { "Idempotency-Key": idempotencyKey } }),
+      ),
+    listSocialCampaigns: () => authed((t) => request<SocialCampaign[]>("/loyalty/me/social-campaigns", t)),
+    requestSocialCode: (campaignId) =>
+      authed((t) =>
+        request<SocialCampaignCode>(`/loyalty/me/social-campaigns/${encodeURIComponent(campaignId)}/code`, t, {
+          method: "POST",
+        }),
       ),
     demo: null,
   };
@@ -673,11 +732,25 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
       // Latencia creíble: la rueda ya está girando mientras tanto.
       return delay(result, 600 + Math.random() * 500);
     },
+    listSocialCampaigns: () => delay(s().social.map((c) => ({ ...c }))),
+    async requestSocialCode(campaignId) {
+      const campaign = s().social.find((c) => c.id === campaignId);
+      if (!campaign) throw new ClubApiError("La campaña no existe.", 404);
+      if (campaign.participationStatus === "closed") {
+        throw new ClubApiError("Esta campaña ya no recibe participaciones.", 409);
+      }
+      if (!campaign.code) {
+        campaign.code = `BC-${randomCode().replace("-", "")}`;
+        campaign.participationStatus = "pending";
+      }
+      return delay({ campaignId, code: campaign.code, expiresAt: campaign.endsAt, participationStatus: campaign.participationStatus }, 320);
+    },
     demo: {
       tierUp: () => demoTierUp(member),
       complaintGift: () => demoComplaintGift(member),
       toggleVisits: () => demoToggleVisits(member),
       purchase: () => demoPurchase(member),
+      socialComment: () => demoSocialComment(member),
     },
   };
 }
@@ -750,6 +823,20 @@ function demoToggleVisits(member: Member | null): number {
   s.visits = s.visits >= 10 ? 7 : 10;
   if (s.visits < 10 && s.designId === "confluencia") s.designId = "clasica";
   return s.visits;
+}
+
+/** Simula el webhook de Instagram: acredita la campaña con código pendiente. Solo mock. */
+function demoSocialComment(member: Member | null): SocialCampaign | null {
+  const s = ensureStore(member);
+  const campaign = s.social.find((c) => c.participationStatus === "pending");
+  if (!campaign) return null;
+  const now = new Date().toISOString();
+  campaign.participationStatus = "completed";
+  campaign.completedAt = now;
+  s.balance += campaign.points;
+  s.lifetime += campaign.points;
+  s.activity.unshift({ id: `a-social-${campaign.id}`, type: "social", occurredAt: now, title: "Ganaste puntos en Instagram", detail: campaign.title, points: campaign.points, category: null });
+  return { ...campaign };
 }
 
 /** Suma una compra elegible; cada 3 se gana una tirada. Solo mock. */

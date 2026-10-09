@@ -12,6 +12,7 @@ import { Skeleton, WalletPocket } from "../pieces";
 import { BakingLoaf } from "../bakery-scene";
 import { Pixel, PixelKitchen } from "../pixel-sprites";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
+import { SocialCampaignsSection } from "../social-campaigns";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -146,6 +147,7 @@ export function HomeScreen() {
             Diseño
           </button>
         </div>
+        <SocialCampaignsSection />
       </div>
 
       <div className="home-side">

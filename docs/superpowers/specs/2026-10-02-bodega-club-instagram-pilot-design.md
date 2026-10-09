@@ -150,3 +150,20 @@ Evaluar al cerrar la campaña: tasa de uso de códigos, coste en puntos, nuevos 
 - Fijar la política de retención concreta para IDs de comentario y códigos vencidos.
 - Elegir campaña inicial, publicación elegible, fechas y valor final de puntos; 10 puntos es solo el valor inicial sugerido.
 - El trabajo es una feature vertical coordinada entre `bodega-api`, `bodega-soft-nx` y `bodega-landing`; el backend debe entregar OpenAPI antes de cablear sus clientes.
+
+## Estado de implementación (2026-10-09)
+
+- **Backend** → `bodega-api/specs/087-club-social-campaigns` (el número 078 se
+  reasignó). Código `BC-XXXXXX` guardado en claro (se publica en un comentario
+  y Mi Club debe volver a mostrarlo; un hash no protegía nada), webhook con
+  firma `X-Hub-Signature-256`, un premio por socio y campaña.
+- **club-web** → `bodega-soft-nx/apps/club-web/specs/074-club-social-campaigns`.
+- **Landing**: apartado *Campañas* debajo de la tarjeta en Inicio
+  (`components/mi-club/social-campaigns.tsx`), adapter en `lib/club-api.ts`
+  (`listSocialCampaigns`, `requestSocialCode`), refresco al volver a la
+  pestaña con aviso cuando el backend confirma los puntos, y movimiento
+  `social` en Actividad (filtro *Instagram*). El apartado se muestra si la API
+  devuelve campañas: vigentes, o recién cerradas en las que el socio
+  participó, para que vea cómo terminó. En `/club-mock`, *Perfil → Simular*
+  incluye «Validar comentario en Instagram».
+- Pendiente: alta de la app de Meta y prueba con un comentario real.

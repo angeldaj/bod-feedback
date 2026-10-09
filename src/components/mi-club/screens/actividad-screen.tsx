@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useMemo, useState } from "react";
-import { ChevronDown, Gift, MapPin, ReceiptText, Sparkles } from "lucide-react";
+import { ChevronDown, Gift, MapPin, MessageCircleHeart, ReceiptText, Sparkles } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { Bar, BarChart, LabelList, Rectangle, XAxis, type BarShapeProps } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -15,6 +15,7 @@ const FILTERS = [
   { id: "purchase", label: "Compras" },
   { id: "redemption", label: "Canjes" },
   { id: "grant", label: "Regalos" },
+  { id: "social", label: "Instagram" },
 ] as const;
 type FilterId = (typeof FILTERS)[number]["id"];
 
@@ -97,12 +98,15 @@ function PurchaseCard({ item, open, onToggle }: { item: Extract<ActivityItem, { 
   );
 }
 
-function EventCard({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" }> }) {
+function EventCard({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" | "social" }> }) {
   return (
     <article className={`ac evt ${item.type}`}>
       <div className="ac-row">
         <span className="ac-thumb">
-          {createElement(item.type === "grant" && !item.category ? Sparkles : categoryIcon(item.category), { "aria-hidden": true })}
+          {createElement(
+            item.type === "social" ? MessageCircleHeart : item.type === "grant" && !item.category ? Sparkles : categoryIcon(item.category),
+            { "aria-hidden": true },
+          )}
         </span>
         <div className="ac-main">
           <b>{item.title}</b>
@@ -110,13 +114,20 @@ function EventCard({ item }: { item: Extract<ActivityItem, { type: "redemption" 
             {isToday(item.occurredAt) ? "Hoy" : shortDate(item.occurredAt)}, {item.detail}
           </small>
           <div className="tags">
-            <span className="tag">{item.type === "redemption" ? "Canje con puntos" : "Regalo de la casa"}</span>
+            <span className="tag">
+              {item.type === "redemption" ? "Canje con puntos" : item.type === "social" ? "Campaña de Instagram" : "Regalo de la casa"}
+            </span>
           </div>
         </div>
         <div className="ac-end">
           {item.type === "redemption" ? (
             <>
               <strong className="neg">{fmtPts(item.points)}</strong>
+              <small>pts</small>
+            </>
+          ) : item.type === "social" ? (
+            <>
+              <strong>+{fmtPts(item.points)}</strong>
               <small>pts</small>
             </>
           ) : (
@@ -147,7 +158,7 @@ export function ActividadScreen() {
       let g = out.find((x) => x.key === key);
       if (!g) out.push((g = { key, label: monthLabel(item.occurredAt), points: 0, items: [] }));
       g.items.push(item);
-      if (item.type === "purchase") g.points += item.points;
+      if (item.type === "purchase" || item.type === "social") g.points += item.points;
     }
     return out;
   }, [activity, filter]);
