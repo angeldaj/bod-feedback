@@ -597,6 +597,8 @@ function ClubFooter() {
             <Link href="/#historia" className="hover:text-cream">Historia</Link>
             <Link href="/#visitanos" className="hover:text-cream">Visítanos</Link>
             <Link href="/feedback" className="hover:text-cream">Cuéntanos tu experiencia</Link>
+            <Link href="/politica-de-privacidad" className="hover:text-cream">Privacidad</Link>
+            <Link href="/condiciones-del-servicio" className="hover:text-cream">Condiciones</Link>
           </nav>
         </div>
         <div className="flex flex-wrap justify-between gap-3 border-t border-hair-div pt-6 text-sm text-label">
