@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   },
   description:
     "La Bodega — restaurante y panadería en Puerto Ordaz, Venezuela.",
+    verification: {
+    other: {
+      'facebook-domain-verification': ['uxmfh9kxe54jz3ky3eu44f6h46lhj8'],
+    },
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
