@@ -26,6 +26,7 @@ import { motion, useReducedMotion, type Variants } from "motion/react";
 type Theme = "day" | "night";
 import { Button } from "@/components/ui/button";
 import { Photo } from "./photo";
+import { companyLine } from "@/lib/company";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -713,7 +714,7 @@ function Footer() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-hair-div pt-6 text-[13px] uppercase tracking-[0.14em] text-label">
           <span>Av. Las Américas · Puerto Ordaz · Venezuela</span>
-          <span>© {"2026"} La Bodega</span>
+          <span>© {"2026"} {companyLine}</span>
         </div>
       </div>
     </footer>
