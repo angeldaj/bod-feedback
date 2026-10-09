@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Camera, HeartHandshake, Layers, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
+import { Camera, HeartHandshake, Layers, MessageCircleHeart, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
 import { useMember } from "@/lib/member-session";
 import * as club from "@/lib/club-api";
 import type {
@@ -21,6 +21,7 @@ import type {
   ClubCard,
   ClubReward,
   ClubTier,
+  SocialCampaign,
   SpinResult,
   SpinState,
   Voucher,
@@ -72,6 +73,10 @@ type ClubValue = ClubData & {
   reloadSpins: () => Promise<SpinState | null>;
   /** Tirada; no toca `spins` ni la tarjeta: la pantalla refresca al revelar el premio. */
   spin: (idempotencyKey: string) => Promise<SpinResult>;
+  /** Campañas de Instagram (087). Vacío si no hay, si falla o si el backend aún no las tiene. */
+  socialCampaigns: SocialCampaign[];
+  /** Pide (o recupera) el código de la campaña. Devuelve el código o null si falló. */
+  requestSocialCode: (campaignId: string) => Promise<string | null>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
   selectDesign: (designId: string) => Promise<boolean>;
   /** Foto de perfil del socio (en la demo vive solo en este navegador). */
@@ -90,6 +95,7 @@ type ClubValue = ClubData & {
     complaint: (from?: Element | null) => void;
     toggleVisits: () => void;
     purchase: () => void;
+    socialComment: () => void;
   } | null;
 };
 
@@ -138,6 +144,8 @@ export function ClubProvider({
   const [data, setData] = useState<ClubData>(EMPTY);
   const [spins, setSpins] = useState<SpinState | null>(null);
   const [spinsLoaded, setSpinsLoaded] = useState(false);
+  const [socialCampaigns, setSocialCampaigns] = useState<SocialCampaign[]>([]);
+  const socialRef = useRef<SocialCampaign[]>([]);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -199,14 +207,62 @@ export function ClubProvider({
     }
   }, [adapter, member]);
 
+  // Aparte, como la ruleta: sin campañas (o con el backend 087 aún sin desplegar) el club sigue igual.
+  const loadSocial = useCallback(async () => {
+    if (!member) return [];
+    try {
+      const next = await adapter.listSocialCampaigns();
+      const before = socialRef.current;
+      socialRef.current = next;
+      setSocialCampaigns(next);
+      return next.filter(
+        (c) => c.participationStatus === "completed" && before.some((b) => b.id === c.id && b.participationStatus === "pending"),
+      );
+    } catch {
+      return [];
+    }
+  }, [adapter, member]);
+
   useEffect(() => {
     void load();
     void loadSpins();
-  }, [load, loadSpins]);
+    void loadSocial();
+  }, [load, loadSocial, loadSpins]);
+
+  // Al volver de Instagram se consulta de nuevo: los puntos solo se muestran cuando el backend los confirma.
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.visibilityState !== "visible") return;
+      if (!socialRef.current.some((c) => c.participationStatus === "pending")) return;
+      const credited = await loadSocial();
+      if (credited.length === 0) return;
+      const pts = credited.reduce((sum, c) => sum + c.points, 0);
+      notify(MessageCircleHeart, `¡Sumaste ${pts} pts en Instagram!`, "Validamos tu comentario. Ya están en tu saldo.");
+      void load();
+    };
+    const handler = () => void onVisible();
+    document.addEventListener("visibilitychange", handler);
+    return () => document.removeEventListener("visibilitychange", handler);
+  }, [load, loadSocial, notify]);
 
   const reload = useCallback(async () => {
-    await Promise.all([load(), loadSpins()]);
-  }, [load, loadSpins]);
+    await Promise.all([load(), loadSpins(), loadSocial()]);
+  }, [load, loadSocial, loadSpins]);
+
+  const requestSocialCode = useCallback(
+    async (campaignId: string) => {
+      try {
+        const result = await adapter.requestSocialCode(campaignId);
+        await loadSocial();
+        return result.code;
+      } catch (error) {
+        notify(TriangleAlert, "No pudimos darte tu código", errorMessage(error, "Intenta de nuevo en un momento."));
+        await loadSocial();
+        return null;
+      }
+    },
+    [adapter, loadSocial, notify],
+  );
 
   const spin = useCallback((idempotencyKey: string) => adapter.spin(idempotencyKey), [adapter]);
 
@@ -341,8 +397,18 @@ export function ClubProvider({
         notify(ShoppingBag, won ? "¡Ganaste una tirada!" : "Compra registrada", won ? "Entra a la ruleta y gira." : "Suma una compra hacia tu próxima tirada.");
         void loadSpins();
       },
+      socialComment: () => {
+        const campaign = actions.socialComment();
+        if (!campaign) {
+          notify(MessageCircleHeart, "Primero pide tu código", "Ve a Inicio, abre la campaña y toca «Obtener mi código».");
+          return;
+        }
+        notify(MessageCircleHeart, `¡Sumaste ${campaign.points} pts en Instagram!`, "Validamos tu comentario. Ya están en tu saldo.");
+        void load();
+        void loadSocial();
+      },
     };
-  }, [adapter, flyToWallet, load, loadSpins, notify]);
+  }, [adapter, flyToWallet, load, loadSocial, loadSpins, notify]);
 
   const href = useCallback(
     (sub?: string) => (sub ? `${basePath}/${sub.replace(/^\//, "")}` : basePath),
@@ -373,6 +439,8 @@ export function ClubProvider({
     spinsLoaded,
     reloadSpins: loadSpins,
     spin,
+    socialCampaigns,
+    requestSocialCode,
     redeem,
     selectDesign,
     avatarUrl: demo ? demoAvatar : (member?.avatarUrl ?? null),
