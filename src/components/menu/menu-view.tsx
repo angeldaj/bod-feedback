@@ -123,7 +123,8 @@ export function MenuView({ menu }: { menu: Menu }) {
       )}
 
       <p className="mt-auto pt-12 text-center text-[13px] text-label">
-        Precios en dólares{menu.rate !== null ? ", en bolívares a la tasa BCV del día" : ""}. Sujetos a disponibilidad.
+        Precios en dólares con IVA incluido{menu.rate !== null ? ", en bolívares a la tasa BCV del día" : ""}. Sujetos a
+        disponibilidad.
       </p>
     </MenuShell>
   );

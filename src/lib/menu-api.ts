@@ -21,7 +21,7 @@ export type MenuItem = {
   name: string;
   /** Vacío si no tiene. */
   description: string;
-  /** Precio en USD. */
+  /** Precio en USD con IVA (el backend lo suma; MarSoft lo guarda sin IVA). */
   price: number;
 };
 
