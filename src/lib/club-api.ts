@@ -167,6 +167,17 @@ export type SocialCampaignCode = {
   participationStatus: SocialParticipation;
 };
 
+/** Publicación reciente de Instagram para el feed de Inicio (el backend la cachea). */
+export type InstagramPost = {
+  id: string;
+  permalink: string;
+  caption: string | null;
+  /** IMAGE, VIDEO o CAROUSEL_ALBUM. */
+  mediaType: string;
+  thumbnailUrl: string;
+  timestamp: string | null;
+};
+
 // Ruleta (spec 077). Sin pesos ni stock: eso solo lo ve club-web.
 export type SpinPrizeType = "points" | "voucher";
 
@@ -635,6 +646,8 @@ export interface ClubAdapter {
   listSocialCampaigns(): Promise<SocialCampaign[]>;
   /** Código personal para la campaña. Idempotente: siempre el mismo. */
   requestSocialCode(campaignId: string): Promise<SocialCampaignCode>;
+  /** Últimas publicaciones de Instagram; vacío si el backend no tiene conexión. */
+  listInstagramFeed(): Promise<InstagramPost[]>;
   /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
   demo: ClubDemoActions | null;
 }
@@ -669,6 +682,7 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
           method: "POST",
         }),
       ),
+    listInstagramFeed: () => authed((t) => request<InstagramPost[]>("/loyalty/me/social-campaigns/feed", t)),
     demo: null,
   };
 }
@@ -745,6 +759,7 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
       }
       return delay({ campaignId, code: campaign.code, expiresAt: campaign.endsAt, participationStatus: campaign.participationStatus }, 320);
     },
+    listInstagramFeed: () => delay(DEMO_INSTAGRAM, 700),
     demo: {
       tierUp: () => demoTierUp(member),
       complaintGift: () => demoComplaintGift(member),
@@ -824,6 +839,22 @@ function demoToggleVisits(member: Member | null): number {
   if (s.visits < 10 && s.designId === "confluencia") s.designId = "clasica";
   return s.visits;
 }
+
+const DEMO_INSTAGRAM: InstagramPost[] = [
+  ["Pan de jamón recién salido, como cada diciembre pero todo el año.", "IMAGE", "/bodega-club/hero-bodega-club.webp"],
+  ["Así se arma un cachito: masa, jamón y paciencia.", "VIDEO", "/club/texturas/masa.webp"],
+  ["Golfeados con papelón y queso. Pasa temprano que vuelan.", "CAROUSEL_ALBUM", "/bodega-club/recompensas-bodega-club.webp"],
+  ["El horno no descansa: canillas cada hora desde las 6:00 a.m.", "IMAGE", "/club/texturas/horno.webp"],
+  ["Gracias por llenar la panadería este fin de semana.", "IMAGE", "/bodega-club/comunidad-bodega-club.webp"],
+  ["Trigo, agua, sal y tiempo. Nada más.", "CAROUSEL_ALBUM", "/club/texturas/trigo.webp"],
+].map(([caption, mediaType, thumbnailUrl], i) => ({
+  id: `ig-demo-${i}`,
+  permalink: "https://www.instagram.com/",
+  caption,
+  mediaType,
+  thumbnailUrl,
+  timestamp: new Date(Date.now() - (i * 2 + 1) * DAY).toISOString(),
+}));
 
 /** Simula el webhook de Instagram: acredita la campaña con código pendiente. Solo mock. */
 function demoSocialComment(member: Member | null): SocialCampaign | null {

@@ -13,6 +13,7 @@ import { BakingLoaf } from "../bakery-scene";
 import { Pixel, PixelKitchen } from "../pixel-sprites";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
+import { InstagramFeedSection } from "../instagram-feed";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -170,6 +171,8 @@ export function HomeScreen() {
         </div>
         <WalletPocket vouchers={activeVouchers} compact />
       </div>
+
+      <InstagramFeedSection />
     </div>
   );
 }
