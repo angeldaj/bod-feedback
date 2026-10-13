@@ -35,6 +35,7 @@ export type Overlay =
   | { type: "gallery" }
   | { type: "caja" }
   | { type: "levelup"; from: ClubTier; to: ClubTier }
+  | { type: "social"; points: number; title: string }
   | null;
 
 export type Notice = { id: number; icon: LucideIcon; title: string; sub: string };
@@ -110,6 +111,7 @@ export function useClub(): ClubValue {
 const EMPTY: ClubData = { loading: true, error: null, card: null, designs: [], vouchers: [], rewards: [], activity: null };
 const TIER_KEY = (memberId: string) => `bodega-club-tier:${memberId}`;
 const DEMO_AVATAR_KEY = "bodega-club-avatar:demo";
+const SOCIAL_POLL_MS = 5_000;
 type SeenTier = Pick<ClubTier, "rank" | "name" | "skin">;
 
 function readSeenTier(raw: string | null): SeenTier | null {
@@ -229,21 +231,26 @@ export function ClubProvider({
     void loadSocial();
   }, [load, loadSocial, loadSpins]);
 
-  // Al volver de Instagram se consulta de nuevo: los puntos solo se muestran cuando el backend los confirma.
+  // Con un código pendiente se consulta al volver de Instagram y cada pocos segundos con la pestaña
+  // visible (puede comentar desde otro teléfono). Los puntos solo se muestran cuando el backend los confirma.
   useEffect(() => {
-    const onVisible = async () => {
+    const check = async () => {
       if (document.visibilityState !== "visible") return;
       if (!socialRef.current.some((c) => c.participationStatus === "pending")) return;
       const credited = await loadSocial();
       if (credited.length === 0) return;
-      const pts = credited.reduce((sum, c) => sum + c.points, 0);
-      notify(MessageCircleHeart, `¡Sumaste ${pts} pts en Instagram!`, "Validamos tu comentario. Ya están en tu saldo.");
+      const points = credited.reduce((sum, c) => sum + c.points, 0);
+      setOverlay({ type: "social", points, title: credited[0].title });
       void load();
     };
-    const handler = () => void onVisible();
+    const handler = () => void check();
+    const id = window.setInterval(handler, SOCIAL_POLL_MS);
     document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
-  }, [load, loadSocial, notify]);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", handler);
+    };
+  }, [load, loadSocial]);
 
   const reload = useCallback(async () => {
     await Promise.all([load(), loadSpins(), loadSocial()]);
@@ -403,7 +410,7 @@ export function ClubProvider({
           notify(MessageCircleHeart, "Primero pide tu código", "Ve a Inicio, abre la campaña y toca «Obtener mi código».");
           return;
         }
-        notify(MessageCircleHeart, `¡Sumaste ${campaign.points} pts en Instagram!`, "Validamos tu comentario. Ya están en tu saldo.");
+        setOverlay({ type: "social", points: campaign.points, title: campaign.title });
         void load();
         void loadSocial();
       },
