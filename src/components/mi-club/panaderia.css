@@ -332,6 +332,52 @@
 }
 @keyframes mc2-reveal { from { opacity: 0; transform: translateY(28px) scale(0.985); } }
 
+/* ---------- feed de Instagram en Inicio: foto en bandeja + ticket de panadería ---------- */
+.mc2 .view-home > .ig-sec { grid-column: 1 / -1; }
+.mc2 .ig-sec { display: grid; gap: 16px; margin-top: 8px; }
+.mc2 .ig-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
+.mc2 .ig-card {
+  display: grid; height: 100%; padding: 8px; border-radius: 26px; color: inherit; text-decoration: none;
+  background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px;
+  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift);
+  transition: box-shadow 0.5s var(--ease-heavy); -webkit-tap-highlight-color: transparent;
+}
+.mc2 .ig-card:hover { box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift-hover); }
+.mc2 .ig-card:focus-visible { outline: 3px solid var(--gold); outline-offset: 9px; }
+.mc2 .ig-photo {
+  position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 19px;
+  background: linear-gradient(140deg, var(--crust-a), var(--crust-b) 55%, var(--crust-c));
+  box-shadow: inset 0 0 0 1px rgba(60, 25, 5, 0.18);
+}
+/* corteza que "dora" mientras baja la foto */
+.mc2 .ig-photo:not([data-loaded])::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 240, 210, 0.35), transparent);
+  animation: mc2-shimmer-x 1.3s ease-in-out infinite;
+}
+.mc2 .ig-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: scale 0.7s var(--ease-heavy); }
+.mc2 .ig-card:hover .ig-photo img { scale: 1.07; }
+.mc2 .ig-kind, .mc2 .ig-open {
+  position: absolute; top: 10px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
+  color: #fff8ec; background: rgba(30, 16, 8, 0.48); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.mc2 .ig-kind { right: 10px; }
+.mc2 .ig-open { left: 10px; opacity: 0; transform: translateY(-6px) rotate(-45deg); transition: opacity 0.3s var(--ease-heavy), transform 0.45s var(--ease-heavy); }
+.mc2 .ig-card:is(:hover, :focus-visible) .ig-open { opacity: 1; transform: none; }
+.mc2 :is(.ig-kind, .ig-open) svg { width: 16px; height: 16px; }
+/* ticket con borde troquelado, como el de la caja */
+.mc2 .ig-ticket {
+  position: relative; display: grid; gap: 6px; align-content: start; margin-top: 10px; padding: 12px 8px 4px;
+  background: radial-gradient(circle at 5px 0, transparent 3px, var(--div-strong) 3.5px, transparent 4px) 0 0 / 12px 8px repeat-x;
+}
+.mc2 .ig-cap { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--body); font-size: 0.95rem; line-height: 1.4; }
+.mc2 .ig-ticket time { color: var(--muted); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.02em; }
+.mc2 .ig-ghost .ig-line { display: block; height: 11px; border-radius: 6px; background: color-mix(in oklab, var(--ink) 9%, transparent); }
+.mc2 .ig-ghost .ig-line.short { width: 55%; }
+@media (min-width: 640px) {
+  .mc2 .ig-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 22px; }
+}
+
 /* ---------- overlays ---------- */
 .mc2.mc2-sheet { background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px; }
 .mc2.lu { background: radial-gradient(70% 50% at 50% 70%, rgba(226, 89, 42, 0.35), transparent 70%), radial-gradient(80% 60% at 50% 38%, #2c1d12, #0b0805 75%); }
@@ -354,6 +400,8 @@
   .mc2 .bk-steam path { animation: none !important; opacity: 0.55; }
   .mc2 .wheat-field .blade, .mc2 .wheat-field .gust { animation: none !important; }
   .mc2 .btn-pop::after { display: none; }
+  .mc2 .ig-photo::after { animation: none !important; }
+  .mc2 .ig-photo img, .mc2 .ig-open { transition: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
   .mc2 .topbar { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }

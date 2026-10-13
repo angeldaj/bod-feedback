@@ -21,6 +21,7 @@ import type {
   ClubCard,
   ClubReward,
   ClubTier,
+  InstagramPost,
   SocialCampaign,
   SpinResult,
   SpinState,
@@ -76,6 +77,8 @@ type ClubValue = ClubData & {
   spin: (idempotencyKey: string) => Promise<SpinResult>;
   /** Campañas de Instagram (087). Vacío si no hay, si falla o si el backend aún no las tiene. */
   socialCampaigns: SocialCampaign[];
+  /** Feed de Instagram en Inicio: `null` mientras carga; vacío si falla o no hay conexión. */
+  instagramFeed: InstagramPost[] | null;
   /** Pide (o recupera) el código de la campaña. Devuelve el código o null si falló. */
   requestSocialCode: (campaignId: string) => Promise<string | null>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
@@ -148,6 +151,7 @@ export function ClubProvider({
   const [spinsLoaded, setSpinsLoaded] = useState(false);
   const [socialCampaigns, setSocialCampaigns] = useState<SocialCampaign[]>([]);
   const socialRef = useRef<SocialCampaign[]>([]);
+  const [instagramFeed, setInstagramFeed] = useState<InstagramPost[] | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -230,6 +234,12 @@ export function ClubProvider({
     void loadSpins();
     void loadSocial();
   }, [load, loadSocial, loadSpins]);
+
+  // Decorativo: si falla, Inicio simplemente no muestra el feed.
+  useEffect(() => {
+    if (!member) return;
+    adapter.listInstagramFeed().then(setInstagramFeed, () => setInstagramFeed([]));
+  }, [adapter, member]);
 
   // Con un código pendiente se consulta al volver de Instagram y cada pocos segundos con la pestaña
   // visible (puede comentar desde otro teléfono). Los puntos solo se muestran cuando el backend los confirma.
@@ -447,6 +457,7 @@ export function ClubProvider({
     reloadSpins: loadSpins,
     spin,
     socialCampaigns,
+    instagramFeed,
     requestSocialCode,
     redeem,
     selectDesign,
