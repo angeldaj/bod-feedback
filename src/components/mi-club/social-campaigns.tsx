@@ -89,7 +89,7 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
           </div>
           <ol className="sc-steps">
             <li>Abre la publicación y comenta tu código tal cual.</li>
-            <li>Cuando Instagram nos avise, sumamos los puntos. Vuelve aquí a revisarlo.</li>
+            <li>Cuando Instagram nos avise, sumamos los puntos. Si dejas esta página abierta, lo verás aquí al instante.</li>
           </ol>
           <p className="sc-note">Tu comentario es público: cualquiera verá el código. Úsalo solo tú y no lo compartas antes.</p>
           {campaign.postUrl ? (

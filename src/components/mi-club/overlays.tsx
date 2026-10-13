@@ -21,6 +21,7 @@ import {
   Layers,
   Lock,
   LockOpen,
+  MessageCircleHeart,
   Sparkles,
   Ticket,
   X,
@@ -383,6 +384,63 @@ function LevelUp({ from, to, onClose }: { from: ClubTier; to: ClubTier; onClose:
   );
 }
 
+/* ---------------- puntos de Instagram validados ---------------- */
+
+const CONFETTI_COLORS = ["#f2cd86", "#e9b95d", "#d98652", "#f7ecd8", "#e8735a"];
+
+function SocialWin({ points, title, onClose }: { points: number; title: string; onClose: () => void }) {
+  const reduce = useReducedMotion();
+  const [shown, setShown] = useState(reduce ? points : 0);
+  const okRef = useRef<HTMLButtonElement>(null);
+  // Aleatorio una sola vez por apertura: cada papelito sale del centro hacia arriba y cae.
+  const [pieces] = useState(() =>
+    Array.from({ length: 36 }, (_, i) => ({
+      x: (Math.random() - 0.5) * 520,
+      y: -(120 + Math.random() * 260),
+      r: Math.random() * 720 - 360,
+      delay: Math.random() * 0.15,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+    })),
+  );
+
+  useEffect(() => {
+    if (reduce) return;
+    const controls = animate(0, points, { duration: 1.1, delay: 0.25, ease: EASE, onUpdate: (v) => setShown(Math.round(v)) });
+    return () => controls.stop();
+  }, [points, reduce]);
+
+  return (
+    <Modal open onClose={onClose} className="mc2-full lu sw" initialFocus={okRef} label={`Sumaste ${points} puntos en Instagram`}>
+      {reduce ? null : (
+        <div className="sw-confetti" aria-hidden="true">
+          {pieces.map((p, i) => (
+            <motion.span
+              key={i}
+              style={{ background: p.color }}
+              initial={{ x: 0, y: 0, rotate: 0, opacity: 1 }}
+              animate={{ x: [0, p.x * 0.6, p.x], y: [0, p.y, p.y + 520], rotate: p.r, opacity: [1, 1, 0] }}
+              transition={{ duration: 2.2, delay: 0.25 + p.delay, ease: "easeOut", times: [0, 0.3, 1] }}
+            />
+          ))}
+        </div>
+      )}
+      <motion.div className="sw-ic" initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5, ease: EASE }} aria-hidden="true">
+        <MessageCircleHeart />
+      </motion.div>
+      <div className="lu-t">
+        <small>Comentario validado</small>
+        <Dialog.Title render={<h2 />}>
+          <span className="tab-nums">+{shown}</span> pts
+        </Dialog.Title>
+        <p className="sw-sub">Ya están en tu saldo. Gracias por participar en «{title}».</p>
+      </div>
+      <Dialog.Close ref={okRef} className="btn btn-pop">
+        Ver mi saldo
+      </Dialog.Close>
+    </Modal>
+  );
+}
+
 /* ---------------- aviso + vuelo a la Wallet ---------------- */
 
 function NoticeToast() {
@@ -459,6 +517,7 @@ export function ClubOverlays() {
       {overlay?.type === "caja" ? <CajaMode onClose={closeOverlay} /> : null}
       {overlay?.type === "gallery" ? <CardGallery onClose={closeOverlay} /> : null}
       {overlay?.type === "levelup" ? <LevelUp from={overlay.from} to={overlay.to} onClose={closeOverlay} /> : null}
+      {overlay?.type === "social" ? <SocialWin points={overlay.points} title={overlay.title} onClose={closeOverlay} /> : null}
       <NoticeToast />
       <FlightLayer />
     </>

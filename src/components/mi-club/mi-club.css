@@ -493,6 +493,17 @@
   .lu-list .pill svg { color: #f2cd86; }
 }
 
+/* puntos de Instagram (reusa el fondo de .lu) */
+.mc2.sw {
+  overflow: hidden;
+  .sw-confetti { position: absolute; left: 50%; top: 42%; width: 0; height: 0; pointer-events: none; }
+  .sw-confetti span { position: absolute; width: 9px; height: 14px; border-radius: 2px; margin: -7px 0 0 -4px; }
+  .sw-ic { width: 88px; height: 88px; border-radius: 28px; display: grid; place-items: center; background: rgba(242, 205, 134, 0.14); color: #f2cd86; box-shadow: inset 0 0 0 1px rgba(242, 205, 134, 0.3); }
+  .sw-ic svg { width: 42px; height: 42px; }
+  .lu-t h2 { font-size: 4rem; }
+  .sw-sub { color: #d9c7a8; max-width: 30ch; }
+}
+
 /* toast + ghost ticket */
 .mc2.mc2-notif { position: fixed; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top, 0px)); z-index: 60; display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 22px; background: var(--surface); box-shadow: 0 18px 40px -16px rgba(30, 15, 5, 0.55), inset 0 0 0 1px var(--div); max-width: 420px; margin: 0 auto;
   .ic { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; background: var(--coral-soft); color: var(--coral); flex: none; }
