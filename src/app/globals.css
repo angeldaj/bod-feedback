@@ -2504,3 +2504,112 @@
     }
   }
 }
+
+/* ---- Carta (/menu): luz de vela de fondo y destello del título ----
+   Solo gradientes que se desplazan (transform/opacity, sin blur): casi no
+   gastan batería en un Android de gama media. Con "reducir movimiento" la
+   luz queda quieta y el título sin destello. */
+@layer components {
+  .menu-candle {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .menu-candle__flame {
+    position: absolute;
+    border-radius: 9999px;
+    will-change: transform, opacity;
+  }
+  .menu-candle__flame--a {
+    width: 80vmax;
+    height: 80vmax;
+    left: -28vmax;
+    top: -38vmax;
+    background: radial-gradient(closest-side, rgba(217, 169, 74, 0.17), rgba(217, 169, 74, 0.05) 55%, transparent);
+    animation:
+      menu-drift-a 26s ease-in-out infinite alternate,
+      menu-flicker 7s ease-in-out infinite;
+  }
+  .menu-candle__flame--b {
+    width: 60vmax;
+    height: 60vmax;
+    right: -30vmax;
+    top: 18vh;
+    background: radial-gradient(closest-side, rgba(255, 106, 61, 0.1), rgba(255, 106, 61, 0.03) 55%, transparent);
+    animation: menu-drift-b 32s ease-in-out infinite alternate;
+  }
+  .menu-candle__flame--c {
+    width: 70vmax;
+    height: 70vmax;
+    left: 10vw;
+    bottom: -45vmax;
+    background: radial-gradient(closest-side, rgba(239, 199, 126, 0.09), transparent);
+    animation:
+      menu-drift-c 38s ease-in-out infinite alternate,
+      menu-flicker 11s ease-in-out 2s infinite;
+  }
+
+  .menu-shimmer {
+    padding-inline: 0.08em;
+    background-image: linear-gradient(
+      110deg,
+      var(--lb-cream) 0%,
+      var(--lb-cream) 42%,
+      var(--lb-gold-hi) 50%,
+      var(--lb-cream) 58%,
+      var(--lb-cream) 100%
+    );
+    background-size: 260% 100%;
+    background-position: 100% 0;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: menu-shimmer 9s var(--ease-brand) 1.4s infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .menu-candle__flame,
+    .menu-shimmer {
+      animation: none;
+    }
+  }
+}
+
+@keyframes menu-drift-a {
+  to {
+    transform: translate3d(14vw, 10vh, 0) scale(1.08);
+  }
+}
+@keyframes menu-drift-b {
+  to {
+    transform: translate3d(-12vw, 22vh, 0) scale(0.92);
+  }
+}
+@keyframes menu-drift-c {
+  to {
+    transform: translate3d(-16vw, -14vh, 0) scale(1.1);
+  }
+}
+@keyframes menu-flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.78;
+  }
+  60% {
+    opacity: 0.92;
+  }
+}
+@keyframes menu-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  24%,
+  100% {
+    background-position: 0% 0;
+  }
+}

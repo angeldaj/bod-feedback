@@ -1,10 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { AnimatePresence, motion, MotionConfig, useReducedMotion, type Variants } from "motion/react";
+import {
+  AnimatePresence,
+  motion,
+  MotionConfig,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+  type Variants,
+} from "motion/react";
 import { ArrowLeft, Search, X } from "lucide-react";
 import { formatBs, formatUsd } from "@/components/pedidos/format";
 import type { Menu, MenuItem, MenuSection } from "@/lib/menu-api";
+import { Embers } from "./embers";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -191,6 +201,7 @@ export function MenuView({ menu }: { menu: Menu }) {
           </button>
           {rate !== null && <CurrencyToggle value={currency} onChange={writeCurrency} />}
         </div>
+        <ScrollProgress />
       </div>
 
       {menu.items.length === 0 ? (
@@ -240,49 +251,73 @@ export function MenuView({ menu }: { menu: Menu }) {
 /* ----------------------------------------------------------- Portada ---- */
 
 function MenuHero({ name }: { name: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const reduce = useReducedMotion();
+  // Al bajar, la portada se aleja y se apaga mientras la barra toma su lugar.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [0, 110]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
+  const opacity = useTransform(scrollYProgress, [0, 0.85], [1, 0]);
+
   return (
-    <motion.header
-      variants={stagger}
-      initial="hidden"
-      animate="show"
-      className="flex flex-col items-center gap-5 pt-14 pb-12 text-center md:pt-20 md:pb-16"
-    >
-      <motion.a
-        href="/"
-        variants={rise}
-        className="flex flex-col items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-accent"
-        aria-label="La Bodega, ir al inicio"
-      >
-        <span className="flex size-14 items-center justify-center rounded-2xl bg-[#1a120b] ring-1 ring-hair-chip">
-          {/* eslint-disable-next-line @next/next/no-img-element -- asset local */}
-          <img src="/logo-bodega.png" alt="" className="size-10 object-contain" />
-        </span>
-        <span className="text-[15px] font-bold uppercase tracking-[0.32em] text-cream">La Bodega</span>
-      </motion.a>
-
-      <Ornament />
-
-      <div className="overflow-hidden pb-2">
-        <motion.h1
-          variants={{
-            hidden: { y: "105%" },
-            show: { y: 0, transition: { duration: 1.1, ease: EASE } },
-          }}
-          className="font-serif text-[clamp(72px,16vw,148px)] font-semibold italic leading-[0.9] tracking-[-0.01em] text-cream"
-        >
-          Carta
-        </motion.h1>
+    <motion.header ref={ref} variants={stagger} initial="hidden" animate="show" className="relative">
+      <div aria-hidden="true" className="absolute inset-y-0 -right-4 -left-4 md:-right-8 md:-left-8">
+        <Embers className="block size-full" />
       </div>
-
-      <motion.p
-        variants={rise}
-        className="flex items-center gap-3 text-[13px] font-medium uppercase tracking-[0.34em] text-gold-accent"
+      <motion.div
+        style={reduce ? undefined : { y, scale, opacity }}
+        className="relative flex flex-col items-center gap-5 pt-14 pb-12 text-center md:pt-20 md:pb-16"
       >
-        <span aria-hidden="true" className="h-px w-6 bg-gold-accent/60" />
-        {name}
-        <span aria-hidden="true" className="h-px w-6 bg-gold-accent/60" />
-      </motion.p>
+        <motion.a
+          href="/"
+          variants={rise}
+          className="flex flex-col items-center gap-2.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-accent"
+          aria-label="La Bodega, ir al inicio"
+        >
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-[#1a120b] ring-1 ring-hair-chip">
+            {/* eslint-disable-next-line @next/next/no-img-element -- asset local */}
+            <img src="/logo-bodega.png" alt="" className="size-10 object-contain" />
+          </span>
+          <span className="text-[15px] font-bold uppercase tracking-[0.32em] text-cream">La Bodega</span>
+        </motion.a>
+
+        <Ornament />
+
+        <div className="overflow-hidden pb-2">
+          <motion.h1
+            variants={{
+              hidden: { y: "105%" },
+              show: { y: 0, transition: { duration: 1.1, ease: EASE } },
+            }}
+            className="menu-shimmer font-serif text-[clamp(72px,16vw,148px)] font-semibold italic leading-[0.9] tracking-[-0.01em]"
+          >
+            Carta
+          </motion.h1>
+        </div>
+
+        <motion.p
+          variants={rise}
+          className="flex items-center gap-3 text-[13px] font-medium uppercase tracking-[0.34em] text-gold-accent"
+        >
+          <span aria-hidden="true" className="h-px w-6 bg-gold-accent/60" />
+          {name}
+          <span aria-hidden="true" className="h-px w-6 bg-gold-accent/60" />
+        </motion.p>
+      </motion.div>
     </motion.header>
+  );
+}
+
+/** Línea dorada bajo la barra fija: cuánto de la carta llevas recorrido. */
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 160, damping: 30, restDelta: 0.001 });
+  return (
+    <motion.div
+      aria-hidden="true"
+      style={{ scaleX }}
+      className="absolute inset-x-0 -bottom-px h-[2px] origin-left bg-gradient-to-r from-gold via-gold-hi to-coral"
+    />
   );
 }
 
@@ -406,15 +441,26 @@ function CurrencyToggle({ value, onChange }: { value: Currency; onChange: (next:
 /* ---------------------------------------------------------- Secciones ---- */
 
 function SectionHeading({ id, number, name }: { id: string; number: number; name: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
+  // El número romano gigante de fondo se mueve más lento que el título.
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [-50, 50]);
+
   return (
     <motion.div
+      ref={ref}
       variants={stagger}
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.6 }}
-      className="mb-10 flex flex-col items-center gap-3 text-center md:mb-14"
+      className="relative mb-10 flex flex-col items-center gap-3 pt-6 text-center md:mb-14 md:pt-10"
     >
-      <motion.span variants={rise} className="font-serif text-[18px] italic text-gold-accent">
+      <motion.span
+        aria-hidden="true"
+        style={reduce ? undefined : { y }}
+        className="pointer-events-none absolute top-1/2 left-1/2 -z-[1] -translate-x-1/2 -translate-y-1/2 font-serif text-[clamp(150px,34vw,300px)] leading-none font-semibold italic text-[rgba(217,169,74,0.08)] select-none"
+      >
         {roman(number)}
       </motion.span>
       <motion.h2
@@ -522,7 +568,11 @@ export function MenuShell({ children }: { children: React.ReactNode }) {
   return (
     <MotionConfig reducedMotion="user">
       <div aria-hidden="true" className="pop-page-base" />
-      <div aria-hidden="true" className="pop-page-glow pop-page-glow--warm" />
+      <div aria-hidden="true" className="menu-candle">
+        <span className="menu-candle__flame menu-candle__flame--a" />
+        <span className="menu-candle__flame menu-candle__flame--b" />
+        <span className="menu-candle__flame menu-candle__flame--c" />
+      </div>
       <main className="pedidos-root relative z-[1] mx-auto flex min-h-dvh w-full max-w-[1200px] flex-col px-4 pb-16 md:px-8">
         {children}
       </main>
