@@ -2569,9 +2569,15 @@
     animation: menu-shimmer 9s var(--ease-brand) 1.4s infinite;
   }
 
+  /* Ilustración de cada sección: flota apenas, ya dibujada. */
+  .menu-art-float {
+    animation: menu-float 6s ease-in-out infinite;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .menu-candle__flame,
-    .menu-shimmer {
+    .menu-shimmer,
+    .menu-art-float {
       animation: none;
     }
   }
@@ -2611,5 +2617,14 @@
   24%,
   100% {
     background-position: 0% 0;
+  }
+}
+@keyframes menu-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
   }
 }

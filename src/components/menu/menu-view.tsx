@@ -15,6 +15,7 @@ import { ArrowLeft, Search, X } from "lucide-react";
 import { formatBs, formatUsd } from "@/components/pedidos/format";
 import type { Menu, MenuItem, MenuSection } from "@/lib/menu-api";
 import { Embers } from "./embers";
+import { SectionArt } from "./section-art";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -459,10 +460,11 @@ function SectionHeading({ id, number, name }: { id: string; number: number; name
       <motion.span
         aria-hidden="true"
         style={reduce ? undefined : { y }}
-        className="pointer-events-none absolute top-1/2 left-1/2 -z-[1] -translate-x-1/2 -translate-y-1/2 font-serif text-[clamp(150px,34vw,300px)] leading-none font-semibold italic text-[rgba(217,169,74,0.08)] select-none"
+        className="pointer-events-none absolute top-1/2 left-1/2 -z-[1] -translate-x-1/2 -translate-y-1/2 font-serif text-[clamp(150px,34vw,300px)] leading-none font-semibold italic text-[rgba(217,169,74,0.06)] select-none"
       >
         {roman(number)}
       </motion.span>
+      <SectionArt name={name} className="mb-2 size-24 md:size-32" />
       <motion.h2
         id={id}
         variants={rise}
