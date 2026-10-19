@@ -85,3 +85,6 @@ export type ClubEvent = {
   description: string;
   official?: boolean;
 };
+
+/** Pedidos queda oculto en el club (pestaña y tile de Inicio) hasta que ventas lo lance; la ruta sigue existiendo. */
+export const SHOW_PEDIDOS = false;

@@ -14,6 +14,7 @@ import { Pixel, PixelKitchen } from "../pixel-sprites";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
 import { InstagramFeedSection } from "../instagram-feed";
+import { SHOW_PEDIDOS } from "../data";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -154,14 +155,16 @@ export function HomeScreen() {
       <div className="home-side">
         <TierProgress card={card} />
         <SpinTile />
-        <Link href={href("pedidos")} className="tile ped-teaser px-live">
-          <Pixel sprite="moto" scale={3} fps={0.2} />
-          <span className="pt-body">
-            <b>Pedidos con el club</b>
-            <small>Síguelo en vivo, háblale al chef y suma puntos.</small>
-          </span>
-          <span className="pill coral">Muy pronto</span>
-        </Link>
+        {SHOW_PEDIDOS && (
+          <Link href={href("pedidos")} className="tile ped-teaser px-live">
+            <Pixel sprite="moto" scale={3} fps={0.2} />
+            <span className="pt-body">
+              <b>Pedidos con el club</b>
+              <small>Síguelo en vivo, háblale al chef y suma puntos.</small>
+            </span>
+            <span className="pill coral">Muy pronto</span>
+          </Link>
+        )}
         <div className="sec-head">
           <h2>Tu Wallet</h2>
           <Link href={href("wallet")} className="link">
