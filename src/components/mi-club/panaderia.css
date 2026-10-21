@@ -19,12 +19,15 @@
   --lift: inset 0 1px 0 rgba(255, 236, 205, 0.05), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
   --lift-hover: inset 0 1px 0 rgba(255, 236, 205, 0.07), 0 6px 8px -4px rgba(0, 0, 0, 0.55);
   --ease-heavy: cubic-bezier(0.32, 0.72, 0, 1);
+  --hi: rgba(255, 236, 205, 0.07); --gold-line: color-mix(in oklab, var(--gold) 55%, transparent);
+  --surface-grad: linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 2%), color-mix(in oklab, var(--surface) 92%, var(--gold) 8%));
   --lift-wallet: inset 0 1px 0 rgba(255, 236, 205, 0.06), 0 22px 40px -26px rgba(0, 0, 0, 0.9);
 
   &.day {
     /* día: harina, papel y luz de mañana */
     --ground: #fff3e4; --surface: #fffaf2; --surface-2: #fff4e6; --ink: #2a1a11; --body: #6a5142; --muted: #7e6150;
     --oven-glow: rgba(240, 160, 70, 0.14);
+    --hi: rgba(255, 255, 255, 0.9); --gold-line: color-mix(in oklab, var(--gold) 70%, transparent);
     --bezel: rgba(170, 110, 50, 0.055); --bezel-line: rgba(170, 110, 50, 0.1);
     --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     --brick: #a4502a; --brick-joint: rgba(70, 25, 8, 0.32); --peel: #8a5532; --steam: rgba(255, 255, 255, 0.9);
@@ -40,9 +43,10 @@
 .mc2 .bk-wash {
   position: absolute; inset: 0;
   background:
-    radial-gradient(60% 40% at 78% 0%, var(--oven-glow), transparent 70%),
-    radial-gradient(50% 36% at 0% 100%, color-mix(in oklab, var(--oven-glow) 60%, transparent), transparent 72%);
+    radial-gradient(60% 46% at 80% -4%, var(--oven-glow), transparent 70%),
+    radial-gradient(52% 40% at -6% 104%, color-mix(in oklab, var(--oven-glow) 70%, transparent), transparent 72%);
 }
+.mc2 .bk-bg::after { content: ""; position: absolute; inset: 0; background-image: var(--paper); background-size: 180px 180px; opacity: 0.9; }
 
 /* el contenido flota sobre el fondo */
 .mc2.mc2-page { background: var(--ground); }
@@ -80,9 +84,15 @@
 
 /* ---------- superficies: planas, con filete fino ---------- */
 .mc2 :is(.tile, .list, .rc, .ac, .prize-pts) {
-  background-color: var(--surface); background-image: none;
+  background-color: var(--surface); background-image: var(--surface-grad);
   border-radius: 16px;
-  box-shadow: 0 0 0 1px var(--div), var(--lift);
+  box-shadow: inset 0 1px 0 var(--hi), 0 0 0 1px var(--div), var(--lift);
+}
+/* las piezas protagonistas de Inicio llevan un filo dorado arriba */
+.mc2 :is(.tier-prog, .spin-tile) { position: relative; overflow: hidden; }
+.mc2 :is(.tier-prog, .spin-tile)::before {
+  content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-line) 20%, var(--gold-line) 80%, transparent);
 }
 .mc2 :is(.rc, .ac):hover { box-shadow: 0 0 0 1px var(--div-strong), var(--lift-hover); }
 .mc2 .rc, .mc2 .ac { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
@@ -95,15 +105,24 @@
 .mc2 .view, .mc2 .home-side, .mc2 .prof-grid { gap: 24px; }
 .mc2 .rc-grid { gap: 16px; }
 
-/* títulos: la tipografía hace la jerarquía, sin adornos */
+/* títulos: la firma de la casa (Cormorant cursiva) con un filete dorado */
+.mc2 .sec-head h2, .mc2 .sec-head h3 {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--serif); font-style: italic; font-weight: 600; text-transform: none;
+  font-size: 1.7rem; line-height: 1.1; letter-spacing: 0; padding-bottom: 2px;
+}
+.mc2 .sec-head h2::before, .mc2 .sec-head h3::before { content: ""; width: 22px; height: 1px; flex: none; background: var(--gold-line); }
+.mc2 .v-head h1::after, .mc2 .v-head h2::after { content: ""; display: block; width: 40px; height: 1px; margin-top: 14px; background: var(--gold-line); }
+/* el nombre del socio, en cursiva dorada */
+.mc2 .hello h1 em { font-family: var(--serif); font-style: italic; font-weight: 600; text-transform: none; color: var(--gold-text); letter-spacing: 0; font-size: 1.12em; line-height: 1.1; padding-right: 0.04em; }
 .mc2 .v-head h1, .mc2 .hello h1 { font-size: 2.7rem; letter-spacing: -0.01em; text-wrap: balance; }
 
 /* ---------- botones: color pleno, sin brillos ---------- */
 .mc2 .btn { transition: transform 0.16s ease-out, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s; }
 .mc2 .btn:active { transform: scale(0.97); }
-.mc2 .btn-pop { background: var(--gold); color: #2a1306; box-shadow: none; }
+.mc2 .btn-pop { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #2a1306; box-shadow: inset 0 1px 0 rgba(255, 246, 225, 0.55), 0 1px 2px rgba(74, 43, 22, 0.25); }
 @media (hover: hover) and (pointer: fine) {
-  .mc2 .btn-pop:hover { background: color-mix(in oklab, var(--gold) 86%, #2a1306); }
+  .mc2 .btn-pop:hover { background: linear-gradient(180deg, var(--gold), color-mix(in oklab, var(--gold) 86%, #2a1306)); }
 }
 .mc2 .btn-ghost { border-color: var(--div-strong); }
 @media (hover: hover) and (pointer: fine) {
@@ -130,7 +149,7 @@
 .mc2 .fchip[aria-pressed="true"] { background: var(--ink); border-color: transparent; color: var(--ground); }
 
 /* ---------- saludo ---------- */
-.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 16px; }
+.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 24px; }
 .mc2 .hello-copy { min-width: 0; }
 .mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 8px; padding-bottom: 2px; }
 .mc2 .hello-kitchen { width: 440px; max-width: 100%; height: auto; margin: 0; padding: 0; }
@@ -244,7 +263,7 @@
   max-width: 1136px; margin: 0 auto; padding: 0 18px; display: flex; flex-wrap: wrap; gap: 4px 12px;
   justify-content: center; align-items: baseline; text-align: center; color: var(--muted); font-size: 0.95rem;
 }
-.mc2 .field-copy b { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.2rem; color: var(--ink); }
+.mc2 .field-copy b { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.3rem; color: var(--gold-text); }
 
 /* ---------- entradas al hacer scroll (CSS scroll-driven, sin listeners) ---------- */
 @supports (animation-timeline: view()) {
@@ -308,7 +327,9 @@
   .mc2 .topbar-wrap { padding: 14px 24px 0; }
   .mc2 .main { padding-top: 40px; }
   .mc2 .hello { grid-template-columns: minmax(0, 1fr) auto; }
-  .mc2 .hello h1, .mc2 .v-head h1 { font-size: 3.1rem; }
+  .mc2 .v-head h1 { font-size: 3.1rem; }
+  .mc2 .hello h1 { font-size: 3.8rem; }
+  .mc2 .hello .hello-aside { font-size: 1.6rem; }
   .mc2 .field-foot { padding-bottom: 28px; margin-top: 40px; }
   .mc2 .view-home { row-gap: 30px; }
 }

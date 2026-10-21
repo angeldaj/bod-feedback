@@ -126,7 +126,9 @@ export function HomeScreen() {
     <div className="view view-home">
       <div className="hello">
         <div className="hello-copy">
-          <h1 className={reveal(1)}>Hola, {member.firstName}.</h1>
+          <h1 className={reveal(1)}>
+            Hola, <em>{member.firstName}</em>.
+          </h1>
           <p className={`hello-aside ${reveal(2)}`}>Tu pan ya está saliendo del horno.</p>
           <p className={reveal(2)}>
             Nivel <b>{card.tier.name}</b>, en el club desde {card.memberSince}. Tienes <b className="tab-nums">{fmtPts(card.balance)}</b> pts para canjear.
