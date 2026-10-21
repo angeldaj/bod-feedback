@@ -12,6 +12,8 @@
   --crust-a: #f3c873; --crust-b: #d98c3c; --crust-c: #b8622a; --crust-ink: #2a1306;
   --wheat: #e2b35d;
   --oven-glow: rgba(226, 89, 42, 0.16);
+  --glow-gold: rgba(217, 169, 74, 0.2); --glow-ember: rgba(214, 84, 40, 0.16); --glow-honey: rgba(240, 194, 116, 0.1);
+  --engrave: rgba(224, 180, 92, 0.22); --vignette: rgba(0, 0, 0, 0.55);
   --bezel: rgba(255, 228, 190, 0.035); --bezel-line: rgba(255, 228, 190, 0.08);
   --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .78  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --brick: #5e2b16; --brick-joint: rgba(0, 0, 0, 0.35); --peel: #6b4126; --steam: rgba(255, 244, 228, 0.75);
@@ -27,6 +29,8 @@
     /* día: harina, papel y luz de mañana */
     --ground: #fff3e4; --surface: #fffaf2; --surface-2: #fff4e6; --ink: #2a1a11; --body: #6a5142; --muted: #7e6150;
     --oven-glow: rgba(240, 160, 70, 0.14);
+    --glow-gold: rgba(232, 178, 82, 0.26); --glow-ember: rgba(240, 130, 70, 0.14); --glow-honey: rgba(255, 214, 150, 0.32);
+    --engrave: rgba(169, 118, 26, 0.3); --vignette: rgba(150, 95, 40, 0.1);
     --hi: rgba(255, 255, 255, 0.9); --gold-line: color-mix(in oklab, var(--gold) 70%, transparent);
     --bezel: rgba(170, 110, 50, 0.055); --bezel-line: rgba(170, 110, 50, 0.1);
     --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
@@ -38,15 +42,33 @@
   }
 }
 
-/* ---------- fondo: una luz cálida y quieta ---------- */
+/* ---------- fondo: luz de horno que deriva, grabado guilloché y grano ---------- */
 .mc2 .bk-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.mc2 .bk-wash {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(60% 46% at 80% -4%, var(--oven-glow), transparent 70%),
-    radial-gradient(52% 40% at -6% 104%, color-mix(in oklab, var(--oven-glow) 70%, transparent), transparent 72%);
+/* luces: degradados radiales grandes (sin filtros) que solo se trasladan */
+.mc2 .bk-aurora i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; will-change: transform; }
+.mc2 .bk-aurora .a { top: -32vmax; right: -22vmax; background: radial-gradient(closest-side, var(--glow-gold), transparent); animation: bk-drift-a 46s ease-in-out infinite alternate; }
+.mc2 .bk-aurora .b { bottom: -38vmax; left: -26vmax; background: radial-gradient(closest-side, var(--glow-ember), transparent); animation: bk-drift-b 58s ease-in-out infinite alternate; }
+.mc2 .bk-aurora .c { top: 18vh; left: 28vw; width: 54vmax; height: 54vmax; background: radial-gradient(closest-side, var(--glow-honey), transparent); animation: bk-drift-c 64s ease-in-out infinite alternate; }
+@keyframes bk-drift-a { to { transform: translate(-14vmax, 10vmax) scale(1.12); } }
+@keyframes bk-drift-b { to { transform: translate(16vmax, -8vmax) scale(0.92); } }
+@keyframes bk-drift-c { to { transform: translate(-18vmax, 14vmax) scale(1.15); } }
+/* grabado de billete: arriba a la derecha, se desvanece hacia el contenido y gira casi imperceptible */
+.mc2 .bk-guilloche {
+  position: absolute; top: -20vmax; right: -18vmax; width: 72vmax; height: 72vmax; will-change: transform;
+  background: radial-gradient(closest-side, var(--engrave) 45%, transparent 100%);
+  -webkit-mask: url(/club/guilloche.svg) center / contain no-repeat; mask: url(/club/guilloche.svg) center / contain no-repeat;
+  animation: bk-turn 240s linear infinite;
 }
+@keyframes bk-turn { to { transform: rotate(360deg); } }
+/* viñeta y grano: profundidad en los bordes y textura de papel */
+.mc2 .bk-wash { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--vignette)); }
 .mc2 .bk-bg::after { content: ""; position: absolute; inset: 0; background-image: var(--paper); background-size: 180px 180px; opacity: 0.9; }
+@media (max-width: 719px) {
+  .mc2 .bk-guilloche { top: -24vmax; right: -34vmax; width: 90vmax; height: 90vmax; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc2 .bk-aurora i, .mc2 .bk-guilloche { animation: none; }
+}
 
 /* el contenido flota sobre el fondo */
 .mc2.mc2-page { background: var(--ground); }

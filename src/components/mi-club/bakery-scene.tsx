@@ -8,10 +8,17 @@ import { useId } from "react";
  * solo `transform`/`opacity` y se queda quieto con `prefers-reduced-motion`.
  */
 
-/** Fondo fijo: una luz cálida y quieta detrás del contenido. */
+/** Fondo fijo: luces cálidas que derivan despacio, un grabado guilloché dorado y grano de papel. */
 export function BakeryBackdrop() {
   return (
     <div className="bk-bg" aria-hidden="true">
+      <div className="bk-aurora">
+        <i className="a" />
+        <i className="b" />
+        <i className="c" />
+      </div>
+      {/* grabado guilloché (/club/guilloche.svg) como máscara: toma el dorado de cada tema */}
+      <i className="bk-guilloche" />
       <div className="bk-wash" />
     </div>
   );
