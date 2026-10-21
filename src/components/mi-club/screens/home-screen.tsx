@@ -11,7 +11,7 @@ import { SKIN_NAME, fmtPts, toFace } from "../club-visuals";
 import { Skeleton, WalletPocket } from "../pieces";
 import { BakingLoaf } from "../bakery-scene";
 import { Pixel } from "../pixel-sprites";
-import { CardStage, HelloCrew, introPending, markIntroSeen } from "../crew";
+import { HelloCrew, introPending, markIntroSeen } from "../crew";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
 import { InstagramFeedSection } from "../instagram-feed";
@@ -140,9 +140,9 @@ export function HomeScreen() {
       </div>
 
       <div className="card-hero">
-        <CardStage serve={intro}>
+        <div className="card-scene">
           <MembershipCard data={toFace(card)} interactive flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
-        </CardStage>
+        </div>
         <button type="button" className="flip-btn" onClick={() => setFlipped((f) => !f)} aria-pressed={flipped}>
           <Rotate3d aria-hidden="true" />
           {flipped ? "Ver frente" : "Ver reverso"}
