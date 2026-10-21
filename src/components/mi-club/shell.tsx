@@ -22,7 +22,7 @@ import {
 import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
 import { WheelIcon } from "./club-visuals";
-import { BakeryBackdrop, BakingLoaf, MemberAvatar, WheatField } from "./bakery-scene";
+import { BakeryBackdrop, BakingLoaf, MemberAvatar } from "./bakery-scene";
 import { SHOW_PEDIDOS } from "./data";
 import "./mi-club.css";
 import "./panaderia.css";
@@ -190,7 +190,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <b>Bodega Club</b>
           <span>Pan del día, café y puntos en cada visita.</span>
         </div>
-        <WheatField />
       </footer>
 
       {isClient

@@ -1,7 +1,6 @@
 /*
  * Bodega Club · capa 8-bit (2026-10).
- * Sprites pixel art (`pixel-sprites.tsx`): el repartidor que cruza el fondo
- * y la pantalla de Pedidos. Los cuadros alternan
+ * Sprites pixel art (`pixel-sprites.tsx`) de la pantalla de Pedidos. Los cuadros alternan
  * con `steps()` (movimiento de videojuego) y solo corren con `[data-run]` (en
  * pantalla) o `.px-live`. Con `prefers-reduced-motion` todo queda quieto.
  */
@@ -10,21 +9,13 @@
 .mc2 .px { display: block; flex: none; overflow: visible; image-rendering: pixelated; }
 .mc2 .px-flip { transform: scaleX(-1); }
 .mc2 .px-b { opacity: 0; }
-.mc2 :is([data-run], .px-live, .px-parade) .px-a { animation: mc2-px-a calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
-.mc2 :is([data-run], .px-live, .px-parade) .px-b { animation: mc2-px-b calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
+.mc2 :is([data-run], .px-live) .px-a { animation: mc2-px-a calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
+.mc2 :is([data-run], .px-live) .px-b { animation: mc2-px-b calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
 @keyframes mc2-px-a { 50% { opacity: 0; } }
 @keyframes mc2-px-b { 50% { opacity: 1; } }
 
 /* ---------- saltito (estrellas, perks) ---------- */
 @keyframes mc2-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-12px); } 70% { transform: translateY(-4px); } }
-
-/* ---------- el repartidor que cruza el fondo ---------- */
-.mc2 .px-parade { position: absolute; left: 0; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); opacity: 0.32; animation: mc2-parade 34s linear 6s infinite; transform: translateX(-90px); }
-.mc2.day .px-parade { opacity: 0.4; }
-@keyframes mc2-parade {
-  0% { transform: translateX(-90px); }
-  55%, 100% { transform: translateX(calc(100vw + 90px)); }
-}
 
 /* ---------- inicio: aviso de Pedidos ---------- */
 .mc2 .ped-teaser { display: flex; align-items: center; gap: 14px; color: var(--ink); text-decoration: none; transition: transform 0.5s var(--ease-heavy), box-shadow 0.5s var(--ease-heavy); }
@@ -215,7 +206,6 @@
 
 /* ---------- movimiento reducido ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .mc2 .px-parade { display: none; }
   .mc2 .px-a, .mc2 .px-b, .mc2 .pk-steam, .mc2 .px-kitchen *,
   .mc2 .view-pedidos *, .mc2 .ped-teaser .px { animation: none !important; }
   .mc2 .px-b { opacity: 0; }

@@ -209,12 +209,3 @@ export function useInView<T extends Element>(margin = "80px") {
   }, [margin]);
   return [ref, inView] as const;
 }
-
-/** Repartidor que cruza el fondo de vez en cuando: el club también llega a tu casa. */
-export function PixelParade() {
-  return (
-    <div className="px-parade">
-      <Pixel sprite="moto" scale={3} fps={0.2} />
-    </div>
-  );
-}
