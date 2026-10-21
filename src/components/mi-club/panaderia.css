@@ -185,7 +185,7 @@
 .mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 8px; padding-bottom: 2px; }
 .mc2 .hello-title { display: flex; align-items: flex-end; gap: 12px; }
 .mc2 .hello-oven { width: 64px; height: auto; flex: none; margin-bottom: -2px; }
-.mc2 .hello-kitchen { width: min(100%, 440px); margin: 0; padding: 0; }
+.mc2 .hello-kitchen { width: 440px; max-width: 100%; height: auto; margin: 0; padding: 0; }
 @media (max-width: 719px) {
   .mc2 .hello { grid-template-columns: 1fr; }
   .mc2 .hello-kitchen { width: 100%; max-width: 420px; justify-self: center; }

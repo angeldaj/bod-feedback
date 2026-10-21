@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "motion/react";
 import { ChevronRight, Gift, Layers, Rotate3d, ScanLine, Sparkles } from "lucide-react";
@@ -10,7 +10,8 @@ import { MembershipCard } from "../membership-card";
 import { SKIN_NAME, fmtPts, toFace } from "../club-visuals";
 import { Skeleton, WalletPocket } from "../pieces";
 import { BakingLoaf } from "../bakery-scene";
-import { Pixel, PixelKitchen } from "../pixel-sprites";
+import { Pixel } from "../pixel-sprites";
+import { CardStage, HelloCrew, introPending, markIntroSeen } from "../crew";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
 import { InstagramFeedSection } from "../instagram-feed";
@@ -99,6 +100,13 @@ function SpinTile() {
 export function HomeScreen() {
   const { card, member, loading, activeVouchers, openOverlay, href } = useClub();
   const [flipped, setFlipped] = useState(false);
+  // Bienvenida animada: una vez por sesión. step 1 = título, 2 = el resto del saludo.
+  const [intro] = useState(introPending);
+  const [step, setStep] = useState(intro ? 0 : 2);
+  useEffect(() => {
+    if (intro) markIntroSeen();
+  }, [intro]);
+  const reveal = (n: number) => `crew-reveal${step >= n ? " on" : ""}`;
 
   if (loading || !card || !member) {
     return (
@@ -120,21 +128,21 @@ export function HomeScreen() {
       <div className="hello">
         <div className="hello-copy">
           <div className="hello-title">
-            <h1>Hola, {member.firstName}.</h1>
+            <h1 className={reveal(1)}>Hola, {member.firstName}.</h1>
             <BakingLoaf className="hello-oven" />
           </div>
-          <p className="hello-aside">Tu pan ya está saliendo del horno.</p>
-          <p>
+          <p className={`hello-aside ${reveal(2)}`}>Tu pan ya está saliendo del horno.</p>
+          <p className={reveal(2)}>
             Nivel <b>{card.tier.name}</b>, en el club desde {card.memberSince}. Tienes <b className="tab-nums">{fmtPts(card.balance)}</b> pts para canjear.
           </p>
         </div>
-        <PixelKitchen className="hello-kitchen" />
+        <HelloCrew className="hello-kitchen" name={member.firstName} play={intro} onStep={(n) => setStep((s) => Math.max(s, n))} />
       </div>
 
       <div className="card-hero">
-        <div className="card-scene">
+        <CardStage serve={intro}>
           <MembershipCard data={toFace(card)} interactive flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
-        </div>
+        </CardStage>
         <button type="button" className="flip-btn" onClick={() => setFlipped((f) => !f)} aria-pressed={flipped}>
           <Rotate3d aria-hidden="true" />
           {flipped ? "Ver frente" : "Ver reverso"}

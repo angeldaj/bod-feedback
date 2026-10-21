@@ -27,6 +27,7 @@ import { SHOW_PEDIDOS } from "./data";
 import "./mi-club.css";
 import "./panaderia.css";
 import "./pixel.css";
+import "./crew.css";
 
 const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "", label: "Inicio", icon: House },

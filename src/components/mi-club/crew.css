@@ -1,0 +1,43 @@
+/*
+ * Bodega Club · personajes de la bienvenida (`crew.tsx`).
+ * Piezas: legL/legR giran desde la cadera, armR desde el hombro (--shoulder, en
+ * unidades del pack). Solo se anima transform/opacity; con movimiento reducido
+ * la historia no corre (todo se pinta en su sitio final).
+ */
+
+.mc2 .crew-scene { display: block; overflow: hidden; pointer-events: none; user-select: none; -webkit-user-select: none; }
+.mc2 .crew .legL, .mc2 .crew .legR { transform-box: fill-box; transform-origin: 50% 2%; }
+.mc2 .crew .armR { transform-box: view-box; transform-origin: var(--shoulder); transition: transform 0.35s ease; }
+.mc2 .crew .crew-bob { transition: transform 0.3s ease; }
+.mc2 .crew.walking .legL { animation: crew-swing 0.42s ease-in-out infinite alternate; }
+.mc2 .crew.walking .legR { animation: crew-swing 0.42s ease-in-out infinite alternate-reverse; }
+.mc2 .crew.walking .crew-bob { animation: crew-bob 0.21s ease-in-out infinite alternate; }
+.mc2 .crew.lift .armR { transform: rotate(-9deg); }
+.mc2 .crew.writing .armR { animation: crew-write 0.13s ease-in-out infinite alternate; }
+.mc2 .crew.bow .crew-bob { transform: translateY(5px) scaleY(0.97); }
+.mc2 .crew .crew-mini { transition: opacity 0.15s; }
+@keyframes crew-swing { from { transform: rotate(13deg); } to { transform: rotate(-13deg); } }
+@keyframes crew-bob { to { transform: translateY(-1.6px); } }
+@keyframes crew-write { from { transform: rotate(-11deg); } to { transform: rotate(-6deg); } }
+
+/* ---------- saludo: pizarra de caballete ---------- */
+.mc2 .crew-floor { fill: #000; opacity: 0.3; }
+.mc2 .crew-easel { stroke: var(--peel); stroke-width: 5; stroke-linecap: round; fill: none; }
+.mc2 .crew-frame { fill: var(--peel); }
+.mc2 .crew-slate { fill: #26332b; }
+.mc2 .crew-chalk { fill: #f4f7f1; font-family: var(--serif); font-style: italic; font-weight: 600; }
+.mc2 .crew-chalk-small { opacity: 0.55; letter-spacing: 0.04em; }
+.mc2 .crew-underline { fill: none; stroke: #f4f7f1; stroke-width: 1.2; stroke-linecap: round; opacity: 0; transition: opacity 0.4s; }
+
+/* El título y las líneas del saludo esperan a la pizarra. */
+.mc2 .crew-reveal { opacity: 0; transform: translateY(10px); transition: opacity 0.55s ease, transform 0.55s var(--ease-heavy); }
+.mc2 .crew-reveal.on { opacity: 1; transform: none; }
+
+/* ---------- tarjeta servida ---------- */
+.mc2 .card-stage { position: relative; width: 100%; display: grid; justify-items: center; }
+.mc2 .card-stage .card-scene { position: relative; z-index: 2; }
+.mc2 .crew-waiter { position: absolute; z-index: 1; left: 50%; bottom: -10px; width: min(100%, 420px); height: auto; translate: -50% 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc2 .crew-reveal { opacity: 1; transform: none; transition: none; }
+}
