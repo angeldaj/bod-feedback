@@ -22,10 +22,12 @@ import {
 import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
 import { WheelIcon } from "./club-visuals";
-import { BakeryBackdrop, BakingLoaf, MemberAvatar, WheatField } from "./bakery-scene";
+import { BakeryBackdrop, BakingLoaf, MemberAvatar } from "./bakery-scene";
+import { SHOW_PEDIDOS } from "./data";
 import "./mi-club.css";
 import "./panaderia.css";
 import "./pixel.css";
+import "./crew.css";
 
 const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "", label: "Inicio", icon: House },
@@ -58,7 +60,7 @@ function TabLinks({
 }) {
   return (
     <>
-      {TABS.filter(({ sub }) => (sub !== "ruleta" || showRuleta) && !(bar && sub === "perfil")).map(({ sub, label, icon: Icon }) => {
+      {TABS.filter(({ sub }) => (sub !== "ruleta" || showRuleta) && (sub !== "pedidos" || SHOW_PEDIDOS) && !(bar && sub === "perfil")).map(({ sub, label, icon: Icon }) => {
         const href = sub ? `${basePath}/${sub}` : basePath;
         const active = sub ? pathname === href || pathname.startsWith(`${href}/`) : pathname === href;
         const isWallet = sub === "wallet";
@@ -188,7 +190,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
           <b>Bodega Club</b>
           <span>Pan del día, café y puntos en cada visita.</span>
         </div>
-        <WheatField />
       </footer>
 
       {isClient

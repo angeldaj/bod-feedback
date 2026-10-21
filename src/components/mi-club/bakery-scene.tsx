@@ -1,60 +1,71 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { PixelParade } from "./pixel-sprites";
+import { useEffect, useId, useRef } from "react";
 
 /*
- * Escenografía de panadería del área de socios: fondo de trigo en relieve con
- * harina en el aire, el pan que se hornea (saludo y carga) y el trigal que se
- * mece en el pie de página. Todo es decorativo (`aria-hidden`), anima solo
- * `transform`/`opacity` y se queda quieto con `prefers-reduced-motion`.
+ * Escenografía del área de socios: la luz del fondo, el pan que se hornea en la
+ * pantalla de carga y la foto de perfil. Lo decorativo es `aria-hidden`, anima
+ * solo `transform`/`opacity` y se queda quieto con `prefers-reduced-motion`.
  */
 
-/** PRNG con semilla: el trigal sale igual en servidor y cliente (sin saltos de hidratación). */
-function seeded(seed: number) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+/** Superficies que reflejan la luz del cursor (la tarjeta y la Wallet no: tienen su propio diseño). */
+const LIT = ".tile, .rc, .ac, .list:not(.view-wallet .list)";
+
+/**
+ * Luz que sigue al cursor (solo con mouse): mueve el foco del fondo y deja en la
+ * superficie bajo el puntero las coordenadas del reflejo (`--mx`, `--my`). Un solo
+ * listener pasivo y un cuadro por animación; nada en estado de React.
+ */
+function usePointerLight(spot: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = spot.current;
+    if (!el || !matchMedia("(hover: hover) and (pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let last: PointerEvent | null = null;
+    const frame = () => {
+      raf = 0;
+      if (!last) return;
+      const { clientX: x, clientY: y, target } = last;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.opacity = "1";
+      const lit = target instanceof Element ? target.closest<HTMLElement>(LIT) : null;
+      if (lit) {
+        const r = lit.getBoundingClientRect();
+        lit.style.setProperty("--mx", `${x - r.left}px`);
+        lit.style.setProperty("--my", `${y - r.top}px`);
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      last = e;
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const leave = () => (el.style.opacity = "0");
+    window.addEventListener("pointermove", move, { passive: true });
+    document.documentElement.addEventListener("pointerleave", leave);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", move);
+      document.documentElement.removeEventListener("pointerleave", leave);
+    };
+  }, [spot]);
 }
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
-
-/** Fondo fijo: espigas en bajorrelieve sobre la "masa" del fondo y harina que cae despacio. */
+/** Fondo fijo: luces cálidas que derivan despacio, un grabado guilloché dorado, la luz del cursor y grano de papel. */
 export function BakeryBackdrop() {
-  const flour = useMemo(() => {
-    const rnd = seeded(7);
-    return Array.from({ length: 16 }, (_, i) => ({
-      left: r2(rnd() * 100),
-      size: r2(2 + rnd() * 3.5),
-      dur: r2(18 + rnd() * 16),
-      delay: r2(-rnd() * 30),
-      drift: r2((rnd() - 0.5) * 60),
-      key: i,
-    }));
-  }, []);
-
+  const spot = useRef<HTMLElement>(null);
+  usePointerLight(spot);
   return (
     <div className="bk-bg" aria-hidden="true">
-      <div className="bk-relief">
-        <i className="hi" />
-        <i className="lo" />
-        <i className="face" />
+      <div className="bk-aurora">
+        <i className="a" />
+        <i className="b" />
+        <i className="c" />
       </div>
+      {/* grabado guilloché (/club/guilloche.svg) como máscara: toma el dorado de cada tema */}
+      <i className="bk-guilloche" />
+      <i className="bk-spot" ref={spot} />
       <div className="bk-wash" />
-      <div className="bk-flour">
-        {flour.map((f) => (
-          <i
-            key={f.key}
-            style={{ left: `${f.left}%`, width: f.size, height: f.size, animationDuration: `${f.dur}s`, animationDelay: `${f.delay}s`, "--drift": `${f.drift}px` } as React.CSSProperties}
-          />
-        ))}
-      </div>
-      <PixelParade />
     </div>
   );
 }
@@ -119,133 +130,7 @@ export function BakingLoaf({ loop = false, className = "" }: { loop?: boolean; c
   );
 }
 
-type Blade = { kind: "stalk" | "grass"; layer: 0 | 1 | 2; x: number; d: string; ear?: string; delay: number; amp: number; dur: number };
-
-const FIELD_W = 1200;
-const FIELD_H = 170;
-/** Aire sobre el campo: las espigas más altas y sus barbas sobresalen de FIELD_H. */
-const FIELD_TOP = 48;
-
-function buildField(): Blade[] {
-  const rnd = seeded(2026);
-  const out: Blade[] = [];
-  // Tres capas: atrás espigas pequeñas y claras, al medio espigas grandes, delante pasto oscuro.
-  const layers: { layer: 0 | 1 | 2; n: number; kind: Blade["kind"]; h: [number, number] }[] = [
-    { layer: 0, n: 52, kind: "stalk", h: [64, 98] },
-    { layer: 1, n: 38, kind: "stalk", h: [96, 140] },
-    { layer: 2, n: 96, kind: "grass", h: [24, 66] },
-  ];
-  for (const { layer, n, kind, h } of layers) {
-    for (let i = 0; i < n; i++) {
-      const x = r2(((i + rnd() * 0.9) / n) * FIELD_W);
-      const height = h[0] + rnd() * (h[1] - h[0]);
-      const lean = (rnd() - 0.5) * (kind === "grass" ? 26 : 34);
-      const topX = x + lean;
-      const topY = FIELD_H - height;
-      // La ola de viento recorre el campo de izquierda a derecha: el retraso depende de x.
-      const delay = r2(-(x / FIELD_W) * 4.2 - rnd() * 0.6);
-      const amp = r2((kind === "grass" ? 3 : 4.5) + rnd() * 3);
-      const dur = r2(3.8 + rnd() * 1.6);
-      if (kind === "stalk") {
-        const cx = x + lean * 0.2;
-        const d = `M${x} ${FIELD_H} Q${r2(cx)} ${r2(FIELD_H - height * 0.55)} ${r2(topX)} ${r2(topY)}`;
-        const angle = r2((Math.atan2(lean, height) * 180) / Math.PI);
-        const scale = r2((layer === 0 ? 0.62 : 0.9) + rnd() * 0.2);
-        out.push({ kind, layer, x, d, ear: `translate(${r2(topX)} ${r2(topY)}) rotate(${angle}) scale(${scale})`, delay, amp, dur });
-      } else {
-        const w = 3 + rnd() * 3.5;
-        const d = `M${r2(x - w / 2)} ${FIELD_H} Q${r2(x + lean * 0.2)} ${r2(FIELD_H - height * 0.6)} ${r2(topX)} ${r2(topY)} Q${r2(x + lean * 0.35 + w * 0.3)} ${r2(FIELD_H - height * 0.5)} ${r2(x + w / 2)} ${FIELD_H} Z`;
-        out.push({ kind, layer, x, d, delay, amp, dur });
-      }
-    }
-  }
-  return out;
-}
-
-const BLADES = buildField();
-
-/**
- * Trigal del pie de página: espigas y pasto que se mecen con una ola de viento.
- * Al pasar el dedo o el puntero sopla una ráfaga. Fuera de pantalla se pausa.
- */
-export function WheatField() {
-  const id = useId().replace(/:/g, "");
-  const ref = useRef<SVGSVGElement>(null);
-  const [visible, setVisible] = useState(false);
-  const gustTimer = useRef<number | undefined>(undefined);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: "80px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  useEffect(() => () => window.clearTimeout(gustTimer.current), []);
-
-  // La ráfaga se maneja con una clase (sin re-render): así no se reinicia el vaivén de fondo.
-  function blow() {
-    const el = ref.current;
-    if (!el || gustTimer.current) return;
-    el.classList.add("gusting");
-    gustTimer.current = window.setTimeout(() => {
-      el.classList.remove("gusting");
-      gustTimer.current = undefined;
-    }, 2400);
-  }
-
-  return (
-    <svg
-      ref={ref}
-      className="wheat-field"
-      data-run={visible ? "" : undefined}
-      viewBox={`0 ${-FIELD_TOP} ${FIELD_W} ${FIELD_H + FIELD_TOP}`}
-      preserveAspectRatio="xMidYMax slice"
-      aria-hidden="true"
-      focusable="false"
-      onPointerEnter={blow}
-      onPointerDown={blow}
-    >
-      <defs>
-        <g id={`${id}-ear`}>
-          {[-4, -10, -16, -22, -28].map((y) => (
-            <g key={y}>
-              <ellipse cx="-2.3" cy={y} rx="2.2" ry="4.4" transform={`rotate(-26 -2.3 ${y})`} />
-              <ellipse cx="2.3" cy={y} rx="2.2" ry="4.4" transform={`rotate(26 2.3 ${y})`} />
-            </g>
-          ))}
-          <ellipse cx="0" cy="-34" rx="1.9" ry="4.2" />
-          <path d="M-3 -26 L-7 -44 M3 -26 L7 -44 M0 -38 L0 -50" className="awn" />
-        </g>
-      </defs>
-      <path className="hill back" d={`M0 ${FIELD_H} V118 C200 92 380 112 600 104 C820 96 1000 82 1200 106 V${FIELD_H} Z`} />
-      <path className="hill front" d={`M0 ${FIELD_H} V148 C260 132 520 150 760 140 C960 132 1080 138 1200 146 V${FIELD_H} Z`} />
-      <g>
-        {BLADES.map((b, i) => (
-          <g
-            key={i}
-            className={`blade l${b.layer}`}
-            style={{ "--delay": `${b.delay}s`, "--amp": `${b.amp}deg`, "--dur": `${b.dur}s`, "--gd": `${r2((b.x / FIELD_W) * 0.7)}s` } as React.CSSProperties}
-          >
-            <g className="gust">
-              {b.kind === "stalk" ? (
-                <>
-                  <path className="stem" d={b.d} />
-                  <use href={`#${id}-ear`} transform={b.ear} className="ear" />
-                </>
-              ) : (
-                <path className="grass" d={b.d} />
-              )}
-            </g>
-          </g>
-        ))}
-      </g>
-    </svg>
-  );
-}
-
-/** Foto de perfil (o iniciales) dentro de una corona de espigas. */
+/** Foto de perfil (o iniciales) con un aro dorado. */
 export function MemberAvatar({ name, src, size = "md" }: { name: string; src: string | null; size?: "sm" | "md" | "lg" }) {
   const initials =
     name

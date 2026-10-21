@@ -1,10 +1,9 @@
 /*
- * Bodega Club · capa "Panadería" (rediseño 2026-10).
+ * Bodega Club · capa "Panadería" (rediseño 2026-10, afinada a premium).
  * Se carga después de mi-club.css y redefine la piel del área de socios:
- * fondo de trigo en relieve, superficies de papel de panadería con bandeja
- * (doble bisel), botones de corteza, bolsa de pan para la Wallet, el horno del
- * saludo y el trigal del pie. La lógica y las clases de la tarjeta, la Wallet
- * y la ruleta no cambian.
+ * superficies planas con filete fino, botones de color pleno, jerarquía por
+ * tipografía y una luz cálida quieta de fondo. La tarjeta, la Wallet (bolsa de
+ * pan) y la ruleta conservan su diseño.
  */
 
 .mc2 {
@@ -12,57 +11,71 @@
   --ground: #140e09; --surface: #1e160f; --surface-2: #261c13; --ink: #f8efdd; --body: #dccbaa; --muted: #bba580;
   --crust-a: #f3c873; --crust-b: #d98c3c; --crust-c: #b8622a; --crust-ink: #2a1306;
   --wheat: #e2b35d;
-  --relief-hi: rgba(255, 232, 196, 0.09); --relief-lo: rgba(0, 0, 0, 0.7); --relief-face: #18100a;
-  --oven-glow: rgba(226, 89, 42, 0.2); --flour: rgba(255, 240, 215, 0.4);
+  --oven-glow: rgba(226, 89, 42, 0.16);
+  --glow-gold: rgba(217, 169, 74, 0.2); --glow-ember: rgba(214, 84, 40, 0.16); --glow-honey: rgba(240, 194, 116, 0.1);
+  --engrave: rgba(224, 180, 92, 0.22); --vignette: rgba(0, 0, 0, 0.55);
+  --spot: rgba(255, 190, 110, 0.2); --sheen: rgba(255, 214, 150, 0.16); --glint: rgba(255, 250, 235, 0.55);
   --bezel: rgba(255, 228, 190, 0.035); --bezel-line: rgba(255, 228, 190, 0.08);
   --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .78  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --brick: #5e2b16; --brick-joint: rgba(0, 0, 0, 0.35); --peel: #6b4126; --steam: rgba(255, 244, 228, 0.75);
   --field-hill-b: #2a1d12; --field-hill-f: #1d140c; --field-l0: #6c522e; --field-l1: #a97c38; --field-grass: #34401d; --field-grass-2: #4a5526;
-  --lift: inset 0 1px 0 rgba(255, 236, 205, 0.06), 0 22px 40px -26px rgba(0, 0, 0, 0.9);
-  --lift-hover: inset 0 1px 0 rgba(255, 236, 205, 0.08), 0 30px 46px -24px rgba(0, 0, 0, 0.95);
+  --lift: inset 0 1px 0 rgba(255, 236, 205, 0.05), 0 2px 6px -2px rgba(0, 0, 0, 0.5);
+  --lift-hover: inset 0 1px 0 rgba(255, 236, 205, 0.07), 0 6px 8px -4px rgba(0, 0, 0, 0.55);
   --ease-heavy: cubic-bezier(0.32, 0.72, 0, 1);
+  --hi: rgba(255, 236, 205, 0.07); --gold-line: color-mix(in oklab, var(--gold) 55%, transparent);
+  --surface-grad: linear-gradient(180deg, color-mix(in oklab, var(--surface) 100%, #fff 2%), color-mix(in oklab, var(--surface) 92%, var(--gold) 8%));
+  --lift-wallet: inset 0 1px 0 rgba(255, 236, 205, 0.06), 0 22px 40px -26px rgba(0, 0, 0, 0.9);
 
   &.day {
     /* día: harina, papel y luz de mañana */
     --ground: #fff3e4; --surface: #fffaf2; --surface-2: #fff4e6; --ink: #2a1a11; --body: #6a5142; --muted: #7e6150;
-    --relief-hi: rgba(255, 255, 255, 1); --relief-lo: rgba(160, 100, 45, 0.34); --relief-face: #fcecd6;
-    --oven-glow: rgba(240, 160, 70, 0.16); --flour: rgba(255, 255, 255, 0.95);
+    --oven-glow: rgba(240, 160, 70, 0.14);
+    --glow-gold: rgba(232, 178, 82, 0.26); --glow-ember: rgba(240, 130, 70, 0.14); --glow-honey: rgba(255, 214, 150, 0.32);
+    --engrave: rgba(169, 118, 26, 0.3); --vignette: rgba(150, 95, 40, 0.1);
+    --spot: rgba(255, 214, 150, 0.42); --sheen: rgba(255, 226, 170, 0.45); --glint: rgba(255, 252, 240, 0.7);
+    --hi: rgba(255, 255, 255, 0.9); --gold-line: color-mix(in oklab, var(--gold) 70%, transparent);
     --bezel: rgba(170, 110, 50, 0.055); --bezel-line: rgba(170, 110, 50, 0.1);
     --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     --brick: #a4502a; --brick-joint: rgba(70, 25, 8, 0.32); --peel: #8a5532; --steam: rgba(255, 255, 255, 0.9);
     --field-hill-b: #f0d9a8; --field-hill-f: #e4c48a; --field-l0: #d9b46c; --field-l1: #c48d38; --field-grass: #7f8a3c; --field-grass-2: #67742f;
-    --lift: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 18px 36px -24px rgba(130, 70, 20, 0.45);
-    --lift-hover: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 28px 44px -24px rgba(130, 70, 20, 0.55);
+    --lift: 0 1px 2px rgba(74, 43, 22, 0.06), 0 2px 6px -2px rgba(74, 43, 22, 0.1);
+    --lift-wallet: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 18px 36px -24px rgba(130, 70, 20, 0.45);
+    --lift-hover: 0 1px 2px rgba(74, 43, 22, 0.06), 0 6px 8px -4px rgba(74, 43, 22, 0.16);
   }
 }
 
-/* ---------- fondo: trigo en bajorrelieve + harina en el aire ---------- */
+/* ---------- fondo: luz de horno que deriva, grabado guilloché y grano ---------- */
 .mc2 .bk-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
-.mc2 .bk-relief { position: absolute; inset: -6px; }
-.mc2 .bk-relief i {
-  position: absolute; inset: 0;
-  -webkit-mask: url(/club/panaderia/trigo-relieve.svg) 0 0 / 240px 240px repeat;
-  mask: url(/club/panaderia/trigo-relieve.svg) 0 0 / 240px 240px repeat;
+/* luces: degradados radiales grandes (sin filtros) que solo se trasladan */
+.mc2 .bk-aurora i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; will-change: transform; }
+.mc2 .bk-aurora .a { top: -32vmax; right: -22vmax; background: radial-gradient(closest-side, var(--glow-gold), transparent); animation: bk-drift-a 46s ease-in-out infinite alternate; }
+.mc2 .bk-aurora .b { bottom: -38vmax; left: -26vmax; background: radial-gradient(closest-side, var(--glow-ember), transparent); animation: bk-drift-b 58s ease-in-out infinite alternate; }
+.mc2 .bk-aurora .c { top: 18vh; left: 28vw; width: 54vmax; height: 54vmax; background: radial-gradient(closest-side, var(--glow-honey), transparent); animation: bk-drift-c 64s ease-in-out infinite alternate; }
+@keyframes bk-drift-a { to { transform: translate(-14vmax, 10vmax) scale(1.12); } }
+@keyframes bk-drift-b { to { transform: translate(16vmax, -8vmax) scale(0.92); } }
+@keyframes bk-drift-c { to { transform: translate(-18vmax, 14vmax) scale(1.15); } }
+/* grabado de billete: arriba a la derecha, se desvanece hacia el contenido y gira casi imperceptible */
+.mc2 .bk-guilloche {
+  position: absolute; top: -20vmax; right: -18vmax; width: 72vmax; height: 72vmax; will-change: transform;
+  background: radial-gradient(closest-side, var(--engrave) 45%, transparent 100%);
+  -webkit-mask: url(/club/guilloche.svg) center / contain no-repeat; mask: url(/club/guilloche.svg) center / contain no-repeat;
+  animation: bk-turn 240s linear infinite;
 }
-.mc2 .bk-relief .hi { background: var(--relief-hi); transform: translate(-1.2px, -1.2px); }
-.mc2 .bk-relief .lo { background: var(--relief-lo); transform: translate(1.4px, 1.8px); }
-.mc2 .bk-relief .face { background: var(--relief-face); }
-.mc2 .bk-wash {
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(56% 42% at 50% 22%, color-mix(in oklab, var(--ground) 85%, transparent) 0%, transparent 72%),
-    radial-gradient(70% 38% at 50% 108%, var(--oven-glow), transparent 72%);
+@keyframes bk-turn { to { transform: rotate(360deg); } }
+/* luz del cursor (la mueve bakery-scene.tsx): solo con mouse */
+.mc2 .bk-spot {
+  position: absolute; left: -320px; top: -320px; width: 640px; height: 640px; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--spot), transparent); opacity: 0; will-change: transform;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.6s ease;
 }
-.mc2 .bk-flour i {
-  position: absolute; top: 0; border-radius: 50%; background: var(--flour); opacity: 0;
-  animation-name: mc2-flour; animation-timing-function: linear; animation-iteration-count: infinite;
+/* viñeta y grano: profundidad en los bordes y textura de papel */
+.mc2 .bk-wash { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--vignette)); }
+.mc2 .bk-bg::after { content: ""; position: absolute; inset: 0; background-image: var(--paper); background-size: 180px 180px; opacity: 0.9; }
+@media (max-width: 719px) {
+  .mc2 .bk-guilloche { top: -24vmax; right: -34vmax; width: 90vmax; height: 90vmax; }
 }
-.mc2.day .bk-flour i { box-shadow: 0 0 0 0.5px rgba(150, 100, 50, 0.22); }
-@keyframes mc2-flour {
-  0% { opacity: 0; transform: translate3d(0, -4vh, 0); }
-  12% { opacity: 0.8; }
-  85% { opacity: 0.5; }
-  100% { opacity: 0; transform: translate3d(var(--drift, 0px), 104vh, 0); }
+@media (prefers-reduced-motion: reduce) {
+  .mc2 .bk-aurora i, .mc2 .bk-guilloche { animation: none; }
 }
 
 /* el contenido flota sobre el fondo */
@@ -74,124 +87,108 @@
 .mc2 .topbar {
   height: 62px; padding: 0 8px 0 10px; border-radius: 999px;
   background: color-mix(in oklab, var(--surface) 74%, transparent);
-  box-shadow: 0 0 0 1px var(--bezel-line), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 34px -22px rgba(60, 25, 5, 0.55);
+  box-shadow: 0 0 0 1px var(--div), var(--lift);
 }
 .mc2 .topbar { -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); }
 .mc2 .mark-logo { border-radius: 999px; background: radial-gradient(circle at 35% 30%, #3a2717, #160d07 72%); box-shadow: 0 0 0 2px color-mix(in oklab, var(--wheat) 55%, transparent); }
 .mc2 .mark b { font-family: var(--serif); font-style: italic; text-transform: none; letter-spacing: 0; font-size: 1.35rem; font-weight: 600; }
-.mc2 .icon-btn { background: var(--surface-2); border-color: var(--bezel-line); transition: transform 0.4s var(--ease-heavy), background 0.3s; }
-.mc2 .icon-btn:hover svg { transform: rotate(-18deg); }
-.mc2 .icon-btn svg { transition: transform 0.6s var(--ease-heavy); }
-.mc2 .avatar-link { display: inline-flex; border-radius: 999px; text-decoration: none; transition: transform 0.4s var(--ease-heavy); }
-.mc2 .avatar-link:hover { transform: rotate(-6deg) scale(1.04); }
-.mc2 .avatar-link:active { transform: scale(0.95); }
+.mc2 .icon-btn { background: var(--surface-2); border-color: var(--div); transition: transform 0.16s ease-out, background-color 0.2s ease; }
+.mc2 .icon-btn:active { transform: scale(0.96); }
+.mc2 .avatar-link { display: inline-flex; border-radius: 999px; text-decoration: none; transition: transform 0.16s ease-out; }
+.mc2 .avatar-link:active { transform: scale(0.96); }
 
-/* ---------- avatar con corona de espigas ---------- */
+/* ---------- avatar con aro dorado ---------- */
 .mc2 .mav { position: relative; display: inline-grid; place-items: center; flex: none; width: var(--s); height: var(--s); --s: 44px; }
 .mc2 .mav-md { --s: 64px; }
 .mc2 .mav-lg { --s: 116px; }
-.mc2 .mav-ring {
-  position: absolute; inset: 0; border-radius: 50%;
-  background: conic-gradient(from 200deg, var(--crust-a), var(--crust-b), var(--crust-c), var(--crust-b), var(--crust-a));
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
-}
-.mc2 .mav-lg .mav-ring {
-  inset: -12px;
-  background: repeating-conic-gradient(from 4deg, var(--wheat) 0 6deg, transparent 6deg 11deg);
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9.5px), #000 calc(100% - 1px), transparent);
-  mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9.5px), #000 calc(100% - 1px), transparent);
-  transition: transform 1.2s var(--ease-heavy);
-}
-.mc2 .photo-tile:hover .mav-lg .mav-ring { transform: rotate(40deg); }
+.mc2 .mav-ring { position: absolute; inset: 0; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--gold); }
+.mc2 .mav-lg .mav-ring { inset: -7px; box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--gold) 70%, transparent); }
 .mc2 .mav-core {
   position: absolute; inset: 4px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
-  background: linear-gradient(150deg, var(--crust-a), var(--crust-b) 60%, var(--crust-c)); color: var(--crust-ink);
-  box-shadow: inset 0 1px 0 rgba(255, 245, 225, 0.6), inset 0 -3px 6px rgba(90, 35, 10, 0.25);
+  background: var(--surface-2); color: var(--gold-text);
 }
-.mc2 .mav-lg .mav-core { inset: 0; box-shadow: 0 0 0 4px var(--surface), 0 18px 30px -16px rgba(90, 40, 10, 0.6); }
+.mc2 .mav-lg .mav-core { inset: 0; }
 .mc2 .mav-core img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.mc2 .mav-ini { font-weight: 700; font-size: calc(var(--s) * 0.36); letter-spacing: 0.02em; line-height: 1; }
-.mc2 .mav-lg .mav-ini { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 3rem; }
+.mc2 .mav-ini { font-weight: 700; font-size: calc(var(--s) * 0.34); letter-spacing: 0.04em; line-height: 1; }
+.mc2 .mav-lg .mav-ini { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 3rem; letter-spacing: 0; }
 
-/* ---------- superficies: papel de panadería sobre bandeja ---------- */
+/* ---------- superficies: planas, con filete fino ---------- */
 .mc2 :is(.tile, .list, .rc, .ac, .prize-pts) {
-  background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px;
-  border-radius: 26px;
-  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift);
+  background-color: var(--surface); background-image: var(--surface-grad);
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 var(--hi), 0 0 0 1px var(--div), var(--lift);
 }
-.mc2 :is(.rc, .ac):hover { box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift-hover); }
-.mc2 .rc, .mc2 .ac { transition: transform 0.6s var(--ease-heavy), box-shadow 0.6s var(--ease-heavy); }
+/* las piezas protagonistas de Inicio llevan un filo dorado arriba */
+.mc2 :is(.tier-prog, .spin-tile) { position: relative; overflow: hidden; }
+.mc2 :is(.tier-prog, .spin-tile)::before {
+  content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-line) 20%, var(--gold-line) 80%, transparent);
+}
+.mc2 :is(.rc, .ac):hover { box-shadow: 0 0 0 1px var(--div-strong), var(--lift-hover); }
+.mc2 .rc, .mc2 .ac { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
+/* la Wallet no cambia: conserva su papel sobre bandeja */
+.mc2 .view-wallet .list {
+  background-image: var(--paper); background-size: 180px 180px; border-radius: 26px;
+  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift-wallet);
+}
 .mc2 .demo-tile { box-shadow: none; background-image: none; background-color: transparent; }
-.mc2 .view, .mc2 .home-side, .mc2 .prof-grid { gap: 26px; }
-.mc2 .rc-grid { gap: 22px 18px; }
+.mc2 .view, .mc2 .home-side, .mc2 .prof-grid { gap: 24px; }
+.mc2 .rc-grid { gap: 16px; }
 
-/* títulos: espiga junto a los de sección, cortes de pan bajo los de página */
-.mc2 .sec-head h2, .mc2 .sec-head h3 { display: inline-flex; align-items: center; gap: 8px; }
-.mc2 .sec-head h2::before, .mc2 .sec-head h3::before {
-  content: ""; width: 20px; height: 22px; flex: none; background: var(--gold-text); transform: rotate(-24deg);
-  -webkit-mask: url(/club/panaderia/espiga.svg) center / contain no-repeat; mask: url(/club/panaderia/espiga.svg) center / contain no-repeat;
+/* títulos: la firma de la casa (Cormorant cursiva) con un filete dorado */
+.mc2 .sec-head h2, .mc2 .sec-head h3 {
+  display: inline-flex; align-items: center; gap: 12px;
+  font-family: var(--serif); font-style: italic; font-weight: 600; text-transform: none;
+  font-size: 1.7rem; line-height: 1.1; letter-spacing: 0; padding-bottom: 2px;
 }
-.mc2 .v-head h1::after, .mc2 .v-head h2::after {
-  content: ""; display: block; width: 72px; height: 7px; margin-top: 12px; border-radius: 7px;
-  background: repeating-linear-gradient(118deg, var(--crust-b) 0 9px, transparent 9px 14px);
-  opacity: 0.85;
-}
-.mc2 .v-head h1, .mc2 .hello h1 { font-size: 2.7rem; letter-spacing: -0.015em; }
+.mc2 .sec-head h2::before, .mc2 .sec-head h3::before { content: ""; width: 22px; height: 1px; flex: none; background: var(--gold-line); }
+.mc2 .v-head h1::after, .mc2 .v-head h2::after { content: ""; display: block; width: 40px; height: 1px; margin-top: 14px; background: var(--gold-line); }
+/* el nombre del socio, en cursiva dorada */
+.mc2 .hello h1 em { font-family: var(--serif); font-style: italic; font-weight: 600; text-transform: none; color: var(--gold-text); letter-spacing: 0; font-size: 1.12em; line-height: 1.1; padding-right: 0.04em; }
+.mc2 .v-head h1, .mc2 .hello h1 { font-size: 2.7rem; letter-spacing: -0.01em; text-wrap: balance; }
 
-/* ---------- botones de corteza ---------- */
-.mc2 .btn { transition: transform 0.45s var(--ease-heavy), box-shadow 0.45s var(--ease-heavy), opacity 0.2s, background 0.3s; }
-.mc2 .btn:active { transform: scale(0.97) translateY(1px); }
-.mc2 .btn-pop {
-  position: relative; isolation: isolate; overflow: hidden;
-  background: linear-gradient(165deg, var(--crust-a) 0%, var(--crust-b) 58%, var(--crust-c) 112%);
-  color: var(--crust-ink);
-  box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.7), inset 0 -2px 0 rgba(90, 35, 10, 0.22), 0 14px 24px -14px rgba(150, 70, 20, 0.75);
+/* ---------- botones: color pleno, sin brillos ---------- */
+.mc2 .btn { transition: transform 0.16s ease-out, background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s; }
+.mc2 .btn:active { transform: scale(0.97); }
+.mc2 .btn-pop { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: #2a1306; box-shadow: inset 0 1px 0 rgba(255, 246, 225, 0.55), 0 1px 2px rgba(74, 43, 22, 0.25); }
+@media (hover: hover) and (pointer: fine) {
+  .mc2 .btn-pop:hover { background: linear-gradient(180deg, var(--gold), color-mix(in oklab, var(--gold) 86%, #2a1306)); }
 }
-.mc2 .btn-pop::after {
-  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 250, 235, 0.5) 50%, transparent 70%);
-  transform: translateX(-130%); transition: transform 0.9s var(--ease-heavy);
+.mc2 .btn-ghost { border-color: var(--div-strong); }
+@media (hover: hover) and (pointer: fine) {
+  .mc2 .btn-ghost:hover { background: var(--gold-soft); border-color: color-mix(in oklab, var(--gold) 55%, transparent); }
 }
-.mc2 .btn-pop:hover::after { transform: translateX(130%); }
-.mc2 .btn-pop:hover { box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.7), inset 0 -2px 0 rgba(90, 35, 10, 0.22), 0 18px 30px -14px rgba(150, 70, 20, 0.85); }
-.mc2 .btn-ghost { border-color: color-mix(in oklab, var(--crust-b) 45%, var(--div-strong)); }
-.mc2 .btn-ghost:hover { background: color-mix(in oklab, var(--crust-a) 12%, transparent); }
 .mc2 .btn-soft { background: var(--surface-2); }
 .mc2 label.btn { cursor: pointer; }
 .mc2 label.btn:focus-within { outline: 3px solid var(--coral-fill); outline-offset: 2px; }
 .mc2 label.btn[data-disabled] { opacity: 0.6; pointer-events: none; }
 
-/* progreso: masa dorándose */
-.mc2 .track { background: color-mix(in oklab, var(--wheat) 16%, transparent); box-shadow: inset 0 1px 2px rgba(80, 35, 10, 0.18); }
-.mc2 .track > span, .mc2 .spin-prog .track > span {
-  background: repeating-linear-gradient(118deg, rgba(255, 245, 225, 0.22) 0 6px, transparent 6px 14px), linear-gradient(90deg, var(--crust-a), var(--crust-b) 70%, var(--crust-c));
-}
-.mc2 .pill { background: color-mix(in oklab, var(--wheat) 18%, transparent); }
+/* progreso: una línea dorada */
+.mc2 .track { background: var(--div); box-shadow: none; }
+.mc2 .track > span, .mc2 .spin-prog .track > span { background: var(--gold); }
+.mc2 .pill { background: transparent; box-shadow: inset 0 0 0 1px var(--div-strong); }
 
 /* ---------- navegación ---------- */
-.mc2 .nav a[aria-current="page"], .mc2 .top-tabs a[aria-current="page"] {
-  background: linear-gradient(165deg, var(--crust-a), var(--crust-b) 80%); color: var(--crust-ink);
-  box-shadow: inset 0 1px 0 rgba(255, 244, 220, 0.65), 0 8px 16px -10px rgba(150, 70, 20, 0.7);
-}
-.mc2 .nav a[aria-current="page"] svg, .mc2 .top-tabs a[aria-current="page"] svg { color: var(--crust-ink); }
-.mc2 .nav a, .mc2 .top-tabs a { transition: background 0.4s var(--ease-heavy), color 0.3s, transform 0.4s var(--ease-heavy); }
-.mc2 .nav a:active { transform: scale(0.94); }
-.mc2 .fchip[aria-pressed="true"] { background: linear-gradient(165deg, var(--crust-a), var(--crust-b)); border-color: transparent; color: var(--crust-ink); }
+.mc2 .nav a[aria-current="page"], .mc2 .top-tabs a[aria-current="page"] { background: var(--ink); color: var(--ground); box-shadow: none; }
+.mc2 .nav a[aria-current="page"] svg, .mc2 .top-tabs a[aria-current="page"] svg { color: var(--ground); }
+.mc2 .nav a, .mc2 .top-tabs a { transition: background-color 0.2s ease, color 0.2s ease, transform 0.16s ease-out; }
+.mc2 .nav a:active { transform: scale(0.96); }
+/* contadores discretos: dorado, no alarma */
+.mc2 .count { background: var(--gold); color: #2a1306; min-width: 18px; height: 18px; font-size: 0.72rem; }
+.mc2 .st-badge { background: var(--gold-soft); color: var(--ink); }
+.mc2 .fchip[aria-pressed="true"] { background: var(--ink); border-color: transparent; color: var(--ground); }
 
-/* ---------- saludo con horno ---------- */
-.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 16px; }
+/* ---------- saludo ---------- */
+.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 24px; }
 .mc2 .hello-copy { min-width: 0; }
 .mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 8px; padding-bottom: 2px; }
-.mc2 .hello-title { display: flex; align-items: flex-end; gap: 12px; }
-.mc2 .hello-oven { width: 64px; height: auto; flex: none; margin-bottom: -2px; }
-.mc2 .hello-kitchen { width: min(100%, 440px); margin: 0; padding: 0; }
+.mc2 .hello-kitchen { width: 440px; max-width: 100%; height: auto; margin: 0; padding: 0; }
 @media (max-width: 719px) {
   .mc2 .hello { grid-template-columns: 1fr; }
   .mc2 .hello-kitchen { width: 100%; max-width: 420px; justify-self: center; }
 }
 
-/* el horno */
+/* el horno (pantalla de carga) */
 .mc2 .bake { display: block; overflow: visible; }
 .mc2 .bk-vault { fill: var(--brick); }
 .mc2 .bk-bricks { fill: none; stroke: var(--brick-joint); stroke-width: 3; stroke-dasharray: 15 4; }
@@ -290,35 +287,13 @@
   .mc2 .photo-actions { justify-content: center; }
 }
 
-/* ---------- pie: trigal ---------- */
-.mc2 .field-foot {
-  margin-top: 8px;
-  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(to bottom, transparent calc(100% - 86px - env(safe-area-inset-bottom, 0px)), var(--field-hill-f) 0);
-}
+/* ---------- pie ---------- */
+.mc2 .field-foot { margin-top: 32px; padding: 22px 0 calc(96px + env(safe-area-inset-bottom, 0px)); box-shadow: inset 0 1px 0 var(--div); }
 .mc2 .field-copy {
-  max-width: 1136px; margin: 0 auto; padding: 0 18px 2px; display: flex; flex-wrap: wrap; gap: 4px 10px;
+  max-width: 1136px; margin: 0 auto; padding: 0 18px; display: flex; flex-wrap: wrap; gap: 4px 12px;
   justify-content: center; align-items: baseline; text-align: center; color: var(--muted); font-size: 0.95rem;
 }
-.mc2 .field-copy b { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.25rem; color: var(--gold-text); }
-/* el alto sigue la proporción del dibujo (1200×218, con aire arriba) para que en pantallas anchas no se corten las espigas */
-.mc2 .wheat-field { display: block; width: 100%; height: clamp(170px, calc(100vw * 218 / 1200), 400px); touch-action: pan-y; }
-.mc2 .wheat-field .hill.back { fill: var(--field-hill-b); }
-.mc2 .wheat-field .hill.front { fill: var(--field-hill-f); }
-.mc2 .wheat-field .blade, .mc2 .wheat-field .gust { transform-box: fill-box; transform-origin: 50% 100%; }
-.mc2 .wheat-field .stem { fill: none; stroke-linecap: round; }
-.mc2 .wheat-field .l0 { color: var(--field-l0); }
-.mc2 .wheat-field .l1 { color: var(--field-l1); }
-.mc2 .wheat-field .l0 .stem { stroke: currentColor; stroke-width: 1.5; }
-.mc2 .wheat-field .l1 .stem { stroke: currentColor; stroke-width: 2.2; }
-.mc2 .wheat-field .ear { fill: currentColor; }
-.mc2 .wheat-field .awn { fill: none; stroke: currentColor; stroke-width: 0.8; stroke-linecap: round; }
-.mc2 .wheat-field .grass { fill: var(--field-grass); }
-.mc2 .wheat-field .l2:nth-child(3n) .grass { fill: var(--field-grass-2); }
-.mc2 .wheat-field[data-run] .blade { animation: mc2-sway var(--dur, 4.4s) ease-in-out var(--delay, 0s) infinite alternate; }
-.mc2 .wheat-field.gusting .gust { animation: mc2-gust 1.9s var(--ease-heavy) var(--gd, 0s) both; }
-@keyframes mc2-sway { from { transform: rotate(calc(var(--amp, 4deg) * -1)); } to { transform: rotate(var(--amp, 4deg)); } }
-@keyframes mc2-gust { 0% { transform: none; } 32% { transform: rotate(11deg); } 66% { transform: rotate(-3deg); } 100% { transform: none; } }
+.mc2 .field-copy b { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 1.3rem; color: var(--gold-text); }
 
 /* ---------- entradas al hacer scroll (CSS scroll-driven, sin listeners) ---------- */
 @supports (animation-timeline: view()) {
@@ -330,24 +305,21 @@
     }
   }
 }
-@keyframes mc2-reveal { from { opacity: 0; transform: translateY(28px) scale(0.985); } }
+@keyframes mc2-reveal { from { opacity: 0; transform: translateY(12px); } }
 
-/* ---------- feed de Instagram en Inicio: foto en bandeja + ticket de panadería ---------- */
+/* ---------- feed de Instagram en Inicio ---------- */
 .mc2 .view-home > .ig-sec { grid-column: 1 / -1; }
 .mc2 .ig-sec { display: grid; gap: 16px; margin-top: 8px; }
 .mc2 .ig-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 16px; }
 .mc2 .ig-card {
-  display: grid; height: 100%; padding: 8px; border-radius: 26px; color: inherit; text-decoration: none;
-  background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px;
-  box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift);
-  transition: box-shadow 0.5s var(--ease-heavy); -webkit-tap-highlight-color: transparent;
+  display: grid; align-content: start; height: 100%; border-radius: 14px; color: inherit; text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.mc2 .ig-card:hover { box-shadow: 0 0 0 6px var(--bezel), 0 0 0 7px var(--bezel-line), var(--lift-hover); }
-.mc2 .ig-card:focus-visible { outline: 3px solid var(--gold); outline-offset: 9px; }
+.mc2 .ig-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
 .mc2 .ig-photo {
-  position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 19px;
-  background: linear-gradient(140deg, var(--crust-a), var(--crust-b) 55%, var(--crust-c));
-  box-shadow: inset 0 0 0 1px rgba(60, 25, 5, 0.18);
+  position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 14px;
+  background: color-mix(in oklab, var(--gold) 38%, var(--surface-2));
+  box-shadow: inset 0 0 0 1px var(--div);
 }
 /* corteza que "dora" mientras baja la foto */
 .mc2 .ig-photo:not([data-loaded])::after {
@@ -355,8 +327,10 @@
   background: linear-gradient(90deg, transparent, rgba(255, 240, 210, 0.35), transparent);
   animation: mc2-shimmer-x 1.3s ease-in-out infinite;
 }
-.mc2 .ig-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: scale 0.7s var(--ease-heavy); }
-.mc2 .ig-card:hover .ig-photo img { scale: 1.07; }
+.mc2 .ig-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: scale 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
+@media (hover: hover) and (pointer: fine) {
+  .mc2 .ig-card:hover .ig-photo img { scale: 1.03; }
+}
 .mc2 .ig-kind, .mc2 .ig-open {
   position: absolute; top: 10px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
   color: #fff8ec; background: rgba(30, 16, 8, 0.48); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
@@ -365,41 +339,69 @@
 .mc2 .ig-open { left: 10px; opacity: 0; transform: translateY(-6px) rotate(-45deg); transition: opacity 0.3s var(--ease-heavy), transform 0.45s var(--ease-heavy); }
 .mc2 .ig-card:is(:hover, :focus-visible) .ig-open { opacity: 1; transform: none; }
 .mc2 :is(.ig-kind, .ig-open) svg { width: 16px; height: 16px; }
-/* ticket con borde troquelado, como el de la caja */
-.mc2 .ig-ticket {
-  position: relative; display: grid; gap: 6px; align-content: start; margin-top: 10px; padding: 12px 8px 4px;
-  background: radial-gradient(circle at 5px 0, transparent 3px, var(--div-strong) 3.5px, transparent 4px) 0 0 / 12px 8px repeat-x;
-}
+.mc2 .ig-ticket { display: grid; gap: 4px; align-content: start; padding: 12px 2px 0; }
 .mc2 .ig-cap { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; color: var(--body); font-size: 0.95rem; line-height: 1.4; }
 .mc2 .ig-ticket time { color: var(--muted); font-size: 0.82rem; font-weight: 600; letter-spacing: 0.02em; }
 .mc2 .ig-ghost .ig-line { display: block; height: 11px; border-radius: 6px; background: color-mix(in oklab, var(--ink) 9%, transparent); }
 .mc2 .ig-ghost .ig-line.short { width: 55%; }
 @media (min-width: 640px) {
-  .mc2 .ig-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px 22px; }
+  .mc2 .ig-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px 20px; }
 }
 
 /* ---------- overlays ---------- */
-.mc2.mc2-sheet { background-color: var(--surface); background-image: var(--paper); background-size: 180px 180px; }
+.mc2.mc2-sheet { background-color: var(--surface); }
 .mc2.lu { background: radial-gradient(70% 50% at 50% 70%, rgba(226, 89, 42, 0.35), transparent 70%), radial-gradient(80% 60% at 50% 38%, #2c1d12, #0b0805 75%); }
+
+/* ---------- luz y movimiento ---------- */
+/* reflejo: la superficie se ilumina bajo el cursor (la Wallet conserva su diseño) */
+@media (hover: hover) and (pointer: fine) {
+  .mc2 :is(.tile, .rc, .ac, .list):not(.view-wallet .list):hover {
+    background-image: radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), var(--sheen), transparent 70%), var(--surface-grad);
+  }
+}
+/* el progreso a Oro está vivo: un reflejo recorre la barra cada tanto */
+.mc2 .tier-prog .track > span { position: relative; overflow: hidden; }
+.mc2 .tier-prog .track > span::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 30%, var(--glint) 50%, transparent 70%);
+  animation: mc2-glint 6s cubic-bezier(0.4, 0, 0.2, 1) 1.4s infinite;
+}
+@keyframes mc2-glint { 0% { transform: translateX(-100%); } 32%, 100% { transform: translateX(100%); } }
+/* hay tiradas: el botón de la ruleta respira con un halo dorado */
+.mc2 .spin-tile .btn-pop { position: relative; }
+.mc2 .spin-tile .btn-pop::after {
+  content: ""; position: absolute; inset: -4px; border-radius: inherit; pointer-events: none; opacity: 0;
+  box-shadow: 0 0 0 1px var(--gold-line), 0 0 18px 2px color-mix(in oklab, var(--gold) 45%, transparent);
+  animation: mc2-halo 2.8s ease-in-out infinite;
+}
+@keyframes mc2-halo { 50% { opacity: 1; } }
+/* los filetes dorados de los títulos se dibujan al entrar en pantalla */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .mc2 :is(.sec-head h2, .sec-head h3)::before, .mc2 :is(.v-head h1, .v-head h2)::after {
+      transform-origin: left center; animation: mc2-draw linear both; animation-timeline: view(); animation-range: entry 10% cover 30%;
+    }
+  }
+}
+@keyframes mc2-draw { from { transform: scaleX(0); } }
 
 /* ---------- escritorio ---------- */
 @media (min-width: 1024px) {
   .mc2 .topbar-wrap { padding: 14px 24px 0; }
   .mc2 .main { padding-top: 40px; }
   .mc2 .hello { grid-template-columns: minmax(0, 1fr) auto; }
-  .mc2 .hello h1, .mc2 .v-head h1 { font-size: 3.1rem; }
-  .mc2 .hello-oven { width: 80px; }
-  .mc2 .field-foot { padding-bottom: 0; background: none; margin-top: 24px; }
+  .mc2 .v-head h1 { font-size: 3.1rem; }
+  .mc2 .hello h1 { font-size: 3.8rem; }
+  .mc2 .hello .hello-aside { font-size: 1.6rem; }
+  .mc2 .field-foot { padding-bottom: 28px; margin-top: 40px; }
   .mc2 .view-home { row-gap: 30px; }
 }
 
 /* ---------- movimiento reducido: todo quieto, el pan ya horneado ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .mc2 .bk-flour { display: none; }
+  .mc2 .tier-prog .track > span::after, .mc2 .spin-tile .btn-pop::after { animation: none; display: none; }
   .mc2 .bake .bk-loaf, .mc2 .bake .bk-crust, .mc2 .bake .bk-score, .mc2 .bake .bk-sheen, .mc2 .bk-fire, .mc2 .bk-ember { animation: none !important; opacity: 1; transform: none; }
   .mc2 .bk-steam path { animation: none !important; opacity: 0.55; }
-  .mc2 .wheat-field .blade, .mc2 .wheat-field .gust { animation: none !important; }
-  .mc2 .btn-pop::after { display: none; }
   .mc2 .ig-photo::after { animation: none !important; }
   .mc2 .ig-photo img, .mc2 .ig-open { transition: none; }
 }

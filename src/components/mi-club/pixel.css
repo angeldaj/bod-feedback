@@ -1,7 +1,6 @@
 /*
  * Bodega Club · capa 8-bit (2026-10).
- * Sprites pixel art (`pixel-sprites.tsx`): la cocina del pie de página, el
- * repartidor que cruza el fondo y la pantalla de Pedidos. Los cuadros alternan
+ * Sprites pixel art (`pixel-sprites.tsx`) de la pantalla de Pedidos. Los cuadros alternan
  * con `steps()` (movimiento de videojuego) y solo corren con `[data-run]` (en
  * pantalla) o `.px-live`. Con `prefers-reduced-motion` todo queda quieto.
  */
@@ -10,60 +9,13 @@
 .mc2 .px { display: block; flex: none; overflow: visible; image-rendering: pixelated; }
 .mc2 .px-flip { transform: scaleX(-1); }
 .mc2 .px-b { opacity: 0; }
-.mc2 :is([data-run], .px-live, .px-parade) .px-a { animation: mc2-px-a calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
-.mc2 :is([data-run], .px-live, .px-parade) .px-b { animation: mc2-px-b calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
+.mc2 :is([data-run], .px-live) .px-a { animation: mc2-px-a calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
+.mc2 :is([data-run], .px-live) .px-b { animation: mc2-px-b calc(var(--px-fps, 0.5s) * 2) steps(1, end) infinite; }
 @keyframes mc2-px-a { 50% { opacity: 0; } }
 @keyframes mc2-px-b { 50% { opacity: 1; } }
 
-/* ---------- la cocina del saludo ---------- */
-.mc2 .px-kitchen { position: relative; max-width: 620px; margin: 0 auto 18px; padding: 0 18px; user-select: none; -webkit-user-select: none; }
-.mc2 .pk-stage { display: flex; align-items: flex-end; gap: 10px; height: 92px; }
-.mc2 .pk-actor { position: relative; display: block; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-.mc2 .pk-actor.poked { animation: mc2-hop 0.42s steps(4, end); }
-.mc2 .pk-walker { flex: 1; min-width: 70px; container-type: inline-size; }
-.mc2 .pk-path, .mc2 .pk-runner { display: block; width: 42px; }
-.mc2 .pk-tray { position: absolute; left: 6px; top: -7px; }
-.mc2 .px-kitchen[data-run] .pk-path { animation: mc2-walk 11s steps(44, end) infinite; }
-.mc2 .pk-pot { display: grid; justify-items: center; margin-bottom: 0; }
-.mc2 .pk-counter {
-  height: 12px; margin: 0 -2px; border-radius: 2px;
-  background:
-    linear-gradient(var(--crust-ink), var(--crust-ink)) top / 100% 3px no-repeat,
-    repeating-linear-gradient(90deg, var(--crust-b) 0 18px, var(--crust-c) 18px 21px);
-  box-shadow: 0 6px 0 -3px color-mix(in oklab, var(--crust-ink) 40%, transparent);
-}
-/* vapor y chispas: cuadritos que suben a saltos */
-.mc2 .pk-steam { position: absolute; top: -4px; width: 4px; height: 4px; background: var(--steam); opacity: 0; }
-.mc2 .pk-steam.a { left: 30%; }
-.mc2 .pk-steam.b { left: 50%; animation-delay: 0.7s !important; }
-.mc2 .pk-steam.c { left: 66%; animation-delay: 1.4s !important; }
-.mc2 :is([data-run], .px-live) .pk-steam { animation: mc2-steam-px 2.1s steps(6, end) infinite; }
-.mc2 .pk-spark { position: absolute; left: 46%; top: 30%; width: 4px; height: 4px; background: #ffb25a; opacity: 0; }
-.mc2 .pk-oven.poked .pk-spark { animation: mc2-spark 0.7s steps(5, end); }
-.mc2 .pk-oven.poked .pk-spark.s2 { left: 56%; animation-delay: 0.08s; }
-.mc2 .pk-oven.poked .px { filter: brightness(1.18) saturate(1.2); }
-.mc2 .pk-pop { position: absolute; bottom: 70px; translate: -50% 0; pointer-events: none; animation: mc2-pop 1.1s steps(8, end) forwards; }
-
+/* ---------- saltito (estrellas, perks) ---------- */
 @keyframes mc2-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-12px); } 70% { transform: translateY(-4px); } }
-@keyframes mc2-walk {
-  0% { transform: translateX(0) scaleX(1); }
-  49.9% { transform: translateX(calc(100cqw - 42px)) scaleX(1); }
-  50% { transform: translateX(calc(100cqw - 42px)) scaleX(-1); }
-  99.9% { transform: translateX(0) scaleX(-1); }
-  100% { transform: translateX(0) scaleX(1); }
-}
-@keyframes mc2-steam-px { 0% { opacity: 0; transform: none; } 20% { opacity: 0.9; } 100% { opacity: 0; transform: translate(4px, -26px); } }
-@keyframes mc2-spark { 0% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translate(var(--sx, -10px), -30px); } }
-.mc2 .pk-spark.s2 { --sx: 12px; }
-@keyframes mc2-pop { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-34px); } }
-
-/* ---------- el repartidor que cruza el fondo ---------- */
-.mc2 .px-parade { position: absolute; left: 0; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); opacity: 0.32; animation: mc2-parade 34s linear 6s infinite; transform: translateX(-90px); }
-.mc2.day .px-parade { opacity: 0.4; }
-@keyframes mc2-parade {
-  0% { transform: translateX(-90px); }
-  55%, 100% { transform: translateX(calc(100vw + 90px)); }
-}
 
 /* ---------- inicio: aviso de Pedidos ---------- */
 .mc2 .ped-teaser { display: flex; align-items: center; gap: 14px; color: var(--ink); text-decoration: none; transition: transform 0.5s var(--ease-heavy), box-shadow 0.5s var(--ease-heavy); }
@@ -254,7 +206,6 @@
 
 /* ---------- movimiento reducido ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .mc2 .px-parade { display: none; }
   .mc2 .px-a, .mc2 .px-b, .mc2 .pk-steam, .mc2 .px-kitchen *,
   .mc2 .view-pedidos *, .mc2 .ped-teaser .px { animation: none !important; }
   .mc2 .px-b { opacity: 0; }
