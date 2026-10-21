@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 /*
  * Escenografía del área de socios: la luz del fondo, el pan que se hornea en la
@@ -8,8 +8,53 @@ import { useId } from "react";
  * solo `transform`/`opacity` y se queda quieto con `prefers-reduced-motion`.
  */
 
-/** Fondo fijo: luces cálidas que derivan despacio, un grabado guilloché dorado y grano de papel. */
+/** Superficies que reflejan la luz del cursor (la tarjeta y la Wallet no: tienen su propio diseño). */
+const LIT = ".tile, .rc, .ac, .list:not(.view-wallet .list)";
+
+/**
+ * Luz que sigue al cursor (solo con mouse): mueve el foco del fondo y deja en la
+ * superficie bajo el puntero las coordenadas del reflejo (`--mx`, `--my`). Un solo
+ * listener pasivo y un cuadro por animación; nada en estado de React.
+ */
+function usePointerLight(spot: React.RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = spot.current;
+    if (!el || !matchMedia("(hover: hover) and (pointer: fine)").matches || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let raf = 0;
+    let last: PointerEvent | null = null;
+    const frame = () => {
+      raf = 0;
+      if (!last) return;
+      const { clientX: x, clientY: y, target } = last;
+      el.style.transform = `translate(${x}px, ${y}px)`;
+      el.style.opacity = "1";
+      const lit = target instanceof Element ? target.closest<HTMLElement>(LIT) : null;
+      if (lit) {
+        const r = lit.getBoundingClientRect();
+        lit.style.setProperty("--mx", `${x - r.left}px`);
+        lit.style.setProperty("--my", `${y - r.top}px`);
+      }
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      last = e;
+      if (!raf) raf = requestAnimationFrame(frame);
+    };
+    const leave = () => (el.style.opacity = "0");
+    window.addEventListener("pointermove", move, { passive: true });
+    document.documentElement.addEventListener("pointerleave", leave);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("pointermove", move);
+      document.documentElement.removeEventListener("pointerleave", leave);
+    };
+  }, [spot]);
+}
+
+/** Fondo fijo: luces cálidas que derivan despacio, un grabado guilloché dorado, la luz del cursor y grano de papel. */
 export function BakeryBackdrop() {
+  const spot = useRef<HTMLElement>(null);
+  usePointerLight(spot);
   return (
     <div className="bk-bg" aria-hidden="true">
       <div className="bk-aurora">
@@ -19,6 +64,7 @@ export function BakeryBackdrop() {
       </div>
       {/* grabado guilloché (/club/guilloche.svg) como máscara: toma el dorado de cada tema */}
       <i className="bk-guilloche" />
+      <i className="bk-spot" ref={spot} />
       <div className="bk-wash" />
     </div>
   );

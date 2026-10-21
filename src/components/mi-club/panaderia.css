@@ -14,6 +14,7 @@
   --oven-glow: rgba(226, 89, 42, 0.16);
   --glow-gold: rgba(217, 169, 74, 0.2); --glow-ember: rgba(214, 84, 40, 0.16); --glow-honey: rgba(240, 194, 116, 0.1);
   --engrave: rgba(224, 180, 92, 0.22); --vignette: rgba(0, 0, 0, 0.55);
+  --spot: rgba(255, 190, 110, 0.2); --sheen: rgba(255, 214, 150, 0.16); --glint: rgba(255, 250, 235, 0.55);
   --bezel: rgba(255, 228, 190, 0.035); --bezel-line: rgba(255, 228, 190, 0.08);
   --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .92  0 0 0 0 .78  0 0 0 .05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   --brick: #5e2b16; --brick-joint: rgba(0, 0, 0, 0.35); --peel: #6b4126; --steam: rgba(255, 244, 228, 0.75);
@@ -31,6 +32,7 @@
     --oven-glow: rgba(240, 160, 70, 0.14);
     --glow-gold: rgba(232, 178, 82, 0.26); --glow-ember: rgba(240, 130, 70, 0.14); --glow-honey: rgba(255, 214, 150, 0.32);
     --engrave: rgba(169, 118, 26, 0.3); --vignette: rgba(150, 95, 40, 0.1);
+    --spot: rgba(255, 214, 150, 0.42); --sheen: rgba(255, 226, 170, 0.45); --glint: rgba(255, 252, 240, 0.7);
     --hi: rgba(255, 255, 255, 0.9); --gold-line: color-mix(in oklab, var(--gold) 70%, transparent);
     --bezel: rgba(170, 110, 50, 0.055); --bezel-line: rgba(170, 110, 50, 0.1);
     --paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .55  0 0 0 0 .36  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
@@ -60,6 +62,12 @@
   animation: bk-turn 240s linear infinite;
 }
 @keyframes bk-turn { to { transform: rotate(360deg); } }
+/* luz del cursor (la mueve bakery-scene.tsx): solo con mouse */
+.mc2 .bk-spot {
+  position: absolute; left: -320px; top: -320px; width: 640px; height: 640px; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--spot), transparent); opacity: 0; will-change: transform;
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.6s ease;
+}
 /* viñeta y grano: profundidad en los bordes y textura de papel */
 .mc2 .bk-wash { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 40%, transparent 55%, var(--vignette)); }
 .mc2 .bk-bg::after { content: ""; position: absolute; inset: 0; background-image: var(--paper); background-size: 180px 180px; opacity: 0.9; }
@@ -344,6 +352,39 @@
 .mc2.mc2-sheet { background-color: var(--surface); }
 .mc2.lu { background: radial-gradient(70% 50% at 50% 70%, rgba(226, 89, 42, 0.35), transparent 70%), radial-gradient(80% 60% at 50% 38%, #2c1d12, #0b0805 75%); }
 
+/* ---------- luz y movimiento ---------- */
+/* reflejo: la superficie se ilumina bajo el cursor (la Wallet conserva su diseño) */
+@media (hover: hover) and (pointer: fine) {
+  .mc2 :is(.tile, .rc, .ac, .list):not(.view-wallet .list):hover {
+    background-image: radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), var(--sheen), transparent 70%), var(--surface-grad);
+  }
+}
+/* el progreso a Oro está vivo: un reflejo recorre la barra cada tanto */
+.mc2 .tier-prog .track > span { position: relative; overflow: hidden; }
+.mc2 .tier-prog .track > span::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(100deg, transparent 30%, var(--glint) 50%, transparent 70%);
+  animation: mc2-glint 6s cubic-bezier(0.4, 0, 0.2, 1) 1.4s infinite;
+}
+@keyframes mc2-glint { 0% { transform: translateX(-100%); } 32%, 100% { transform: translateX(100%); } }
+/* hay tiradas: el botón de la ruleta respira con un halo dorado */
+.mc2 .spin-tile .btn-pop { position: relative; }
+.mc2 .spin-tile .btn-pop::after {
+  content: ""; position: absolute; inset: -4px; border-radius: inherit; pointer-events: none; opacity: 0;
+  box-shadow: 0 0 0 1px var(--gold-line), 0 0 18px 2px color-mix(in oklab, var(--gold) 45%, transparent);
+  animation: mc2-halo 2.8s ease-in-out infinite;
+}
+@keyframes mc2-halo { 50% { opacity: 1; } }
+/* los filetes dorados de los títulos se dibujan al entrar en pantalla */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .mc2 :is(.sec-head h2, .sec-head h3)::before, .mc2 :is(.v-head h1, .v-head h2)::after {
+      transform-origin: left center; animation: mc2-draw linear both; animation-timeline: view(); animation-range: entry 10% cover 30%;
+    }
+  }
+}
+@keyframes mc2-draw { from { transform: scaleX(0); } }
+
 /* ---------- escritorio ---------- */
 @media (min-width: 1024px) {
   .mc2 .topbar-wrap { padding: 14px 24px 0; }
@@ -358,6 +399,7 @@
 
 /* ---------- movimiento reducido: todo quieto, el pan ya horneado ---------- */
 @media (prefers-reduced-motion: reduce) {
+  .mc2 .tier-prog .track > span::after, .mc2 .spin-tile .btn-pop::after { animation: none; display: none; }
   .mc2 .bake .bk-loaf, .mc2 .bake .bk-crust, .mc2 .bake .bk-score, .mc2 .bake .bk-sheen, .mc2 .bk-fire, .mc2 .bk-ember { animation: none !important; opacity: 1; transform: none; }
   .mc2 .bk-steam path { animation: none !important; opacity: 0.55; }
   .mc2 .ig-photo::after { animation: none !important; }
