@@ -13,7 +13,7 @@ import type { CrewName, CREW_ART } from "./crew-art";
 
 type Art = typeof CREW_ART;
 const SEEN_KEY = "club-intro-seen";
-const SPEED = 75; // unidades del pack por segundo al caminar
+const SPEED = 170; // unidades del pack por segundo al caminar
 
 /** `true` si la bienvenida animada todavía no se vio en esta sesión y el sistema permite movimiento. */
 export function introPending() {
@@ -163,11 +163,11 @@ export function HelloCrew({ name, play, onStep, className = "" }: { name: string
     line.style.opacity = "0";
 
     (async () => {
-      await d.wait(350);
+      await d.wait(120);
       await walk(d, barista, BOARD_X - HAND_X);
       // Escribe: el texto se descubre al mismo ritmo que avanza la mano.
       barista.g.classList.add("writing");
-      const ms = 260 + w * 15;
+      const ms = 120 + w * 7;
       const t0 = performance.now();
       let raf = requestAnimationFrame(function frame(now) {
         clip.setAttribute("width", String(Math.min(1, (now - t0) / ms) * w + 2));
@@ -253,10 +253,10 @@ export function CardStage({ serve, children }: { serve: boolean; children: React
     place(waiter, WAITER_AWAY);
 
     (async () => {
-      await d.wait(450);
+      await d.wait(150);
       await walk(d, waiter, TRAY_STOP);
       waiter.g.classList.add("lift");
-      await d.wait(380);
+      await d.wait(180);
       // FLIP: la tarjeta real arranca con el tamaño y lugar de la miniatura de la bandeja.
       const from = (mini ?? waiter.g).getBoundingClientRect();
       const to = card.getBoundingClientRect();
@@ -271,14 +271,14 @@ export function CardStage({ serve, children }: { serve: boolean; children: React
           { transform: `translate(${dx * 0.4}px, ${dy * 0.4 - 30}px) scale(0.55) rotate(-4deg)`, offset: 0.45 },
           { transform: "none" },
         ],
-        { duration: 900, easing: "cubic-bezier(.3,.7,.2,1)" },
+        { duration: 600, easing: "cubic-bezier(.3,.7,.2,1)" },
       );
       fly.cancel();
       waiter.g.classList.remove("lift");
       waiter.g.classList.add("bow");
-      await d.wait(650);
+      await d.wait(350);
       waiter.g.classList.remove("bow");
-      await d.wait(200);
+      await d.wait(80);
       await walk(d, waiter, WAITER_AWAY);
       setServing(false);
     })().catch(() => {});
