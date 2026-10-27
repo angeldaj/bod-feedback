@@ -10,6 +10,7 @@ import { MembershipCard } from "../membership-card";
 import { SKIN_NAME, fmtPts, toFace } from "../club-visuals";
 import { Skeleton, WalletPocket } from "../pieces";
 import { Pixel } from "../pixel-sprites";
+import { BakingLoaf } from "../bakery-scene";
 import { HelloCrew, introPending, markIntroSeen } from "../crew";
 import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
@@ -127,8 +128,9 @@ export function HomeScreen() {
       <div className="hello">
         <div className="hello-copy">
           <h1 className={reveal(1)}>
-            Hola, <em>{member.firstName}</em>.
+            Pasa adelante, <em>{member.firstName}</em>.
           </h1>
+          <BakingLoaf className={`hello-oven ${reveal(1)}`} />
           <p className={`hello-aside ${reveal(2)}`}>Tu pan ya está saliendo del horno.</p>
           <p className={reveal(2)}>
             Nivel <b>{card.tier.name}</b>, en el club desde {card.memberSince}. Tienes <b className="tab-nums">{fmtPts(card.balance)}</b> pts para canjear.
