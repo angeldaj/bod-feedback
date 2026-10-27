@@ -179,22 +179,17 @@
 .mc2 .fchip[aria-pressed="true"] { background: var(--ink); border-color: transparent; color: var(--ground); }
 
 /* ---------- saludo ---------- */
-.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 24px; }
-/* el horno va junto al título en móvil y a la izquierda de todo el saludo desde tableta */
-.mc2 .hello-copy { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: end; }
-.mc2 .hello-copy > :not(h1, .hello-oven) { grid-column: 1 / -1; }
-.mc2 .hello-oven { grid-column: 2; grid-row: 1; width: 76px; height: auto; margin-bottom: 2px; }
+.mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 10px 24px; }
+/* el texto queda al ras de la tarjeta; el horno sigue al título como una palabra más */
+.mc2 .hello-copy { min-width: 0; }
+.mc2 .hello h1 .hello-oven { display: inline-block; width: 1.3em; height: auto; margin-left: 0.22em; vertical-align: -0.04em; }
 /* el pan espera a que aparezca el saludo para empezar a hornearse */
-.mc2 .hello-oven.crew-reveal:not(.on) * { animation-play-state: paused; }
+.mc2 .crew-reveal:not(.on) .hello-oven * { animation-play-state: paused; }
 .mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 14px; }
 .mc2 .hello .hello-aside + p { margin-top: 10px; max-width: 46ch; line-height: 1.5; text-wrap: pretty; }
 .mc2 .hello-kitchen { width: 440px; max-width: 100%; height: auto; margin: 0; padding: 0; }
-@media (min-width: 720px) {
-  .mc2 .hello-copy { grid-template-columns: auto minmax(0, 1fr); column-gap: 28px; align-items: center; }
-  .mc2 .hello-copy > :not(.hello-oven) { grid-column: 2; }
-  .mc2 .hello-oven { grid-column: 1; grid-row: 1 / span 3; width: 124px; margin: 0; }
-}
-@media (max-width: 719px) {
+/* hasta escritorio los personajes van debajo: al lado apretarían el texto */
+@media (max-width: 1023px) {
   .mc2 .hello { grid-template-columns: 1fr; }
   .mc2 .hello-kitchen { width: 100%; max-width: 420px; justify-self: center; }
 }
@@ -404,7 +399,6 @@
   .mc2 .v-head h1 { font-size: 3.1rem; }
   .mc2 .hello h1 { font-size: 3.8rem; }
   .mc2 .hello .hello-aside { font-size: 1.6rem; }
-  .mc2 .hello-oven { width: 148px; }
   .mc2 .field-foot { padding-bottom: 28px; margin-top: 40px; }
   .mc2 .view-home { row-gap: 30px; }
 }
