@@ -113,7 +113,7 @@
 .mc2 .mav-lg .mav-ini { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 3rem; letter-spacing: 0; }
 
 /* ---------- superficies: planas, con filete fino ---------- */
-.mc2 :is(.tile, .list, .rc, .ac, .prize-pts) {
+.mc2 :is(.tile, .list, .rc, .prize-pts) {
   background-color: var(--surface); background-image: var(--surface-grad);
   border-radius: 16px;
   box-shadow: inset 0 1px 0 var(--hi), 0 0 0 1px var(--div), var(--lift);
@@ -124,8 +124,8 @@
   content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 1px;
   background: linear-gradient(90deg, transparent, var(--gold-line) 20%, var(--gold-line) 80%, transparent);
 }
-.mc2 :is(.rc, .ac):hover { box-shadow: 0 0 0 1px var(--div-strong), var(--lift-hover); }
-.mc2 .rc, .mc2 .ac { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
+.mc2 .rc:hover { box-shadow: 0 0 0 1px var(--div-strong), var(--lift-hover); }
+.mc2 .rc { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
 /* la Wallet no cambia: conserva su papel sobre bandeja */
 .mc2 .view-wallet .list {
   background-image: var(--paper); background-size: 180px 180px; border-radius: 26px;
@@ -180,9 +180,20 @@
 
 /* ---------- saludo ---------- */
 .mc2 .hello { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px 24px; }
-.mc2 .hello-copy { min-width: 0; }
-.mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 8px; padding-bottom: 2px; }
+/* el horno va junto al título en móvil y a la izquierda de todo el saludo desde tableta */
+.mc2 .hello-copy { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; align-items: end; }
+.mc2 .hello-copy > :not(h1, .hello-oven) { grid-column: 1 / -1; }
+.mc2 .hello-oven { grid-column: 2; grid-row: 1; width: 76px; height: auto; margin-bottom: 2px; }
+/* el pan espera a que aparezca el saludo para empezar a hornearse */
+.mc2 .hello-oven.crew-reveal:not(.on) * { animation-play-state: paused; }
+.mc2 .hello .hello-aside { font-family: var(--serif); font-style: italic; font-size: 1.4rem; line-height: 1.15; color: var(--gold-text); margin-top: 14px; }
+.mc2 .hello .hello-aside + p { margin-top: 10px; max-width: 46ch; line-height: 1.5; text-wrap: pretty; }
 .mc2 .hello-kitchen { width: 440px; max-width: 100%; height: auto; margin: 0; padding: 0; }
+@media (min-width: 720px) {
+  .mc2 .hello-copy { grid-template-columns: auto minmax(0, 1fr); column-gap: 28px; align-items: center; }
+  .mc2 .hello-copy > :not(.hello-oven) { grid-column: 2; }
+  .mc2 .hello-oven { grid-column: 1; grid-row: 1 / span 3; width: 124px; margin: 0; }
+}
 @media (max-width: 719px) {
   .mc2 .hello { grid-template-columns: 1fr; }
   .mc2 .hello-kitchen { width: 100%; max-width: 420px; justify-self: center; }
@@ -298,7 +309,7 @@
 /* ---------- entradas al hacer scroll (CSS scroll-driven, sin listeners) ---------- */
 @supports (animation-timeline: view()) {
   @media (prefers-reduced-motion: no-preference) {
-    .mc2 .main :is(.tile, .rc, .ac, .list) {
+    .mc2 .main :is(.tile, .rc, .list) {
       animation: mc2-reveal linear both;
       animation-timeline: view();
       animation-range: entry 0% entry 45%;
@@ -355,7 +366,7 @@
 /* ---------- luz y movimiento ---------- */
 /* reflejo: la superficie se ilumina bajo el cursor (la Wallet conserva su diseño) */
 @media (hover: hover) and (pointer: fine) {
-  .mc2 :is(.tile, .rc, .ac, .list):not(.view-wallet .list):hover {
+  .mc2 :is(.tile, .rc, .list):not(.view-wallet .list):hover {
     background-image: radial-gradient(280px circle at var(--mx, 50%) var(--my, 0%), var(--sheen), transparent 70%), var(--surface-grad);
   }
 }
@@ -393,6 +404,7 @@
   .mc2 .v-head h1 { font-size: 3.1rem; }
   .mc2 .hello h1 { font-size: 3.8rem; }
   .mc2 .hello .hello-aside { font-size: 1.6rem; }
+  .mc2 .hello-oven { width: 148px; }
   .mc2 .field-foot { padding-bottom: 28px; margin-top: 40px; }
   .mc2 .view-home { row-gap: 30px; }
 }

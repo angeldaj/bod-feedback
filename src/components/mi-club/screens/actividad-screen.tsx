@@ -1,14 +1,14 @@
 "use client";
 
-import { createElement, useMemo, useState } from "react";
+import { createElement, useMemo, useState, type CSSProperties } from "react";
 import { ChevronDown, Gift, MapPin, MessageCircleHeart, ReceiptText, Sparkles } from "lucide-react";
-import { useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Bar, BarChart, LabelList, Rectangle, XAxis, type BarShapeProps } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { ActivityItem, ClubActivity } from "@/lib/club-api";
 import { useClub } from "../club-provider";
-import { categoryIcon, categoryTone, fmtPts, isToday, money, monthLabel, shortDate } from "../club-visuals";
-import { ImageSlot, Skeleton } from "../pieces";
+import { categoryIcon, fmtPts, isToday, monthLabel, shortDate } from "../club-visuals";
+import { Skeleton } from "../pieces";
 
 const FILTERS = [
   { id: "all", label: "Todo" },
@@ -56,91 +56,124 @@ function PointsChart({ monthly }: { monthly: ClubActivity["monthly"] }) {
   );
 }
 
-function PurchaseCard({ item, open, onToggle }: { item: Extract<ActivityItem, { type: "purchase" }>; open: boolean; onToggle: () => void }) {
-  const cat = CHANNEL_ICON[item.channel];
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+function when(iso: string) {
+  return isToday(iso) ? "Hoy" : shortDate(iso);
+}
+
+/** Puntos como marca principal de cada fila: ganados en dorado, canjeados en coral, regalos van a la Wallet. */
+function RowPoints({ item }: { item: ActivityItem }) {
+  if (item.type === "grant") {
+    return (
+      <span className="ar-pts gift">
+        <Gift aria-hidden="true" />
+        <small>A tu Wallet</small>
+      </span>
+    );
+  }
+  const neg = item.type === "redemption";
   return (
-    <article className="ac">
-      <div className="ac-row">
-        <span className="ac-thumb">
-          <ImageSlot tone={categoryTone(cat)} icon={categoryIcon(cat)} />
-        </span>
-        <div className="ac-main">
-          <b>{item.title}</b>
-          <small>
-            {isToday(item.occurredAt) ? "Hoy" : shortDate(item.occurredAt)}, {item.branch}
-          </small>
-          <div className="tags">
-            <span className="tag">{item.channel}</span>
-            <span className="tag">{item.payment}</span>
-          </div>
-        </div>
-        <div className="ac-end">
-          <strong>+{fmtPts(item.points)}</strong>
-          <small>{money(item.amount)}</small>
-        </div>
-      </div>
-      <button type="button" className="ac-toggle" aria-expanded={open} aria-controls={`it-${item.id}`} onClick={onToggle}>
-        {open ? "Ocultar pedido" : `Ver lo que pediste (${item.lines.length})`}
-        <ChevronDown aria-hidden="true" />
-      </button>
-      <div className="ac-items" id={`it-${item.id}`} hidden={!open}>
-        {item.lines.map((l) => (
-          <div key={l.name}>
-            <span>
-              {l.name}
-              {l.qty > 1 ? ` x${l.qty}` : ""}
-            </span>
-            <span>{money(l.amount)}</span>
-          </div>
-        ))}
-      </div>
-    </article>
+    <span className={`ar-pts${neg ? " neg" : item.points ? "" : " zero"}`}>
+      <strong>
+        {neg ? "" : "+"}
+        {fmtPts(item.points)}
+      </strong>
+      <small>pts</small>
+    </span>
   );
 }
 
-function EventCard({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" | "social" }> }) {
+function RowIcon({ item }: { item: ActivityItem }) {
+  const Icon =
+    item.type === "purchase"
+      ? categoryIcon(CHANNEL_ICON[item.channel])
+      : item.type === "social"
+        ? MessageCircleHeart
+        : item.type === "grant" && !item.category
+          ? Sparkles
+          : categoryIcon(item.category);
+  return <span className={`ar-ic ${item.type}`}>{createElement(Icon, { "aria-hidden": true })}</span>;
+}
+
+function PurchaseRow({ item, open, onToggle }: { item: Extract<ActivityItem, { type: "purchase" }>; open: boolean; onToggle: () => void }) {
+  const reduce = useReducedMotion();
+  const panel = `it-${item.id}`;
   return (
-    <article className={`ac evt ${item.type}`}>
-      <div className="ac-row">
-        <span className="ac-thumb">
-          {createElement(
-            item.type === "social" ? MessageCircleHeart : item.type === "grant" && !item.category ? Sparkles : categoryIcon(item.category),
-            { "aria-hidden": true },
-          )}
-        </span>
-        <div className="ac-main">
+    <>
+      <button type="button" className="ar ar-btn" aria-expanded={open} aria-controls={panel} onClick={onToggle}>
+        <RowIcon item={item} />
+        <span className="ar-txt">
           <b>{item.title}</b>
           <small>
-            {isToday(item.occurredAt) ? "Hoy" : shortDate(item.occurredAt)}, {item.detail}
+            {when(item.occurredAt)} · {item.branch} · {item.channel} · {item.payment}
           </small>
-          <div className="tags">
-            <span className="tag">
-              {item.type === "redemption" ? "Canje con puntos" : item.type === "social" ? "Campaña de Instagram" : "Regalo de la casa"}
-            </span>
-          </div>
-        </div>
-        <div className="ac-end">
-          {item.type === "redemption" ? (
-            <>
-              <strong className="neg">{fmtPts(item.points)}</strong>
-              <small>pts</small>
-            </>
-          ) : item.type === "social" ? (
-            <>
-              <strong>+{fmtPts(item.points)}</strong>
-              <small>pts</small>
-            </>
-          ) : (
-            <>
-              <strong>
-                <Gift aria-hidden="true" />
-              </strong>
-              <small>En tu Wallet</small>
-            </>
-          )}
-        </div>
-      </div>
-    </article>
+        </span>
+        <RowPoints item={item} />
+        <ChevronDown className="ar-chev" aria-hidden="true" />
+      </button>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            id={panel}
+            className="ar-panel"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{
+              height: { duration: reduce ? 0 : 0.26, ease: EASE_OUT },
+              opacity: { duration: 0.18 },
+            }}
+          >
+            <ul className="ar-items" aria-label="Lo que pediste">
+              {item.lines.map((l, i) => (
+                <motion.li
+                  key={l.name}
+                  initial={
+                    reduce
+                      ? false
+                      : {
+                          opacity: 0,
+                          transform: "translateY(-4px)",
+                          filter: "blur(2px)",
+                        }
+                  }
+                  animate={{
+                    opacity: 1,
+                    transform: "translateY(0px)",
+                    filter: "blur(0px)",
+                  }}
+                  transition={{
+                    duration: 0.22,
+                    delay: 0.04 + i * 0.03,
+                    ease: EASE_OUT,
+                  }}
+                >
+                  <span>{l.name}</span>
+                  {l.qty > 1 ? <span className="ar-qty">×{l.qty}</span> : null}
+                </motion.li>
+              ))}
+            </ul>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
+  );
+}
+
+function EventRow({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" | "social" }> }) {
+  return (
+    <div className="ar">
+      <RowIcon item={item} />
+      <span className="ar-txt">
+        <b>{item.title}</b>
+        <small>
+          {when(item.occurredAt)} · {item.detail}
+        </small>
+      </span>
+      <RowPoints item={item} />
+      <span className="ar-chev" aria-hidden="true" />
+    </div>
   );
 }
 
@@ -181,87 +214,89 @@ export function ActividadScreen() {
         <p>Lo que pediste, lo que sumaste y lo que canjeaste.</p>
       </div>
 
-      {loading || !activity || !month ? (
-        <div className="act-top">
-          <Skeleton height={170} />
-          <Skeleton height={220} />
-        </div>
-      ) : (
-        <div className="act-top">
-          <section className="tile act-sum" aria-labelledby="act-month">
-            <h2 id="act-month" style={{ textTransform: "uppercase" }}>
-              {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
-            </h2>
-            <div className="sum-grid">
-              <div>
-                <strong>{money(month.spent)}</strong>
-                <small>Consumido</small>
+      <div className="act-body">
+        {loading || !activity || !month ? (
+          <div className="act-top">
+            <Skeleton height={170} />
+            <Skeleton height={220} />
+          </div>
+        ) : (
+          <div className="act-top">
+            <section className="tile act-sum" aria-labelledby="act-month">
+              <h2 id="act-month" style={{ textTransform: "uppercase" }}>
+                {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+              </h2>
+              <div className="sum-grid">
+                <div>
+                  <strong className="gold">+{fmtPts(month.points)}</strong>
+                  <small>Puntos</small>
+                </div>
+                <div>
+                  <strong>{month.visits}</strong>
+                  <small>Visitas</small>
+                </div>
               </div>
-              <div>
-                <strong className="gold">+{fmtPts(month.points)}</strong>
-                <small>Puntos</small>
-              </div>
-              <div>
-                <strong>{month.visits}</strong>
-                <small>Visitas</small>
-              </div>
-            </div>
-            {month.favoriteBranch ? (
-              <p className="sum-note">
-                <MapPin aria-hidden="true" />
-                Tu sede favorita: {month.favoriteBranch.replace(/^Sede /, "")}
-              </p>
-            ) : null}
-          </section>
-          <section className="tile act-chart" aria-labelledby="act-chart">
-            <div className="sec-head">
-              <h2 id="act-chart">Puntos por mes</h2>
-              <span className="muted-sm">Últimos {activity.monthly.length} meses</span>
-            </div>
-            <PointsChart monthly={activity.monthly} />
-          </section>
-        </div>
-      )}
-
-      <div className="fchips" role="group" aria-label="Filtrar actividad">
-        {FILTERS.map((f) => (
-          <button key={f.id} type="button" className="fchip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="day-group">
-          {Array.from({ length: 3 }, (_, i) => (
-            <Skeleton key={i} height={140} />
-          ))}
-        </div>
-      ) : groups.length ? (
-        <div className="view" style={{ gap: 22 }}>
-          {groups.map((g) => (
-            <section key={g.key} className="day-group" aria-label={g.label}>
-              <h3>
-                <span>{g.label}</span>
-                {g.points ? <span>+{fmtPts(g.points)} pts</span> : null}
-              </h3>
-              {g.items.map((item) =>
-                item.type === "purchase" ? (
-                  <PurchaseCard key={item.id} item={item} open={openIds.has(item.id)} onToggle={() => toggle(item.id)} />
-                ) : (
-                  <EventCard key={item.id} item={item} />
-                ),
-              )}
+              {month.favoriteBranch ? (
+                <p className="sum-note">
+                  <MapPin aria-hidden="true" />
+                  Tu sede favorita: {month.favoriteBranch.replace(/^Sede /, "")}
+                </p>
+              ) : null}
             </section>
-          ))}
+            <section className="tile act-chart" aria-labelledby="act-chart">
+              <div className="sec-head">
+                <h2 id="act-chart">Puntos por mes</h2>
+                <span className="muted-sm">Últimos {activity.monthly.length} meses</span>
+              </div>
+              <PointsChart monthly={activity.monthly} />
+            </section>
+          </div>
+        )}
+
+        <div className="act-feed">
+          <div className="fchips" role="group" aria-label="Filtrar actividad">
+            {FILTERS.map((f) => (
+              <button key={f.id} type="button" className="fchip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="act-months">
+              <Skeleton height={320} />
+            </div>
+          ) : groups.length ? (
+            <div className="act-months" key={filter}>
+              {groups.map((g, gi) => (
+                <section key={g.key} className="act-month" aria-label={g.label}>
+                  <h3>
+                    <span>{g.label}</span>
+                    {g.points ? <span className="am-pts">+{fmtPts(g.points)} pts</span> : null}
+                  </h3>
+                  <ul className="list act-list">
+                    {g.items.map((item, i) => (
+                      <li key={item.id} style={{ "--i": Math.min(gi * 4 + i, 12) } as CSSProperties}>
+                        {item.type === "purchase" ? (
+                          <PurchaseRow item={item} open={openIds.has(item.id)} onToggle={() => toggle(item.id)} />
+                        ) : (
+                          <EventRow item={item} />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="empty">
+              <ReceiptText aria-hidden="true" />
+              <b>Nada por aquí todavía</b>
+              <span>Cuando compres o uses tu Wallet, lo verás en esta lista.</span>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="empty">
-          <ReceiptText aria-hidden="true" />
-          <b>Nada por aquí todavía</b>
-          <span>Cuando compres o uses tu Wallet, lo verás en esta lista.</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

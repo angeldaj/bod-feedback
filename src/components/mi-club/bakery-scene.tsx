@@ -9,7 +9,7 @@ import { useEffect, useId, useRef } from "react";
  */
 
 /** Superficies que reflejan la luz del cursor (la tarjeta y la Wallet no: tienen su propio diseño). */
-const LIT = ".tile, .rc, .ac, .list:not(.view-wallet .list)";
+const LIT = ".tile, .rc, .list:not(.view-wallet .list)";
 
 /**
  * Luz que sigue al cursor (solo con mouse): mueve el foco del fondo y deja en la
