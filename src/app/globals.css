@@ -1873,6 +1873,15 @@
   @page {
     margin: 14mm;
   }
+  /* QR del club: imprime solo la pieza elegida, sin el hueco de pantalla. */
+  .lb-club-qr {
+    padding: 0;
+    min-height: 0;
+  }
+  .lb-club-qr[data-print="flyer"] .lb-club-ticket,
+  .lb-club-qr[data-print="ticket"] .lb-club-flyer {
+    display: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
