@@ -16,6 +16,7 @@ import { SpinProgress, Wheel, sortedSegments } from "../wheel";
 import { SocialCampaignsSection } from "../social-campaigns";
 import { InstagramFeedSection } from "../instagram-feed";
 import { SHOW_PEDIDOS } from "../data";
+import { RaspaditoTile } from "./raspadito-screen";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -163,6 +164,7 @@ export function HomeScreen() {
       <div className="home-side">
         <TierProgress card={card} />
         <SpinTile />
+        <RaspaditoTile />
         {SHOW_PEDIDOS && (
           <Link href={href("pedidos")} className="tile ped-teaser px-live">
             <Pixel sprite="moto" scale={3} fps={0.2} />
