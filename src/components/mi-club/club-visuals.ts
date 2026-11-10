@@ -1,4 +1,5 @@
 import {
+  Banknote,
   CakeSlice,
   Citrus,
   Coffee,
@@ -35,6 +36,7 @@ const CATEGORY: Record<string, { icon: LucideIcon; tone: Tone }> = {
   Postres: { icon: CakeSlice, tone: "cream" },
   Almuerzo: { icon: UtensilsCrossed, tone: "coral" },
   Delivery: { icon: Truck, tone: "cocoa" },
+  Efectivo: { icon: Banknote, tone: "gold" },
 };
 
 export function categoryIcon(category: string | null | undefined): LucideIcon {
@@ -71,10 +73,17 @@ export function voucherKindClass(v: Voucher): string {
 }
 
 export const ORIGIN_LABEL = (v: Voucher) =>
-  v.origin === "redemption" ? "Canje con puntos" : v.origin === "spin" ? "Premio de la ruleta" : "Regalo de la casa";
+  v.origin === "redemption"
+    ? "Canje con puntos"
+    : v.origin === "spin"
+      ? "Premio de la ruleta"
+      : v.grantReason === "ticket"
+        ? "Raspadito de Navidad"
+        : "Regalo de la casa";
 
 /** Etiqueta corta del origen, para el bolsillo de la Wallet. */
-export const ORIGIN_SHORT = (v: Voucher) => (v.origin === "redemption" ? "Canje" : v.origin === "spin" ? "Ruleta" : "Regalo");
+export const ORIGIN_SHORT = (v: Voucher) =>
+  v.origin === "redemption" ? "Canje" : v.origin === "spin" ? "Ruleta" : v.grantReason === "ticket" ? "Raspadito" : "Regalo";
 
 export const fmtPts = (n: number) => n.toLocaleString("es-VE");
 export const money = (n: number) => `$${n.toFixed(2).replace(".", ",")}`;

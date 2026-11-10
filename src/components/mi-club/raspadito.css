@@ -1,0 +1,139 @@
+/*
+ * Bodega Club · Raspadito de Navidad (tickets del pan de jamón).
+ * La capa raspable y los tickets usan colores fijos, como el papel impreso;
+ * todo lo demás sale de los tokens de día y noche.
+ */
+
+.mc2 {
+  /* tarjeta de Inicio: el ticket impreso, rojo horno */
+  .rasp-tile { position: relative; overflow: hidden; display: grid; gap: 12px; color: #fff6ea; background: radial-gradient(90% 70% at 100% 0%, rgba(255, 196, 120, 0.32), transparent 60%), linear-gradient(160deg, #7a2a14 0%, #4a170a 70%, #2e0f06 100%); box-shadow: 0 24px 40px -26px rgba(60, 20, 5, 0.8); }
+  .rasp-tile-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .rasp-tile h3 { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; line-height: 0.92; }
+  .rasp-tile h3 em, .view-rasp .v-head h1 em, .rasp-complete h3 em { font-family: var(--serif); font-style: italic; font-weight: 500; text-transform: none; }
+  .rasp-tile h3 em { display: block; color: #ffcf8a; font-size: 1.12em; line-height: 1; }
+  .rasp-tile p { color: #f3d9bf; font-size: 0.98rem; max-width: 34ch; }
+  .rasp-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 11px; border-radius: 999px; background: rgba(255, 240, 220, 0.14); color: #ffe7c8; font-size: 0.85rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+  .rasp-chip svg { width: 15px; height: 15px; }
+  .rasp-tile-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .rasp-tile-foot small { color: #f3d9bf; font-size: 0.92rem; }
+  .rasp-cta { background: #fff3e2; color: #4a170a; box-shadow: none; }
+  .rasp-tile .rasp-stamp { background: rgba(255, 240, 220, 0.08); box-shadow: inset 0 0 0 1.5px rgba(255, 240, 220, 0.22); color: #ffe7c8; }
+  .rasp-tile .rasp-stamp.on { color: #4a2a06; }
+
+  /* sellos de la colección */
+  .rasp-stamps { display: grid; gap: 8px; }
+  .rasp-stamp { aspect-ratio: 1; max-height: 64px; border-radius: 16px; display: grid; place-items: center; background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--div-strong); color: var(--muted); }
+  .rasp-stamp svg { width: 24px; height: 24px; opacity: 0.4; }
+  .rasp-stamp.on { background: linear-gradient(150deg, #f6d896, #e0a64a); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 8px 14px -10px rgba(120, 60, 10, 0.7); color: #4a2a06; }
+  .rasp-stamp.on svg { opacity: 1; }
+
+  /* pantalla */
+  .view-rasp .v-head h1 em { color: var(--coral); }
+  .rasp-main { display: grid; gap: 18px; align-content: start; }
+  .rasp-side { display: grid; gap: 18px; align-content: start; }
+  .rasp-side .tile { display: grid; gap: 12px; }
+  .rasp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .rasp-head h2 { font-size: 1.3rem; font-weight: 600; text-transform: uppercase; line-height: 1; }
+  .rasp-label { display: inline-flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+  .rasp-label svg { width: 15px; height: 15px; }
+  .rasp-center { text-align: center; }
+
+  /* formulario del código */
+  .rasp-form { display: grid; gap: 12px; }
+  .rasp-where { display: grid; grid-template-columns: 64px 1fr; gap: 14px; align-items: center; color: var(--body); font-size: 0.98rem; }
+  .rasp-mini { position: relative; height: 84px; border-radius: 10px; background: linear-gradient(160deg, #7a2a14, #3a1208); box-shadow: 0 8px 16px -10px rgba(60, 20, 5, 0.8); overflow: hidden; }
+  .rasp-mini i { position: absolute; left: 9px; right: 9px; height: 7px; border-radius: 3px; background: linear-gradient(90deg, #cfc6b8, #efe9df, #b9ae9c); }
+  .rasp-mini i:nth-child(1) { top: 12px; }
+  .rasp-mini i:nth-child(2) { top: 26px; }
+  .rasp-mini i:nth-child(3) { top: 40px; }
+  .rasp-mini b { position: absolute; left: 9px; right: 9px; bottom: 11px; height: 15px; border-radius: 4px; background: #fff3e2; color: #4a170a; font-size: 0.62rem; letter-spacing: 0.08em; display: grid; place-items: center; outline: 2px dashed #ffcf8a; outline-offset: 2px; }
+  .rasp-field-label { font-weight: 600; font-size: 1rem; }
+  .rasp-code { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .rasp-code input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 16px; text-transform: uppercase; caret-color: transparent; cursor: text; }
+  .rasp-cell { height: 64px; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 1.5px var(--div-strong); display: grid; place-items: center; font-size: 2rem; font-weight: 700; transition: box-shadow 160ms ease; }
+  .rasp-code.focus .rasp-cell.cur { box-shadow: inset 0 0 0 2.5px var(--coral-fill); }
+  .rasp-code.focus .rasp-cell.cur::after { content: ""; width: 2px; height: 28px; border-radius: 2px; background: var(--coral-fill); animation: rasp-blink 1s steps(1) infinite; }
+  .rasp-code.err .rasp-cell { box-shadow: inset 0 0 0 2px var(--coral-fill); }
+  .rasp-code:has(input:focus-visible) { outline: 3px solid var(--coral-fill); outline-offset: 4px; border-radius: 18px; }
+  .rasp-hint { padding-top: 2px; }
+  .rasp-form .form-error { margin-top: 0; }
+  .rasp-submit { width: 100%; }
+  .rasp-submit[aria-disabled] { opacity: 0.7; cursor: progress; }
+  .rasp-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid currentColor; border-right-color: transparent; animation: rasp-rot 0.6s linear infinite; }
+  .rasp-demo { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--div); }
+  .rasp-demo-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .rasp-demo-list .pill { border: 0; cursor: pointer; transition: transform 140ms var(--ease); }
+  .rasp-demo-list .pill:active { transform: scale(0.97); }
+  .rasp-demo-list .pill b { letter-spacing: 0.06em; }
+  .rasp-lock { display: grid; gap: 10px; }
+  .rasp-clock { font-size: 3rem; font-weight: 700; line-height: 1; }
+  .rasp-lock p { color: var(--body); }
+
+  /* raspado */
+  .rasp-scratch { display: grid; gap: 12px; }
+  .rasp-scratch-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 36px; }
+  .rasp-card { position: relative; height: 300px; border-radius: 24px; overflow: hidden; background: var(--surface); box-shadow: var(--lift); touch-action: none; user-select: none; -webkit-user-select: none; }
+  .rasp-prize { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 6px; padding: 20px; text-align: center; background: radial-gradient(80% 70% at 50% 40%, var(--surface-2), var(--surface)); }
+  .rasp-prize-ic { width: 64px; height: 64px; margin-bottom: 4px; border-radius: 20px; display: grid; place-items: center; background: linear-gradient(150deg, #f6d896, #e0a64a); color: #4a2a06; }
+  .rasp-prize-ic.none { background: var(--coral-soft); color: var(--coral); }
+  .rasp-prize-ic svg { width: 32px; height: 32px; }
+  .rasp-kick { font-size: 0.95rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .rasp-name { font-family: var(--serif); font-style: italic; font-weight: 600; font-size: 2.7rem; line-height: 1; padding-bottom: 4px; }
+  .rasp-name.money { font-family: var(--sans); font-style: normal; font-weight: 700; font-size: 4.2rem; line-height: 0.9; }
+  .rasp-sub { color: var(--body); max-width: 28ch; }
+  .rasp-stampmark { position: absolute; top: 22px; right: 14px; max-width: 7em; padding: 6px 12px; border: 3px solid var(--coral); border-radius: 10px; color: var(--coral); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.95rem; line-height: 1.1; rotate: -9deg; background: color-mix(in oklab, var(--surface) 80%, transparent); }
+  .rasp-foil { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  .rasp-foil:active { cursor: grabbing; }
+
+  /* resultado */
+  .rasp-result { display: grid; gap: 14px; }
+  .rasp-result .prize { max-width: none; }
+  .rasp-note { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; color: var(--body); }
+  .rasp-note svg { width: 22px; height: 22px; color: var(--coral); margin-top: 2px; }
+  .rasp-note b { color: var(--ink); }
+  .rasp-complete { display: grid; gap: 12px; }
+  .rasp-complete h3 { font-size: 1.8rem; font-weight: 700; text-transform: uppercase; line-height: 0.95; }
+  .rasp-complete h3 em { color: var(--coral); }
+  .rasp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rasp-actions .btn { padding-inline: 12px; }
+
+  /* premios que quedan */
+  .rasp-left-hero { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--div); }
+  .rasp-left-hero > span { font-size: 3.4rem; font-weight: 700; line-height: 0.85; color: var(--coral); }
+  .rasp-left-hero p { color: var(--body); line-height: 1.25; }
+  .rasp-left-hero p b { display: block; color: var(--ink); font-size: 1.12rem; text-transform: uppercase; letter-spacing: 0.02em; }
+  .rasp-left-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; }
+  .rasp-left-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--div); }
+  .rasp-left-row:nth-last-child(-n + 2) { border-bottom: 0; }
+  .rasp-left-row span { color: var(--body); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rasp-left-row b { font-weight: 600; white-space: nowrap; transition: color 300ms ease; }
+  .rasp-left-row b small { color: var(--muted); font-weight: 500; font-size: 0.85em; }
+  .rasp-left-row.out span, .rasp-left-row.out b { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .rasp-left-row b.flash, .rasp-left-hero .flash { color: var(--coral); }
+
+  /* sorteo */
+  .rasp-draw { grid-template-columns: auto 1fr; align-items: center; }
+  .rasp-draw-ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; background: var(--coral-soft); color: var(--coral); }
+  .rasp-draw-ic svg { width: 22px; height: 22px; }
+  .rasp-draw b { display: block; font-size: 1.12rem; text-transform: uppercase; letter-spacing: 0.02em; line-height: 1.1; }
+  .rasp-draw span { color: var(--body); font-size: 0.98rem; }
+
+  @media (min-width: 1024px) {
+    .view-rasp { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); column-gap: 48px; align-items: start; }
+    .view-rasp > .v-head { grid-column: 1 / -1; }
+  }
+  @media (max-width: 380px) {
+    .rasp-left-grid { grid-template-columns: 1fr; }
+    .rasp-left-row:nth-last-child(2) { border-bottom: 1px solid var(--div); }
+    .rasp-cell { height: 56px; font-size: 1.7rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rasp-code.focus .rasp-cell.cur::after { animation: none; }
+  }
+}
+
+/* Virutas: viven en <body>, fuera de .mc2. */
+.rasp-flake { position: fixed; z-index: 60; width: 5px; height: 5px; border-radius: 1px; pointer-events: none; }
+
+@keyframes rasp-blink { 50% { opacity: 0; } }
+@keyframes rasp-rot { to { transform: rotate(360deg); } }
