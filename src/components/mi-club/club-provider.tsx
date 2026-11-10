@@ -25,6 +25,8 @@ import type {
   SocialCampaign,
   SpinResult,
   SpinState,
+  TicketActivation,
+  TicketPromo,
   Voucher,
 } from "@/lib/club-api";
 import type { Member } from "@/lib/loyalty-api";
@@ -79,6 +81,13 @@ type ClubValue = ClubData & {
   socialCampaigns: SocialCampaign[];
   /** Feed de Instagram en Inicio: `null` mientras carga; vacío si falla o no hay conexión. */
   instagramFeed: InstagramPost[] | null;
+  /** Raspadito de Navidad: `null` mientras carga, si falla o si no hay promoción. */
+  ticketPromo: TicketPromo | null;
+  ticketPromoLoaded: boolean;
+  /** Activa un ticket. Lanza `ClubApiError` (código inexistente, ajeno, pausa…) y refresca intentos. */
+  activateTicket: (code: string) => Promise<TicketActivation>;
+  /** Copia de un voucher que vuela a la pestaña Wallet; `onDone` al aterrizar. */
+  flyToWallet: (voucher: Voucher, from: Element | null | undefined, onDone: () => void) => void;
   /** Pide (o recupera) el código de la campaña. Devuelve el código o null si falló. */
   requestSocialCode: (campaignId: string) => Promise<string | null>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
@@ -152,6 +161,8 @@ export function ClubProvider({
   const [socialCampaigns, setSocialCampaigns] = useState<SocialCampaign[]>([]);
   const socialRef = useRef<SocialCampaign[]>([]);
   const [instagramFeed, setInstagramFeed] = useState<InstagramPost[] | null>(null);
+  const [ticketPromo, setTicketPromo] = useState<TicketPromo | null>(null);
+  const [ticketPromoLoaded, setTicketPromoLoaded] = useState(false);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
@@ -229,11 +240,24 @@ export function ClubProvider({
     }
   }, [adapter, member]);
 
+  // Aparte, como la ruleta: sin raspadito (o sin backend) el club sigue igual.
+  const loadTicketPromo = useCallback(async () => {
+    if (!member) return;
+    try {
+      setTicketPromo(await adapter.getTicketPromo());
+    } catch {
+      setTicketPromo(null);
+    } finally {
+      setTicketPromoLoaded(true);
+    }
+  }, [adapter, member]);
+
   useEffect(() => {
     void load();
     void loadSpins();
     void loadSocial();
-  }, [load, loadSocial, loadSpins]);
+    void loadTicketPromo();
+  }, [load, loadSocial, loadSpins, loadTicketPromo]);
 
   // Decorativo: si falla, Inicio simplemente no muestra el feed.
   useEffect(() => {
@@ -282,6 +306,21 @@ export function ClubProvider({
   );
 
   const spin = useCallback((idempotencyKey: string) => adapter.spin(idempotencyKey), [adapter]);
+
+  const activateTicket = useCallback(
+    async (code: string) => {
+      try {
+        const result = await adapter.activateTicket(code);
+        setTicketPromo(result.promo);
+        return result;
+      } catch (error) {
+        // Intentos restantes y pausa los decide el servidor.
+        void loadTicketPromo();
+        throw error;
+      }
+    },
+    [adapter, loadTicketPromo],
+  );
 
   // Subida de nivel: se compara el rango actual con el último que vio este socio.
   const card = data.card;
@@ -459,6 +498,10 @@ export function ClubProvider({
     socialCampaigns,
     instagramFeed,
     requestSocialCode,
+    ticketPromo,
+    ticketPromoLoaded,
+    activateTicket,
+    flyToWallet,
     redeem,
     selectDesign,
     avatarUrl: demo ? demoAvatar : (member?.avatarUrl ?? null),

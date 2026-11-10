@@ -5,7 +5,8 @@
 // `PUT /me/card-design`, `/me/vouchers`, `/me/rewards`, `POST /me/redemptions`,
 // `/me/timeline`), spec 077 para la ruleta (`GET/POST /loyalty/me/spins`) y
 // spec 087 para las campañas de Instagram (`GET /loyalty/me/social-campaigns`,
-// `POST /loyalty/me/social-campaigns/:id/code`).
+// `POST /loyalty/me/social-campaigns/:id/code`). El raspadito de Navidad aún no
+// tiene spec en bodega-api: por ahora solo lo implementa el mock.
 // Dos adaptadores con la misma interfaz:
 // - `createLiveClubAdapter`: el backend real con la sesión Bearer del socio
 //   (lo usa `/mi-club`).
@@ -72,7 +73,7 @@ export type CardDesign = {
 };
 
 export type VoucherOrigin = "redemption" | "grant" | "spin";
-export type GrantReason = "manual" | "segment" | "complaint" | "tier_up";
+export type GrantReason = "manual" | "segment" | "complaint" | "tier_up" | "ticket";
 export type VoucherKind = "percent" | "amount" | "product";
 export type VoucherStatus = "active" | "used" | "expired" | "cancelled";
 
@@ -221,6 +222,44 @@ export type SpinResult = {
   prize: { type: SpinPrizeType; points: number | null; label: string };
   voucher: Voucher | null;
   available: number;
+};
+
+// Raspadito de Navidad: tickets impresos del pan de jamón, cada uno con un código
+// BodegaClub único debajo de la capa raspable.
+export type TicketStock = { key: string; label: string; total: number; left: number };
+
+export type TicketPromo = {
+  /** Último momento para activar tickets y cobrar sus premios. */
+  endsAt: string;
+  /** Sorteo en vivo entre los tickets sin premio. */
+  drawAt: string;
+  /** Cada `required` tickets activados, un pan de jamón de regalo. */
+  collection: { current: number; required: number };
+  drawEntries: number;
+  /** Códigos inexistentes que puede probar antes de la pausa. */
+  attemptsLeft: number;
+  /** Pausa por demasiados códigos inexistentes; `null` = puede activar. */
+  lockedUntil: string | null;
+  /** Premios que quedan por cobrar, por cualquier vía (app o caja). */
+  stock: TicketStock[];
+};
+
+/** `claimed` = el premio ya se entregó en caja antes de activarlo aquí. */
+export type TicketOutcome = "product" | "cash" | "none" | "claimed";
+
+export type TicketActivation = {
+  code: string;
+  lot: string;
+  outcome: TicketOutcome;
+  prize: { label: string; category: string } | null;
+  /** Premio guardado en la Wallet (producto o efectivo). */
+  voucher: Voucher | null;
+  claimed: { date: string; branch: string } | null;
+  /** Sin premio: suma una tirada de ruleta y una participación en el sorteo. */
+  spinAwarded: boolean;
+  /** Regalo por completar la colección con este ticket. */
+  collectionVoucher: Voucher | null;
+  promo: TicketPromo;
 };
 
 export class ClubApiError extends Error {
@@ -394,6 +433,55 @@ const MOCK_WHEEL: MockSegment[] = [
   { id: "ruleta-v1-s8", order: 8, label: "Jugo natural", prizeType: "voucher", color: "naranja", icon: "juice", weight: 4, voucher: { kind: "product", valueLabel: "Gratis" } },
 ];
 
+// Raspadito: existencias de ejemplo sobre el pedido real (15.000 tickets, 3 lotes).
+const TICKET_PROMO_END = "2027-01-06T23:59:00-04:00";
+const TICKET_DRAW_AT = "2027-01-06T20:00:00-04:00";
+const TICKETS_PER_GIFT = 5;
+const TICKET_MAX_ATTEMPTS = 5;
+const TICKET_LOCK_MS = 15 * 60_000;
+const TICKET_STOCK: TicketStock[] = [
+  { key: "c500", label: "$500", total: 3, left: 2 },
+  { key: "c100", label: "$100", total: 1, left: 1 },
+  { key: "c50", label: "$50", total: 1, left: 0 },
+  { key: "c20", label: "$20", total: 8, left: 5 },
+  { key: "c10", label: "$10", total: 9, left: 6 },
+  { key: "c5", label: "$5", total: 20, left: 13 },
+  { key: "jamon", label: "Pan de jamón", total: 50, left: 31 },
+  { key: "almuerzo", label: "Almuerzo", total: 30, left: 18 },
+  { key: "postre", label: "Postre surtido", total: 100, left: 64 },
+  { key: "frances", label: "Pan francés", total: 100, left: 59 },
+  { key: "refresco", label: "Refresco 2L", total: 100, left: 57 },
+];
+
+type DemoPrize = { label: string; category: string; key: string };
+type DemoTicket =
+  | { lot: string; outcome: "product" | "cash"; prize: DemoPrize }
+  | { lot: string; outcome: "claimed"; prize: DemoPrize; claimed: { date: string; branch: string } }
+  | { lot: string; outcome: "none" }
+  | { lot: string; outcome: "taken" };
+
+// Códigos de ejemplo: ninguno existe en la lista impresa.
+const DEMO_TICKETS: Record<string, DemoTicket> = {
+  K4WZT: { lot: "L1", outcome: "product", prize: { label: "Pan de jamón", category: "Panadería", key: "jamon" } },
+  W9GSU: { lot: "L3", outcome: "product", prize: { label: "Postre surtido", category: "Postres", key: "postre" } },
+  R3NVD: { lot: "L2", outcome: "cash", prize: { label: "$20", category: "Efectivo", key: "c20" } },
+  H6CYE: { lot: "L3", outcome: "none" },
+  M8XQC: { lot: "L1", outcome: "none" },
+  T2LBF: { lot: "L2", outcome: "claimed", prize: { label: "Pan francés", category: "Panadería", key: "frances" }, claimed: { date: "2026-11-09T15:20:00-04:00", branch: "Sede Alta Vista" } },
+  PJ7RN: { lot: "L1", outcome: "taken" },
+};
+
+/** Para la demo: qué probar con cada código. */
+export const DEMO_TICKET_HINTS: { code: string; label: string }[] = [
+  { code: "K4WZT", label: "Pan de jamón" },
+  { code: "R3NVD", label: "$20 en efectivo" },
+  { code: "H6CYE", label: "Sin premio" },
+  { code: "M8XQC", label: "Sin premio" },
+  { code: "T2LBF", label: "Cobrado en caja" },
+  { code: "W9GSU", label: "Postre" },
+  { code: "PJ7RN", label: "De otra cuenta" },
+];
+
 type MockStore = {
   memberKey: string;
   holderName: string;
@@ -407,6 +495,7 @@ type MockStore = {
   activity: ActivityItem[];
   spins: { available: number; pending: number; recent: SpinRecord[]; byKey: Map<string, SpinResult> };
   social: SocialCampaign[];
+  tickets: { collection: number; entries: number; used: Set<string>; attemptsLeft: number; lockedUntil: number; stock: TicketStock[] };
 };
 
 let store: MockStore | null = null;
@@ -460,6 +549,7 @@ function seedStore(member: Member | null): MockStore {
     ],
     // Bienvenida + tirada de lanzamiento, y una compra hacia la próxima.
     spins: { available: 2, pending: 1, recent: [], byKey: new Map() },
+    tickets: { collection: 3, entries: 1, used: new Set(), attemptsLeft: TICKET_MAX_ATTEMPTS, lockedUntil: 0, stock: TICKET_STOCK.map((x) => ({ ...x })) },
     social: [
       {
         id: "sc-demo",
@@ -615,6 +705,88 @@ function drawSpin(s: MockStore): SpinResult {
   };
 }
 
+function buildTicketPromo(s: MockStore): TicketPromo {
+  const t = s.tickets;
+  return {
+    endsAt: TICKET_PROMO_END,
+    drawAt: TICKET_DRAW_AT,
+    collection: { current: t.collection, required: TICKETS_PER_GIFT },
+    drawEntries: t.entries,
+    attemptsLeft: t.attemptsLeft,
+    lockedUntil: t.lockedUntil > Date.now() ? new Date(t.lockedUntil).toISOString() : null,
+    stock: t.stock.map((x) => ({ ...x })),
+  };
+}
+
+function ticketVoucher(s: MockStore, title: string, category: string, valueLabel: string, note: string): Voucher {
+  const code = randomCode();
+  const voucher: Voucher = {
+    id: `v-${code}`, origin: "grant", grantReason: "ticket", kind: category === "Efectivo" ? "amount" : "product", title,
+    valueLabel, category, code, qrValue: `LBVCH:${code}`, expiresAt: new Date(TICKET_PROMO_END).toISOString(), status: "active",
+    note, usedAt: null, usedAtBranch: null,
+  };
+  s.vouchers.unshift(voucher);
+  return voucher;
+}
+
+/** Activación local (en producción la valida el servidor contra la lista impresa). */
+function activateDemoTicket(s: MockStore, raw: string): TicketActivation {
+  const t = s.tickets;
+  const now = Date.now();
+  const code = raw.trim().toUpperCase();
+  if (now > new Date(TICKET_PROMO_END).getTime()) throw new ClubApiError("El raspadito terminó el 6 de enero.", 410, "PROMO_ENDED");
+  if (t.lockedUntil > now) throw new ClubApiError("Probaste varios códigos que no existen. Espera unos minutos.", 429, "TOO_MANY_ATTEMPTS");
+  if (t.used.has(code)) throw new ClubApiError("Ya activaste este ticket. Lo ves en tu colección.", 409, "TICKET_ALREADY_YOURS");
+  const ticket = DEMO_TICKETS[code];
+  if (!ticket) {
+    t.attemptsLeft -= 1;
+    if (t.attemptsLeft <= 0) {
+      t.attemptsLeft = TICKET_MAX_ATTEMPTS;
+      t.lockedUntil = now + TICKET_LOCK_MS;
+      throw new ClubApiError("Probaste varios códigos que no existen. Espera unos minutos.", 429, "TOO_MANY_ATTEMPTS");
+    }
+    throw new ClubApiError("No encontramos ese código. Revísalo letra por letra.", 404, "TICKET_NOT_FOUND");
+  }
+  if (ticket.outcome === "taken") {
+    throw new ClubApiError("Este ticket ya se activó en otra cuenta. Si es tuyo, llévalo a caja y lo revisamos.", 409, "TICKET_TAKEN");
+  }
+  t.used.add(code);
+  t.attemptsLeft = TICKET_MAX_ATTEMPTS;
+  const at = new Date().toISOString();
+  const note = `Raspadito de Navidad, ticket ${code}`;
+  let voucher: Voucher | null = null;
+  if (ticket.outcome === "product" || ticket.outcome === "cash") {
+    const { label, category, key } = ticket.prize;
+    const cash = ticket.outcome === "cash";
+    voucher = ticketVoucher(s, cash ? `${label} en efectivo` : label, category, cash ? label : "Gratis", note);
+    const stock = t.stock.find((x) => x.key === key);
+    if (stock) stock.left = Math.max(0, stock.left - 1);
+    s.activity.unshift({ id: `a-tk-${code}`, type: "grant", occurredAt: at, title: `Ganaste en el raspadito: ${voucher.title.toLowerCase()}`, detail: "Guardado en tu Wallet", points: 0, category });
+  } else if (ticket.outcome === "none") {
+    s.spins.available += 1;
+    t.entries += 1;
+    s.activity.unshift({ id: `a-tk-${code}`, type: "grant", occurredAt: at, title: "Activaste un ticket del raspadito", detail: "Sumaste 1 tirada y una participación en el sorteo", points: 0, category: null });
+  }
+  t.collection += 1;
+  let collectionVoucher: Voucher | null = null;
+  if (t.collection >= TICKETS_PER_GIFT) {
+    t.collection = 0;
+    collectionVoucher = ticketVoucher(s, "Pan de jamón", "Panadería", "Gratis", `Regalo por ${TICKETS_PER_GIFT} tickets del raspadito`);
+    s.activity.unshift({ id: `a-tkc-${code}`, type: "grant", occurredAt: at, title: "Completaste tu colección del raspadito", detail: "Te regalamos un pan de jamón", points: 0, category: "Panadería" });
+  }
+  return {
+    code,
+    lot: ticket.lot,
+    outcome: ticket.outcome,
+    prize: ticket.outcome === "none" ? null : { label: ticket.prize.label, category: ticket.prize.category },
+    voucher,
+    claimed: ticket.outcome === "claimed" ? ticket.claimed : null,
+    spinAwarded: ticket.outcome === "none",
+    collectionVoucher,
+    promo: buildTicketPromo(s),
+  };
+}
+
 const delay = <T,>(value: T, ms = 220) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));
 
 // ---------------------------------------------------------------------------
@@ -648,6 +820,10 @@ export interface ClubAdapter {
   requestSocialCode(campaignId: string): Promise<SocialCampaignCode>;
   /** Últimas publicaciones de Instagram; vacío si el backend no tiene conexión. */
   listInstagramFeed(): Promise<InstagramPost[]>;
+  /** Raspadito de Navidad: colección, sorteo, intentos y premios que quedan. */
+  getTicketPromo(): Promise<TicketPromo>;
+  /** Activa el código que el socio raspó en su ticket. */
+  activateTicket(code: string): Promise<TicketActivation>;
   /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
   demo: ClubDemoActions | null;
 }
@@ -683,6 +859,9 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
         }),
       ),
     listInstagramFeed: () => authed((t) => request<InstagramPost[]>("/loyalty/me/social-campaigns/feed", t)),
+    // shortcut: bodega-api aún no tiene el raspadito; sin backend la tarjeta y la pantalla no aparecen. Cablear al publicar su spec.
+    getTicketPromo: () => Promise.reject(new ClubApiError("El raspadito aún no está disponible.", 404)),
+    activateTicket: () => Promise.reject(new ClubApiError("El raspadito aún no está disponible.", 404)),
     demo: null,
   };
 }
@@ -760,6 +939,12 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
       return delay({ campaignId, code: campaign.code, expiresAt: campaign.endsAt, participationStatus: campaign.participationStatus }, 320);
     },
     listInstagramFeed: () => delay(DEMO_INSTAGRAM, 700),
+    getTicketPromo: () => delay(buildTicketPromo(s())),
+    async activateTicket(code) {
+      // Misma latencia con o sin código válido.
+      await delay(null, 650);
+      return activateDemoTicket(s(), code);
+    },
     demo: {
       tierUp: () => demoTierUp(member),
       complaintGift: () => demoComplaintGift(member),
