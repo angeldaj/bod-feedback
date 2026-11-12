@@ -36,7 +36,7 @@ cartón completo**; el premio (cena, almuerzo…) se entrega como **voucher
 | Arranque | La primera bola sale a `startsAt + 45 s` para dar tiempo a conectarse. En esos 45 s mi-club muestra "Arrancamos en 0:45 · X jugadores en la mesa". |
 | Mínimo de jugadores | Si a `startsAt` no se llega, la edición se **cancela sola** y se devuelven los puntos. |
 | Cartón | 75 bolas, 5×5, columnas B-I-N-G-O, centro libre con el logo de La Bodega. |
-| Ritmo | Segundos entre bolas configurable por edición, default **15 s** (~15 min de juego). |
+| Ritmo | Segundos entre bolas configurable por edición, default **7 s** (~6 a 7 min de juego con 50 a 60 bolas). |
 | Ganador visible | Nombre + inicial ("María G.") + avatar del club si tiene. |
 | Premio | Voucher `origin=bodingo`, vigencia configurable por edición, default **30 días**. |
 
@@ -57,7 +57,7 @@ bola con la que algún cartón queda completo) y
 
 Descartados: proceso que empuja cada bola por SSE (frágil ante reinicios,
 conexiones largas en el proxy) y WebSockets (más infraestructura sin
-beneficio a una bola cada 15 s).
+beneficio a una bola cada 7 s).
 
 ## Modelo de datos (módulo `loyalty`)
 
