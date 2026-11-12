@@ -255,11 +255,24 @@ export type TicketActivation = {
   /** Premio guardado en la Wallet (producto o efectivo). */
   voucher: Voucher | null;
   claimed: { date: string; branch: string } | null;
-  /** Sin premio: suma una tirada de ruleta y una participación en el sorteo. */
-  spinAwarded: boolean;
+  /** Sin premio: segunda oportunidad (ruleta del ticket virtual) y una participación en el sorteo. */
+  secondChance: TicketSecondChance | null;
   /** Regalo por completar la colección con este ticket. */
   collectionVoucher: Voucher | null;
   promo: TicketPromo;
+};
+
+/**
+ * Segunda oportunidad de un ticket sin premio: una ruleta que la decide el
+ * servidor al activar (60 % gana un ticket virtual BC). El ticket virtual se
+ * raspa y trae un premio del pool interno: puntos (ya sumados) o un voucher.
+ */
+export type TicketSecondChance = {
+  won: boolean;
+  /** Código del ticket virtual; `null` si no ganó. */
+  virtualCode: string | null;
+  prize: { label: string; category: string | null; points: number | null } | null;
+  voucher: Voucher | null;
 };
 
 export class ClubApiError extends Error {
@@ -453,11 +466,22 @@ const TICKET_STOCK: TicketStock[] = [
   { key: "refresco", label: "Refresco 2L", total: 100, left: 57 },
 ];
 
+// Segunda oportunidad: 60 % de los tickets sin premio ganan un ticket virtual BC.
+const SECOND_CHANCE_ODDS = 0.6;
+const SECOND_CHANCE_POOL: { label: string; category: string | null; points?: number; weight: number }[] = [
+  { label: "+50 pts", category: null, points: 50, weight: 30 },
+  { label: "+100 pts", category: null, points: 100, weight: 15 },
+  { label: "Cachito de jamón", category: "Panadería", weight: 20 },
+  { label: "Postre del día", category: "Postres", weight: 15 },
+  { label: "Refresco 2L", category: "Bebidas", weight: 15 },
+  { label: "Pan de jamón", category: "Panadería", weight: 5 },
+];
+
 type DemoPrize = { label: string; category: string; key: string };
 type DemoTicket =
   | { lot: string; outcome: "product" | "cash"; prize: DemoPrize }
   | { lot: string; outcome: "claimed"; prize: DemoPrize; claimed: { date: string; branch: string } }
-  | { lot: string; outcome: "none" }
+  | { lot: string; outcome: "none"; /** Demo: fuerza la segunda oportunidad; sin valor, 60 % al azar. */ chance?: boolean }
   | { lot: string; outcome: "taken" };
 
 // Códigos de ejemplo: ninguno existe en la lista impresa.
@@ -465,8 +489,9 @@ const DEMO_TICKETS: Record<string, DemoTicket> = {
   K4WZT: { lot: "L1", outcome: "product", prize: { label: "Pan de jamón", category: "Panadería", key: "jamon" } },
   W9GSU: { lot: "L3", outcome: "product", prize: { label: "Postre surtido", category: "Postres", key: "postre" } },
   R3NVD: { lot: "L2", outcome: "cash", prize: { label: "$20", category: "Efectivo", key: "c20" } },
-  H6CYE: { lot: "L3", outcome: "none" },
-  M8XQC: { lot: "L1", outcome: "none" },
+  H6CYE: { lot: "L3", outcome: "none", chance: true },
+  M8XQC: { lot: "L1", outcome: "none", chance: false },
+  F5KQY: { lot: "L2", outcome: "none" },
   T2LBF: { lot: "L2", outcome: "claimed", prize: { label: "Pan francés", category: "Panadería", key: "frances" }, claimed: { date: "2026-11-09T15:20:00-04:00", branch: "Sede Alta Vista" } },
   PJ7RN: { lot: "L1", outcome: "taken" },
 };
@@ -475,8 +500,9 @@ const DEMO_TICKETS: Record<string, DemoTicket> = {
 export const DEMO_TICKET_HINTS: { code: string; label: string }[] = [
   { code: "K4WZT", label: "Pan de jamón" },
   { code: "R3NVD", label: "$20 en efectivo" },
-  { code: "H6CYE", label: "Sin premio" },
-  { code: "M8XQC", label: "Sin premio" },
+  { code: "H6CYE", label: "Sin premio, gana ticket BC" },
+  { code: "M8XQC", label: "Sin premio, sin ticket BC" },
+  { code: "F5KQY", label: "Sin premio, ruleta al azar" },
   { code: "T2LBF", label: "Cobrado en caja" },
   { code: "W9GSU", label: "Postre" },
   { code: "PJ7RN", label: "De otra cuenta" },
@@ -763,10 +789,10 @@ function activateDemoTicket(s: MockStore, raw: string): TicketActivation {
     if (stock) stock.left = Math.max(0, stock.left - 1);
     s.activity.unshift({ id: `a-tk-${code}`, type: "grant", occurredAt: at, title: `Ganaste en el raspadito: ${voucher.title.toLowerCase()}`, detail: "Guardado en tu Wallet", points: 0, category });
   } else if (ticket.outcome === "none") {
-    s.spins.available += 1;
     t.entries += 1;
-    s.activity.unshift({ id: `a-tk-${code}`, type: "grant", occurredAt: at, title: "Activaste un ticket del raspadito", detail: "Sumaste 1 tirada y una participación en el sorteo", points: 0, category: null });
+    s.activity.unshift({ id: `a-tk-${code}`, type: "grant", occurredAt: at, title: "Activaste un ticket del raspadito", detail: "Sumaste una participación en el sorteo", points: 0, category: null });
   }
+  const secondChance = ticket.outcome === "none" ? drawSecondChance(s, code, at, ticket.chance) : null;
   t.collection += 1;
   let collectionVoucher: Voucher | null = null;
   if (t.collection >= TICKETS_PER_GIFT) {
@@ -781,10 +807,29 @@ function activateDemoTicket(s: MockStore, raw: string): TicketActivation {
     prize: ticket.outcome === "none" ? null : { label: ticket.prize.label, category: ticket.prize.category },
     voucher,
     claimed: ticket.outcome === "claimed" ? ticket.claimed : null,
-    spinAwarded: ticket.outcome === "none",
+    secondChance,
     collectionVoucher,
     promo: buildTicketPromo(s),
   };
+}
+
+/** Sorteo local de la segunda oportunidad (en producción lo hace el servidor al activar). */
+function drawSecondChance(s: MockStore, code: string, at: string, forced?: boolean): TicketSecondChance {
+  if (!(forced ?? Math.random() < SECOND_CHANCE_ODDS)) return { won: false, virtualCode: null, prize: null, voucher: null };
+  const total = SECOND_CHANCE_POOL.reduce((sum, p) => sum + p.weight, 0);
+  let roll = Math.random() * total;
+  const pick = SECOND_CHANCE_POOL.find((p) => (roll -= p.weight) < 0) ?? SECOND_CHANCE_POOL[0];
+  const virtualCode = `BC-${randomCode().replace("-", "")}`;
+  let voucher: Voucher | null = null;
+  if (pick.points) {
+    s.balance += pick.points;
+    s.lifetime += pick.points;
+    s.activity.unshift({ id: `a-tkv-${code}`, type: "grant", occurredAt: at, title: "Ganaste con tu ticket virtual BC", detail: "Segunda oportunidad del raspadito", points: pick.points, category: null });
+  } else {
+    voucher = ticketVoucher(s, pick.label, pick.category ?? "Panadería", "Gratis", `Ticket virtual ${virtualCode}`);
+    s.activity.unshift({ id: `a-tkv-${code}`, type: "grant", occurredAt: at, title: `Ganaste con tu ticket virtual BC: ${pick.label.toLowerCase()}`, detail: "Guardado en tu Wallet", points: 0, category: pick.category });
+  }
+  return { won: true, virtualCode, prize: { label: pick.label, category: pick.category, points: pick.points ?? null }, voucher };
 }
 
 const delay = <T,>(value: T, ms = 220) => new Promise<T>((resolve) => setTimeout(() => resolve(value), ms));

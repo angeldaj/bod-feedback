@@ -1,11 +1,12 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState, type FormEvent } from "react";
+import { createElement, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { animate, motion, stagger, useReducedMotion } from "motion/react";
+import { AnimatePresence, animate, motion, stagger, useReducedMotion } from "motion/react";
 import { CalendarDays, ChevronRight, CircleAlert, Clock3, Gift, Lock, Radio, RotateCw, Sparkles, Store, Ticket, Wallet, Wheat } from "lucide-react";
-import { ClubApiError, DEMO_TICKET_HINTS, type TicketActivation, type TicketPromo, type Voucher } from "@/lib/club-api";
+import { ClubApiError, DEMO_TICKET_HINTS, type SpinSegment, type TicketActivation, type TicketPromo, type TicketSecondChance, type Voucher } from "@/lib/club-api";
 import { useClub } from "../club-provider";
+import { Wheel, useWheelSpin } from "../wheel";
 import { WheelIcon, categoryIcon, expiryLabel, voucherKindClass } from "../club-visuals";
 import { Skeleton } from "../pieces";
 
@@ -153,12 +154,15 @@ function RaspaditoStage({ promo }: { promo: TicketPromo }) {
         {activation ? (
           <>
             <ScratchCard
-              activation={activation}
+              label={`Ticket ${activation.code} · lote ${activation.lot}`}
+              result={activation.outcome === "none" ? "Sin premio: tienes una segunda oportunidad en la ruleta." : `Resultado: ${activation.prize?.label ?? ""}.`}
               onReveal={() => {
                 setRevealed(true);
                 setHeld(null);
               }}
-            />
+            >
+              <TicketPrize activation={activation} />
+            </ScratchCard>
             {revealed ? (
               <TicketResult
                 activation={activation}
@@ -331,7 +335,22 @@ function CodeForm({ promo, onActivated }: { promo: TicketPromo; onActivated: (a:
   );
 }
 
-function ScratchCard({ activation, onReveal }: { activation: TicketActivation; onReveal: () => void }) {
+type Foil = "navidad" | "virtual";
+
+function ScratchCard({
+  label,
+  foil = "navidad",
+  result,
+  children,
+  onReveal,
+}: {
+  label: string;
+  foil?: Foil;
+  /** Lo que se anuncia a lectores de pantalla al descubrir. */
+  result: string;
+  children: ReactNode;
+  onReveal: () => void;
+}) {
   const reduce = useReducedMotion();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeRef = useRef<HTMLDivElement>(null);
@@ -342,14 +361,14 @@ function ScratchCard({ activation, onReveal }: { activation: TicketActivation; o
     const canvas = canvasRef.current;
     if (!canvas) return;
     let alive = true;
-    const paint = () => alive && !s.current.done && paintFoil(canvas);
+    const paint = () => alive && !s.current.done && paintFoil(canvas, foil);
     paint();
     // Repinta con las fuentes de la casa cuando terminen de cargar.
     void document.fonts?.ready.then(paint);
     return () => {
       alive = false;
     };
-  }, []);
+  }, [foil]);
 
   function reveal() {
     if (s.current.done) return;
@@ -389,45 +408,19 @@ function ScratchCard({ activation, onReveal }: { activation: TicketActivation; o
     if (st.moves % 6 === 0 && clearedShare(canvas, ctx) > 0.52) reveal();
   }
 
-  const { outcome, prize, voucher, claimed } = activation;
-  const PrizeIcon = outcome === "none" ? WheelIcon : categoryIcon(prize?.category);
   return (
     <div className="rasp-scratch">
       <div className="rasp-scratch-row">
-        <span className="rasp-label">
-          Ticket {activation.code} · lote {activation.lot}
-        </span>
+        <span className="rasp-label">{label}</span>
         {!done ? (
           <button type="button" className="link" onClick={reveal}>
             Descubrir todo
           </button>
         ) : null}
       </div>
-      <div className="rasp-card">
+      <div className={`rasp-card${foil === "virtual" ? " virtual" : ""}`}>
         <div className="rasp-prize" ref={prizeRef}>
-          {outcome === "claimed" ? <span className="rasp-stampmark">Retirado en caja</span> : null}
-          <span className={`rasp-prize-ic${outcome === "none" ? " none" : ""}`}>
-            {createElement(PrizeIcon, { "aria-hidden": true })}
-          </span>
-          <span className="rasp-kick">{outcome === "none" ? "Sin premio esta vez" : outcome === "claimed" ? "Tu ticket tenía" : "Ganaste"}</span>
-          {outcome === "none" ? (
-            <span className="rasp-name">Una tirada</span>
-          ) : outcome === "cash" ? (
-            <span className="rasp-name money tab-nums">{prize?.label}</span>
-          ) : (
-            <span className="rasp-name">{prize?.label}</span>
-          )}
-          <span className="rasp-sub">
-            {outcome === "none"
-              ? "en la ruleta del club, y entras al sorteo del 6 de enero."
-              : outcome === "cash"
-                ? "en efectivo. Se cobra en caja con tu cédula."
-                : outcome === "claimed"
-                  ? `Se entregó el ${claimed ? longDate(claimed.date) : ""}${claimed ? ` en ${claimed.branch}` : ""}.`
-                  : voucher
-                    ? "Retíralo en cualquier sede."
-                    : ""}
-          </span>
+          {children}
         </div>
         <canvas
           ref={canvasRef}
@@ -447,14 +440,51 @@ function ScratchCard({ activation, onReveal }: { activation: TicketActivation; o
         />
       </div>
       <p className="sr-only" aria-live="polite">
-        {done ? (outcome === "none" ? "Sin premio: sumaste una tirada de ruleta." : `Resultado: ${prize?.label ?? ""}.`) : ""}
+        {done ? result : ""}
       </p>
       {!done ? <p className="muted-sm rasp-center">Raspa con el dedo para confirmar tu premio.</p> : null}
     </div>
   );
 }
 
-function paintFoil(canvas: HTMLCanvasElement) {
+function TicketPrize({ activation }: { activation: TicketActivation }) {
+  const { outcome, prize, voucher, claimed } = activation;
+  const PrizeIcon = outcome === "none" ? WheelIcon : categoryIcon(prize?.category);
+  return (
+    <>
+      {outcome === "claimed" ? <span className="rasp-stampmark">Retirado en caja</span> : null}
+      <span className={`rasp-prize-ic${outcome === "none" ? " none" : ""}`}>{createElement(PrizeIcon, { "aria-hidden": true })}</span>
+      <span className="rasp-kick">{outcome === "none" ? "Sin premio esta vez" : outcome === "claimed" ? "Tu ticket tenía" : "Ganaste"}</span>
+      {outcome === "none" ? (
+        <span className="rasp-name">Otra oportunidad</span>
+      ) : outcome === "cash" ? (
+        <span className="rasp-name money tab-nums">{prize?.label}</span>
+      ) : (
+        <span className="rasp-name">{prize?.label}</span>
+      )}
+      <span className="rasp-sub">
+        {outcome === "none"
+          ? "Gira la ruleta y gana un ticket virtual BC. Ya entras al sorteo del 6 de enero."
+          : outcome === "cash"
+            ? "en efectivo. Se cobra en caja con tu cédula."
+            : outcome === "claimed"
+              ? `Se entregó el ${claimed ? longDate(claimed.date) : ""}${claimed ? ` en ${claimed.branch}` : ""}.`
+              : voucher
+                ? "Retíralo en cualquier sede."
+                : ""}
+      </span>
+    </>
+  );
+}
+
+// Papel de cada capa: el ticket impreso (plata) y el ticket virtual del club (oro).
+const FOILS: Record<Foil, { stops: string[]; ink: string; motif: string; lines: [string, string] }> = {
+  navidad: { stops: ["#bdb2a0", "#efe8dc", "#cfc4b2", "#f3ede3", "#b5a994"], ink: "#5b4630", motif: "LA BODEGA ✦", lines: ["RASPA AQUÍ", "TU PREMIO DE NAVIDAD"] },
+  virtual: { stops: ["#c98f3a", "#f6d896", "#dca552", "#fbe7b8", "#b77a2a"], ink: "#4a2a06", motif: "BODEGA CLUB ✦", lines: ["RASPA AQUÍ", "TICKET VIRTUAL BC"] },
+};
+
+function paintFoil(canvas: HTMLCanvasElement, foil: Foil) {
+  const look = FOILS[foil];
   const r = canvas.getBoundingClientRect();
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   canvas.width = Math.round(r.width * dpr);
@@ -465,11 +495,7 @@ function paintFoil(canvas: HTMLCanvasElement) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.globalCompositeOperation = "source-over";
   const g = ctx.createLinearGradient(0, 0, r.width, r.height);
-  g.addColorStop(0, "#bdb2a0");
-  g.addColorStop(0.35, "#efe8dc");
-  g.addColorStop(0.55, "#cfc4b2");
-  g.addColorStop(0.8, "#f3ede3");
-  g.addColorStop(1, "#b5a994");
+  [0, 0.35, 0.55, 0.8, 1].forEach((at, i) => g.addColorStop(at, look.stops[i]));
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, r.width, r.height);
   for (let i = 0; i < 1400; i++) {
@@ -483,15 +509,15 @@ function paintFoil(canvas: HTMLCanvasElement) {
   ctx.font = `600 15px ${family}`;
   ctx.fillStyle = "rgba(110, 88, 56, 0.16)";
   for (let y = -r.height; y < r.height; y += 30) {
-    for (let x = -r.width; x < r.width; x += 116) ctx.fillText("LA BODEGA ✦", x + (Math.round(y / 30) % 2 ? 58 : 0), y);
+    for (let x = -r.width; x < r.width; x += 116) ctx.fillText(look.motif, x + (Math.round(y / 30) % 2 ? 58 : 0), y);
   }
   ctx.restore();
   ctx.textAlign = "center";
-  ctx.fillStyle = "#5b4630";
+  ctx.fillStyle = look.ink;
   ctx.font = `700 34px ${family}`;
-  ctx.fillText("RASPA AQUÍ", r.width / 2, r.height / 2 + 4);
+  ctx.fillText(look.lines[0], r.width / 2, r.height / 2 + 4);
   ctx.font = `600 17px ${family}`;
-  ctx.fillText("TU PREMIO DE NAVIDAD", r.width / 2, r.height / 2 + 30);
+  ctx.fillText(look.lines[1], r.width / 2, r.height / 2 + 30);
   ctx.globalCompositeOperation = "destination-out";
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -548,6 +574,7 @@ function TicketResult({ activation, onAnother }: { activation: TicketActivation;
   const voucherRef = useRef<HTMLDivElement>(null);
   const giftRef = useRef<HTMLDivElement>(null);
   const ran = useRef(false);
+  const [chanceDone, setChanceDone] = useState(false);
   const { outcome, voucher, collectionVoucher, promo } = activation;
 
   // Una sola vez por ticket (StrictMode monta dos veces en desarrollo).
@@ -562,9 +589,9 @@ function TicketResult({ activation, onAnother }: { activation: TicketActivation;
           flyToWallet(voucher, voucherRef.current, () => void reload());
         }, 900),
       );
-    } else {
+    } else if (!activation.secondChance) {
+      // Con segunda oportunidad se recarga al terminarla: los puntos no se adelantan.
       void reload();
-      if (activation.spinAwarded) notify(Sparkles, "Sumaste 1 tirada", "Ya puedes girar la ruleta del club.");
     }
     if (collectionVoucher) {
       timers.push(
@@ -588,13 +615,8 @@ function TicketResult({ activation, onAnother }: { activation: TicketActivation;
           sub={outcome === "cash" ? "Cóbralo en caja con tu cédula" : "Producto gratis en cualquier sede"}
         />
       ) : null}
-      {outcome === "none" ? (
-        <div className="tile rasp-note">
-          <WheelIcon aria-hidden="true" />
-          <p>
-            Sumaste <b>1 tirada</b> de ruleta y este ticket es tu participación <b>{promo.drawEntries}</b> en el sorteo del 6 de enero.
-          </p>
-        </div>
+      {activation.secondChance ? (
+        <SecondChance chance={activation.secondChance} entries={promo.drawEntries} onDone={() => setChanceDone(true)} />
       ) : null}
       {outcome === "claimed" ? (
         <div className="tile rasp-note">
@@ -612,24 +634,167 @@ function TicketResult({ activation, onAnother }: { activation: TicketActivation;
           <VoucherTicket innerRef={giftRef} voucher={collectionVoucher} chip="Regalo de colección" sub="Producto gratis en cualquier sede" />
         </div>
       ) : null}
-      <div className="rasp-actions">
-        {outcome === "none" ? (
-          <Link href={href("ruleta")} className="btn btn-soft">
-            <WheelIcon aria-hidden="true" />
-            Ir a la ruleta
-          </Link>
-        ) : (
-          <Link href={href("wallet")} className="btn btn-soft">
-            <Wallet aria-hidden="true" />
-            Ver Wallet
-          </Link>
-        )}
-        <button type="button" className="btn btn-pop" onClick={onAnother}>
-          <RotateCw aria-hidden="true" />
-          Otro ticket
-        </button>
-      </div>
+      {activation.secondChance && !chanceDone ? null : (
+        <div className="rasp-actions">
+          {outcome !== "none" || activation.secondChance?.voucher ? (
+            <Link href={href("wallet")} className="btn btn-soft">
+              <Wallet aria-hidden="true" />
+              Ver Wallet
+            </Link>
+          ) : null}
+          <button type="button" className="btn btn-pop" onClick={onAnother}>
+            <RotateCw aria-hidden="true" />
+            Otro ticket
+          </button>
+        </div>
+      )}
     </motion.div>
+  );
+}
+
+// Ruleta de la segunda oportunidad: 3 de 5 casillas ganan, las mismas probabilidades que decide el servidor (60 %).
+const CHANCE_SEGMENTS: SpinSegment[] = Array.from({ length: 5 }, (_, i) => {
+  const win = i % 2 === 0;
+  return { id: `bc-${i}`, label: win ? "Ticket BC" : "Casi", prizeType: "voucher", color: win ? "tomate" : "crema", icon: win ? "ticket" : "ticket-x", order: i };
+});
+const WIN_SLOTS = [0, 2, 4];
+const LOSE_SLOTS = [1, 3];
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+function SecondChance({ chance, entries, onDone }: { chance: TicketSecondChance; entries: number; onDone: () => void }) {
+  const { flyToWallet, notify, reload } = useClub();
+  const reduce = useReducedMotion();
+  const rootRef = useRef<HTMLElement>(null);
+  const rotorRef = useRef<HTMLDivElement>(null);
+  const pointerRef = useRef<SVGSVGElement>(null);
+  const voucherRef = useRef<HTMLDivElement>(null);
+  const timers = useRef<number[]>([]);
+  const wheel = useWheelSpin({ count: CHANCE_SEGMENTS.length, rotorRef, pointerRef });
+  const [phase, setPhase] = useState<"ready" | "spinning" | "landed" | "revealed">("ready");
+  const [landedId, setLandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    rootRef.current?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+    const pending = timers.current;
+    return () => pending.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al aparecer
+  }, []);
+
+  async function spin() {
+    if (phase !== "ready") return;
+    // El resultado ya lo trae la activación; la rueda solo lo cuenta.
+    const slots = chance.won ? WIN_SLOTS : LOSE_SLOTS;
+    const index = slots[Math.floor(Math.random() * slots.length)];
+    setPhase("spinning");
+    if (reduce) {
+      wheel.snap(index);
+    } else {
+      wheel.start();
+      await wheel.land(index);
+    }
+    setLandedId(CHANCE_SEGMENTS[index].id);
+    setPhase("landed");
+    if (!chance.won) {
+      void reload();
+      onDone();
+    }
+  }
+
+  function revealed() {
+    setPhase("revealed");
+    onDone();
+    const { voucher, prize } = chance;
+    if (voucher) {
+      timers.current.push(
+        window.setTimeout(() => {
+          notify(Ticket, "Guardado en tu Wallet", `${voucher.title}. Retíralo en cualquier sede.`);
+          flyToWallet(voucher, voucherRef.current, () => void reload());
+        }, 900),
+      );
+    } else {
+      notify(Sparkles, `Sumaste ${prize?.points ?? 0} pts`, "Premio de tu ticket virtual BC.");
+      void reload();
+    }
+  }
+
+  const won = phase === "landed" || phase === "revealed";
+  return (
+    <motion.section
+      ref={rootRef}
+      className="tile rasp-chance"
+      aria-labelledby="rasp-chance-h"
+      initial={reduce ? false : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: EASE_OUT, delay: 0.15 }}
+    >
+      <div className="rasp-head">
+        <h2 id="rasp-chance-h">Segunda oportunidad</h2>
+        <span className="rasp-label tab-nums">60 %</span>
+      </div>
+      <p className="muted-sm">6 de cada 10 tickets sin premio ganan un ticket virtual BC con un premio del club.</p>
+      <div className="rasp-chance-wheel">
+        <Wheel segments={CHANCE_SEGMENTS} winnerId={landedId} rotorRef={rotorRef} pointerRef={pointerRef} />
+      </div>
+      {phase === "ready" || phase === "spinning" ? (
+        <button type="button" className="btn btn-pop rasp-submit" onClick={() => void spin()} aria-disabled={phase === "spinning" || undefined}>
+          <WheelIcon aria-hidden="true" />
+          {phase === "spinning" ? "Girando" : "Girar la ruleta"}
+        </button>
+      ) : null}
+      <p className="sr-only" aria-live="polite">
+        {won ? (chance.won ? "Ganaste un ticket virtual BC. Ráspalo para ver tu premio." : "Esta vez no salió el ticket virtual.") : ""}
+      </p>
+
+      <AnimatePresence>
+        {won && !chance.won ? (
+          <motion.div key="lose" className="rasp-chance-msg" initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, ease: EASE_OUT }}>
+            <Radio aria-hidden="true" />
+            <p>
+              Esta vez no salió el ticket. Igual es tu participación <b>{entries}</b> en el sorteo del 6 de enero.
+            </p>
+          </motion.div>
+        ) : null}
+        {won && chance.won ? (
+          <motion.div
+            key="win"
+            className="rasp-chance-win"
+            initial={reduce ? false : { opacity: 0, scale: 0.96, y: 16 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", bounce: 0.25, duration: 0.6, delay: 0.25 }}
+          >
+            <h3>
+              Ganaste un <em>ticket virtual BC</em>
+            </h3>
+            <ScratchCard label={`Ticket virtual ${chance.virtualCode ?? ""}`} foil="virtual" result={`Tu ticket virtual trae: ${chance.prize?.label ?? ""}.`} onReveal={revealed}>
+              <VirtualPrize chance={chance} />
+            </ScratchCard>
+            {phase === "revealed" && chance.voucher ? (
+              <VoucherTicket innerRef={voucherRef} voucher={chance.voucher} chip="Ticket virtual BC" sub="Producto gratis en cualquier sede" />
+            ) : null}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.section>
+  );
+}
+
+function VirtualPrize({ chance }: { chance: TicketSecondChance }) {
+  const points = chance.prize?.points;
+  const Icon = points ? Sparkles : categoryIcon(chance.prize?.category);
+  return (
+    <>
+      <span className="rasp-prize-ic">{createElement(Icon, { "aria-hidden": true })}</span>
+      <span className="rasp-kick">Tu ticket virtual trae</span>
+      {points ? (
+        <span className="rasp-name money tab-nums">
+          +{points}
+          <small> pts</small>
+        </span>
+      ) : (
+        <span className="rasp-name">{chance.prize?.label}</span>
+      )}
+      <span className="rasp-sub">{points ? "Ya están en tu saldo del club." : "Guardado en tu Wallet. Retíralo en cualquier sede."}</span>
+    </>
   );
 }
 

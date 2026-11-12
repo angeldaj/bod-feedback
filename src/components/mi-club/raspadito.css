@@ -96,6 +96,21 @@
   .rasp-complete h3 em { color: var(--coral); }
   .rasp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .rasp-actions .btn { padding-inline: 12px; }
+  .rasp-actions > :only-child { grid-column: 1 / -1; }
+
+  /* segunda oportunidad: ruleta del ticket virtual BC */
+  .rasp-chance { display: grid; gap: 14px; }
+  .rasp-chance-wheel { padding-top: 10px; }
+  .rasp-chance-wheel .wheel { width: min(100%, 300px); }
+  .rasp-chance-msg { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; padding-top: 14px; border-top: 1px solid var(--div); color: var(--body); }
+  .rasp-chance-msg svg { width: 22px; height: 22px; color: var(--coral); margin-top: 2px; }
+  .rasp-chance-msg b { color: var(--ink); }
+  .rasp-chance-win { display: grid; gap: 14px; padding-top: 14px; border-top: 1px solid var(--div); }
+  .rasp-chance-win h3 { font-size: 1.6rem; font-weight: 700; text-transform: uppercase; line-height: 1; }
+  .rasp-chance-win h3 em { font-family: var(--serif); font-style: italic; font-weight: 500; text-transform: none; color: var(--coral); padding-bottom: 2px; }
+  .rasp-chance-win .prize { max-width: none; }
+  .rasp-card.virtual { box-shadow: 0 0 0 2px #e0a64a, var(--lift); }
+  .rasp-name.money small { font-size: 0.4em; font-weight: 600; letter-spacing: 0.04em; }
 
   /* premios que quedan */
   .rasp-left-hero { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--div); }

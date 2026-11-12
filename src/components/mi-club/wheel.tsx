@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
-import { Cake, Citrus, Coffee, Coins, Croissant, Percent, Star, type LucideIcon } from "lucide-react";
+import { Cake, Citrus, Coffee, Coins, Croissant, Percent, Star, Ticket, TicketX, type LucideIcon } from "lucide-react";
 import type { SpinSegment, SpinWheel } from "@/lib/club-api";
 import { WheelIcon } from "./club-visuals";
 
@@ -23,6 +23,8 @@ const SEGMENT_ICONS: Record<string, LucideIcon> = {
   croissant: Croissant,
   cake: Cake,
   juice: Citrus,
+  ticket: Ticket,
+  "ticket-x": TicketX,
 };
 
 export const segmentIcon = (key: string): LucideIcon => SEGMENT_ICONS[key] ?? WheelIcon;
