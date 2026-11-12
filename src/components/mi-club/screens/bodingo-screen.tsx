@@ -19,6 +19,8 @@ import {
   Flame,
   FlaskConical,
   Info,
+  Moon,
+  Sun,
   Ticket,
   TriangleAlert,
   Wallet,
@@ -27,6 +29,7 @@ import { ClubApiError } from "@/lib/club-api";
 import {
   letterOf,
   missingOf,
+  type BodingoCard,
   type BodingoEdition,
   type BodingoState,
   type GamesApi,
@@ -479,6 +482,105 @@ function WinOverlay({
   );
 }
 
+const THEME_KEY = "bodingo-theme";
+
+/** Claro u oscuro, recordado en este navegador. Por defecto, la noche del domingo. */
+function useBodingoTheme() {
+  const [light, setLight] = useState(false);
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLight(localStorage.getItem(THEME_KEY) === "light");
+    } catch {
+      // Sin almacenamiento: se queda oscuro.
+    }
+  }, []);
+  const toggle = () =>
+    setLight((l) => {
+      try {
+        localStorage.setItem(THEME_KEY, l ? "dark" : "light");
+      } catch {
+        // Sin almacenamiento: el cambio dura esta visita.
+      }
+      return !l;
+    });
+  return { light, toggle };
+}
+
+function ThemeToggle({ light, onToggle }: { light: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      className="bdg-theme"
+      onClick={onToggle}
+      aria-label={light ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
+    >
+      {light ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
+    </button>
+  );
+}
+
+const pad = (n: number) => String(n).padStart(4, "0");
+
+/** Escritorio en vivo: los números que le faltan a cada cartón, del más cerca al más lejos. */
+function Missing({
+  cards,
+  drawn,
+  selected,
+  onSelect,
+}: {
+  cards: BodingoCard[];
+  drawn: Set<number>;
+  selected: DeckSelection;
+  onSelect: (s: DeckSelection) => void;
+}) {
+  const rows = cards
+    .map((c, i) => ({ c, i, m: missingOf(c, drawn).sort((a, b) => a - b) }))
+    .sort((a, b) => a.m.length - b.m.length);
+  return (
+    <section className="bdg-missing" aria-label="Lo que te falta">
+      <div className="bdg-sect-h">
+        <h2>Lo que te falta</h2>
+        <span>{cards.length > 1 ? "Del más cerca al más lejos" : "Tu cartón"}</span>
+      </div>
+      <ul>
+        {rows.map(({ c, i, m }) => {
+          const on = selected.kind === "card" && selected.index === i;
+          return (
+            <li key={c.id}>
+              <button
+                type="button"
+                className={`${on ? "on" : ""}${m.length <= 1 ? " hot" : ""}`}
+                aria-pressed={on}
+                onClick={() => onSelect({ kind: "card", index: i })}
+              >
+                <span className="who">
+                  <b className="num">Nº {pad(c.serial)}</b>
+                  <small>
+                    {m.length === 0
+                      ? "¡Lleno!"
+                      : m.length === 1
+                        ? "Falta 1"
+                        : `Faltan ${m.length}`}
+                  </small>
+                </span>
+                <span className="need">
+                  {m.map((n) => (
+                    <i key={n} className="num">
+                      <small>{letterOf(n)}</small>
+                      {n}
+                    </i>
+                  ))}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
 function DemoBar({
   games,
   reload,
@@ -524,6 +626,8 @@ export function BodingoScreen() {
     [],
   );
   const { state, failed, load, serverNow } = useBodingo(games, openWin);
+  const { light, toggle: toggleTheme } = useBodingoTheme();
+  const root = `bdg view${light ? " bdg-light" : ""}`;
   const [buying, setBuying] = useState(false);
   const [buyKey, setBuyKey] = useState(newKey);
   const [selected, setSelected] = useState<DeckSelection>({
@@ -605,7 +709,7 @@ export function BodingoScreen() {
 
   if (!state) {
     return (
-      <div className="bdg view" ref={rootRef} aria-busy={!failed}>
+      <div className={root} ref={rootRef} aria-busy={!failed}>
         {failed ? (
           <Empty
             title="No pudimos cargar el Bodingo"
@@ -620,7 +724,7 @@ export function BodingoScreen() {
 
   if (!edition) {
     return (
-      <div className="bdg view" ref={rootRef}>
+      <div className={root} ref={rootRef}>
         <Empty
           title="No hay Bodingo programado"
           text="Cuando el equipo publique el próximo, lo verás aquí con su premio."
@@ -694,7 +798,7 @@ export function BodingoScreen() {
   ) : null;
 
   return (
-    <div className={`bdg view${live ? " is-live" : ""}`} ref={rootRef}>
+    <div className={`${root}${live ? " is-live" : ""}`} ref={rootRef}>
       <DemoBar games={games} reload={load} />
 
       {live ? (
@@ -705,6 +809,7 @@ export function BodingoScreen() {
             <span className="bdg-count">
               Bola <b className="num">{shownCount}</b> de 75
             </span>
+            <ThemeToggle light={light} onToggle={toggleTheme} />
           </div>
           <div className="bdg-live">
             <div className="bdg-live-main">
@@ -739,13 +844,27 @@ export function BodingoScreen() {
                   próximo Bodingo.
                 </p>
               ) : null}
+              <div className="bdg-live-extra">
+                <Board drawn={drawnSet} last={shownLast} />
+                {cards.length ? (
+                  <Missing
+                    cards={cards}
+                    drawn={drawnSet}
+                    selected={selection}
+                    onSelect={setSelected}
+                  />
+                ) : null}
+              </div>
             </div>
             <div className="bdg-live-side">{deck}</div>
           </div>
         </>
       ) : (
         <>
-          <Hero edition={edition} />
+          <div className="bdg-hero-wrap">
+            <Hero edition={edition} />
+            <ThemeToggle light={light} onToggle={toggleTheme} />
+          </div>
           <div className="bdg-cols">
             <div className="bdg-col-main">
               {sale || edition.phase === "scheduled" ? (
@@ -1020,7 +1139,7 @@ function Warmup({
             cy="84"
             r="76"
             fill="none"
-            stroke="rgba(247,242,231,.12)"
+            style={{ stroke: "var(--line)" }}
             strokeWidth="8"
           />
           <circle

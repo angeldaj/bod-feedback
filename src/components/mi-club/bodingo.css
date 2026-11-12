@@ -23,6 +23,13 @@
 .bdg :focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 3px; border-radius: 8px; }
 .bdg h1, .bdg h2, .bdg h3 { text-wrap: balance; }
 
+/* claro / oscuro */
+.bdg-theme { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--fg); display: grid; place-items: center; cursor: pointer; transition: background 0.2s; }
+.bdg-theme:hover { background: var(--raised); }
+.bdg-theme svg { width: 19px; height: 19px; }
+.bdg-hero-wrap { position: relative; }
+.bdg-hero-wrap .bdg-theme { position: absolute; top: 12px; right: 12px; z-index: 3; }
+
 .bdg-wordmark { margin: 0; font-family: var(--f-display); font-weight: 400; color: var(--gold-hi); font-size: clamp(44px, 12vw, 64px); line-height: 0.95; }
 
 /* demo */
@@ -203,6 +210,24 @@
 .bdg-grid .c.need::after { content: ""; position: absolute; inset: 3px; border-radius: 6px; border: 2.5px dashed var(--coral-deep); animation: bdg-need 1.1s ease-in-out infinite; pointer-events: none; }
 @keyframes bdg-need { 50% { opacity: 0.3; } }
 
+/* lo que te falta (solo escritorio en vivo) */
+.bdg-live-extra { display: none; }
+.bdg-missing { display: flex; flex-direction: column; gap: 10px; }
+.bdg-missing ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bdg-missing li button { width: 100%; display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: center; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--surface); color: var(--fg); font: inherit; text-align: left; cursor: pointer; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow 0.2s var(--ease), background 0.2s; }
+.bdg-missing li button:hover { background: var(--raised); }
+.bdg-missing li button.on { box-shadow: inset 0 0 0 2px var(--gold-hi); }
+.bdg-missing li button.hot { box-shadow: inset 0 0 0 2px var(--coral); }
+.bdg-missing .who { display: flex; flex-direction: column; gap: 2px; line-height: 1.1; }
+.bdg-missing .who b { font-size: 15px; letter-spacing: 0.04em; }
+.bdg-missing .who small { font-size: 13px; font-weight: 700; color: var(--fg-3); text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.bdg-missing .hot .who small { color: var(--coral); }
+.bdg-missing .need { display: flex; flex-wrap: wrap; gap: 4px; }
+.bdg-missing .need i { min-width: 34px; padding: 3px 6px; border-radius: 999px; background: var(--raised); font-style: normal; font-weight: 800; font-size: 14px; text-align: center; line-height: 1.2; }
+.bdg-missing .need i small { font-family: var(--f-display); font-size: 11px; color: var(--gold-hi); margin-right: 1px; }
+.bdg-missing .hot .need i { background: var(--coral); color: #2a0e06; }
+.bdg-missing .hot .need i small { color: inherit; }
+
 .bdg-board { display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 12px; background: var(--surface); }
 .bdg-board .row { display: grid; grid-template-columns: 22px repeat(15, 1fr); gap: 3px; align-items: center; }
 .bdg-board .bl { font-family: var(--f-display); color: var(--gold-hi); font-size: 15px; text-align: center; }
@@ -249,7 +274,10 @@
   .bdg-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
   .bdg-col-main { display: flex; flex-direction: column; gap: 16px; }
   .bdg-live { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 420px); gap: 28px; align-items: start; }
-  .bdg-live-main { position: sticky; top: 88px; }
+  /* El hueco bajo la tómbola: tablero y lo que le falta a cada cartón. El tablero sale del mazo. */
+  .bdg-live-extra { display: flex; flex-direction: column; gap: 18px; padding-top: 4px; }
+  .bdg-live .bdg-slot.board { display: none; }
+  .bdg-live .bdg-slots { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
   .bdg-stage { grid-template-columns: 140px 1fr; padding: 24px; }
   .bdg-tombola { width: 140px; height: 167px; }
   .bdg-spot { height: 200px; }
@@ -257,6 +285,24 @@
   .bdg-ball-wrap .bdg-ball { --s: 164px; }
   .bdg-grid .c { font-size: 30px; }
 }
+
+/* claro: la misma mesa, de día */
+.bdg.bdg-light {
+  --bg: #fffaf2; --surface: #f6ead8; --raised: #ecdcc4; --line: rgba(42, 26, 17, 0.14);
+  --fg: #2a1a11; --fg-2: #4f3a2c; --fg-3: #6b5242;
+  --gold-hi: #a9761a; --coral: #e2492a;
+  color-scheme: light;
+  box-shadow: 0 1px 0 rgba(42, 26, 17, 0.06), 0 8px 8px -6px rgba(42, 26, 17, 0.12);
+}
+.bdg-light .bdg-hero::after { background: linear-gradient(180deg, rgba(255, 250, 242, 0) 30%, rgba(255, 250, 242, 0.7) 64%, var(--bg) 100%); }
+.bdg-light .bdg-stage { background: radial-gradient(120% 90% at 26% 38%, #fde2bd 0, var(--surface) 62%); }
+.bdg-light .bdg-tray { background: linear-gradient(180deg, #e3cfb2, #f1e3cf); box-shadow: inset 0 3px 7px rgba(90, 55, 25, 0.28), 0 1px 0 rgba(255, 255, 255, 0.7); }
+.bdg-light .bdg-near { background: rgba(226, 73, 42, 0.1); color: #a6300f; }
+.bdg-light .bdg-slot.empty { border-color: rgba(42, 26, 17, 0.3); }
+.bdg-light .bdg-slot.empty:hover:not([disabled]) { border-color: var(--gold-hi); }
+.bdg-light .bdg-live-pill, .bdg-light .bdg-spot .hitchip, .bdg-light .bdg-board .row span.last { background: #ff6a3d; }
+.bdg-light .bdg-missing .hot .need i { background: #ff6a3d; }
+.bdg-light .bdg-missing .hot .who small { color: #a6300f; }
 
 @media (prefers-reduced-motion: reduce) {
   .bdg *, .bdg *::before, .bdg *::after, .bdg-overlay * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }

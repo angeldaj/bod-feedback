@@ -668,10 +668,14 @@
 .mc2 .ruleta-side > .link { justify-self: start; gap: 6px; }
 .mc2 .empty b { font-weight: 600; font-size: 1.1rem; color: var(--ink); }
 
+/* Minijuegos: las mismas tarjetas de Inicio, en lista. */
+.mc2 .mg-list { display: grid; gap: 14px; align-items: start; }
+
 @keyframes mc2-rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @keyframes mc2-swap { from { opacity: 0.35; } }
 
 @media (min-width: 1024px) {
+  .mc2 .mg-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .mc2 .view-ruleta { grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); column-gap: 48px; align-items: start; }
   .mc2 .view-ruleta > .v-head { grid-column: 1 / -1; }
   .mc2 .ruleta-side { padding-top: 12px; }

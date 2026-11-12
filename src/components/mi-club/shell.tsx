@@ -9,6 +9,7 @@ import { motion, useReducedMotion } from "motion/react";
 import {
   CircleAlert,
   FlaskConical,
+  Gamepad2,
   Gift,
   House,
   Moon,
@@ -21,7 +22,6 @@ import {
 } from "lucide-react";
 import { ClubProvider, useClub, type ClubMode } from "./club-provider";
 import { ClubOverlays } from "./overlays";
-import { WheelIcon } from "./club-visuals";
 import { BakeryBackdrop, BakingLoaf, MemberAvatar } from "./bakery-scene";
 import { SHOW_PEDIDOS } from "./data";
 import "./mi-club.css";
@@ -32,10 +32,13 @@ import "./raspadito.css";
 import "./bodingo.css";
 import "./palabra.css";
 
+/** Pantallas que viven dentro de Minijuegos: la pestaña sigue marcada al entrar a un juego. */
+const GAMES = ["minijuegos", "ruleta", "bodingo", "palabra", "raspadito"];
+
 const TABS: { sub: string; label: string; icon: LucideIcon }[] = [
   { sub: "", label: "Inicio", icon: House },
   { sub: "wallet", label: "Wallet", icon: Wallet },
-  { sub: "ruleta", label: "Ruleta", icon: WheelIcon },
+  { sub: "minijuegos", label: "Minijuegos", icon: Gamepad2 },
   { sub: "canjear", label: "Canjear", icon: Gift },
   { sub: "pedidos", label: "Pedidos", icon: ShoppingBag },
   { sub: "actividad", label: "Actividad", icon: ReceiptText },
@@ -46,7 +49,6 @@ function TabLinks({
   pathname,
   walletCount,
   spinCount,
-  showRuleta,
   register,
   basePath,
   bar = false,
@@ -54,8 +56,6 @@ function TabLinks({
   pathname: string;
   walletCount: number;
   spinCount: number;
-  /** Sin ruleta activa (`wheel: null`) la pestaña no aparece. */
-  showRuleta: boolean;
   register: (el: HTMLElement | null) => void;
   basePath: string;
   /** En la barra inferior no cabe Perfil: se llega desde el avatar de arriba. */
@@ -63,11 +63,12 @@ function TabLinks({
 }) {
   return (
     <>
-      {TABS.filter(({ sub }) => (sub !== "ruleta" || showRuleta) && (sub !== "pedidos" || SHOW_PEDIDOS) && !(bar && sub === "perfil")).map(({ sub, label, icon: Icon }) => {
+      {TABS.filter(({ sub }) => (sub !== "pedidos" || SHOW_PEDIDOS) && !(bar && sub === "perfil")).map(({ sub, label, icon: Icon }) => {
         const href = sub ? `${basePath}/${sub}` : basePath;
-        const active = sub ? pathname === href || pathname.startsWith(`${href}/`) : pathname === href;
         const isWallet = sub === "wallet";
-        const isRuleta = sub === "ruleta";
+        const isGames = sub === "minijuegos";
+        const under = (s: string) => pathname === `${basePath}/${s}` || pathname.startsWith(`${basePath}/${s}/`);
+        const active = isGames ? GAMES.some(under) : sub ? under(sub) : pathname === href;
         return (
           <Link
             key={href}
@@ -77,15 +78,15 @@ function TabLinks({
             aria-label={
               isWallet && walletCount
                 ? `Wallet, ${walletCount} vouchers activos`
-                : isRuleta && spinCount
-                  ? `Ruleta, ${spinCount} ${spinCount === 1 ? "tirada disponible" : "tiradas disponibles"}`
+                : isGames && spinCount
+                  ? `Minijuegos, ${spinCount} ${spinCount === 1 ? "tirada disponible" : "tiradas disponibles"}`
                   : undefined
             }
           >
             <Icon aria-hidden="true" strokeWidth={1.8} />
             {label}
             {isWallet && walletCount ? <span className="count" aria-hidden="true">{walletCount}</span> : null}
-            {isRuleta && spinCount ? <span className="count" aria-hidden="true">{spinCount}</span> : null}
+            {isGames && spinCount ? <span className="count" aria-hidden="true">{spinCount}</span> : null}
           </Link>
         );
       })}
@@ -100,10 +101,8 @@ function ShellInner({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const isClient = useSyncExternalStore(subscribeNoop, () => true, () => false);
-  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href, spins, spinsLoaded, avatarUrl } =
+  const { themeClass, theme, toggleTheme, member, sessionLoading, activeVouchers, registerWalletTarget, error, reload, demo, basePath, href, spins, avatarUrl } =
     useClub();
-  // Mientras carga se muestra la pestaña: ocultarla solo cuando sabemos que no hay ruleta evita que la barra salte.
-  const showRuleta = !spinsLoaded || !!spins?.wheel;
   const spinCount = spins?.wheel ? spins.available : 0;
 
   useEffect(() => {
@@ -146,7 +145,6 @@ function ShellInner({ children }: { children: React.ReactNode }) {
               pathname={pathname}
               walletCount={activeVouchers.length}
               spinCount={spinCount}
-              showRuleta={showRuleta}
               register={registerWalletTarget}
               basePath={basePath}
             />
@@ -205,8 +203,7 @@ function ShellInner({ children }: { children: React.ReactNode }) {
                   pathname={pathname}
                   walletCount={activeVouchers.length}
                   spinCount={spinCount}
-                  showRuleta={showRuleta}
-                  register={registerWalletTarget}
+                      register={registerWalletTarget}
                   basePath={basePath}
                 />
               </nav>
