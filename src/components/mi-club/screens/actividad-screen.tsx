@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useMemo, useState, type CSSProperties } from "react";
-import { ChevronDown, Gift, MapPin, MessageCircleHeart, ReceiptText, Sparkles } from "lucide-react";
+import { ChevronDown, Gamepad2, Gift, MapPin, MessageCircleHeart, ReceiptText, Sparkles } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Bar, BarChart, LabelList, Rectangle, XAxis, type BarShapeProps } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
@@ -16,6 +16,7 @@ const FILTERS = [
   { id: "redemption", label: "Canjes" },
   { id: "grant", label: "Regalos" },
   { id: "social", label: "Instagram" },
+  { id: "game", label: "Juegos" },
 ] as const;
 type FilterId = (typeof FILTERS)[number]["id"];
 
@@ -90,7 +91,9 @@ function RowIcon({ item }: { item: ActivityItem }) {
       ? categoryIcon(CHANNEL_ICON[item.channel])
       : item.type === "social"
         ? MessageCircleHeart
-        : item.type === "grant" && !item.category
+        : item.type === "game"
+          ? Gamepad2
+          : item.type === "grant" && !item.category
           ? Sparkles
           : categoryIcon(item.category);
   return <span className={`ar-ic ${item.type}`}>{createElement(Icon, { "aria-hidden": true })}</span>;
@@ -161,7 +164,7 @@ function PurchaseRow({ item, open, onToggle }: { item: Extract<ActivityItem, { t
   );
 }
 
-function EventRow({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" | "social" }> }) {
+function EventRow({ item }: { item: Extract<ActivityItem, { type: "redemption" | "grant" | "social" | "game" }> }) {
   return (
     <div className="ar">
       <RowIcon item={item} />
@@ -191,7 +194,7 @@ export function ActividadScreen() {
       let g = out.find((x) => x.key === key);
       if (!g) out.push((g = { key, label: monthLabel(item.occurredAt), points: 0, items: [] }));
       g.items.push(item);
-      if (item.type === "purchase" || item.type === "social") g.points += item.points;
+      if (item.type === "purchase" || item.type === "social" || item.type === "game") g.points += item.points;
     }
     return out;
   }, [activity, filter]);

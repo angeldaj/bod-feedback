@@ -17,6 +17,8 @@ import { SocialCampaignsSection } from "../social-campaigns";
 import { InstagramFeedSection } from "../instagram-feed";
 import { SHOW_PEDIDOS } from "../data";
 import { RaspaditoTile } from "./raspadito-screen";
+import { BodingoTile } from "./bodingo-screen";
+import { PalabraTile } from "./palabra-screen";
 
 function TierProgress({ card }: { card: ClubCard }) {
   const next = card.nextTier;
@@ -164,6 +166,8 @@ export function HomeScreen() {
       <div className="home-side">
         <TierProgress card={card} />
         <SpinTile />
+        <BodingoTile />
+        <PalabraTile />
         <RaspaditoTile />
         {SHOW_PEDIDOS && (
           <Link href={href("pedidos")} className="tile ped-teaser px-live">
