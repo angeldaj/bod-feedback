@@ -137,6 +137,16 @@
 .pw-how ul { margin: 12px 0 16px; padding-left: 18px; color: #4a372c; font-size: 15px; display: flex; flex-direction: column; gap: 4px; }
 .pw-how .pw-btn { width: 100%; }
 
+/* reglas fijas al lado del tablero (solo escritorio) */
+.pw-rules { display: none; flex-direction: column; gap: 6px; padding: 16px 18px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.pw-rules h2 { margin: 0; font-size: 18px; font-weight: 800; }
+.pw-rules p { margin: 0; font-size: 14.5px; color: var(--fg-2); }
+.pw-rules .ex { display: grid; grid-template-columns: 170px 1fr; gap: 8px 14px; align-items: center; margin: 8px 0 2px; }
+.pw-rules .ex .pw-row { gap: 4px; }
+.pw-rules .ex .pw-tile { font-size: 18px; border-radius: 6px; }
+.pw-rules .ex .pw-tile.near::after { top: 3px; right: 3px; width: 5px; height: 5px; }
+.pw-rules ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; color: var(--fg-2); display: flex; flex-direction: column; gap: 4px; }
+
 /* tarjeta en Inicio */
 .pw-tile-home { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
 .pw-tile-home .pt-tiles { display: flex; gap: 3px; flex: none; }
@@ -159,11 +169,17 @@
 .pw-toast span { font-size: 14px; opacity: 0.85; }
 
 @media (min-width: 1024px) {
-  .pw { padding: 24px; }
-  .pw-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 28px; align-items: start; }
-  .pw-side { position: sticky; top: 88px; }
-  .pw-grid { width: 360px; }
-  .pw-kb { max-width: 520px; width: 100%; margin: 6px auto 0; }
+  /* El tablero manda a la izquierda, a toda la altura; la pizarra, la racha y las reglas van a su lado. */
+  .pw { padding: 28px 32px; display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: auto 1fr; column-gap: 48px; row-gap: 20px; align-items: start; }
+  .pw-layout { display: contents; }
+  .pw-board-sign { grid-column: 2; grid-row: 1; margin: 6px 6px 0; }
+  .pw-board-sign .help { display: none; }
+  .pw-play { grid-column: 1; grid-row: 1 / span 2; gap: 18px; padding-top: 6px; }
+  .pw-side { grid-column: 2; grid-row: 2; }
+  .pw-rules { display: flex; }
+  .pw-grid { width: 372px; gap: 8px; }
+  .pw-grid .pw-row { gap: 8px; }
+  .pw-kb { max-width: 560px; width: 100%; margin: 0 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

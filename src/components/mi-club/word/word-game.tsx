@@ -609,6 +609,13 @@ export function WordGame({
               <Tomorrow at={game.nextAt} />
             </div>
           ) : null}
+          <section className="pw-rules" aria-labelledby="pw-rules-title">
+            <h2 id="pw-rules-title">Cómo se juega</h2>
+            <p>
+              Adivina la palabra de 5 letras en {game.maxGuesses} intentos.
+            </p>
+            <Rules game={game} />
+          </section>
         </aside>
       </div>
 
@@ -625,33 +632,7 @@ export function WordGame({
           Adivina la palabra de 5 letras en {game.maxGuesses} intentos. Después
           de cada intento, las fichas cambian de color.
         </p>
-        <div className="ex">
-          <Example word="PANES" mark={[0, "ok"]} />
-          <p>
-            <b>P</b> está en su lugar.
-          </p>
-          <Example word="TORTA" mark={[2, "near"]} />
-          <p>
-            <b>R</b> está en la palabra, pero en otro lugar.
-          </p>
-          <Example word="MANGO" mark={[3, "miss"]} />
-          <p>
-            <b>G</b> no está en la palabra.
-          </p>
-        </div>
-        <ul>
-          <li>Cada día a las 12:00 a. m. hay una palabra nueva.</li>
-          {game.bonuses.length ? (
-            <li>
-              Acertar suma +{game.pointsPerWin} pts.{" "}
-              {game.bonuses
-                .map((b) => `${b.days} días seguidos dan +${b.points}`)
-                .join(" y ")}
-              .
-            </li>
-          ) : null}
-          <li>Las tildes no cuentan; la Ñ sí es una letra.</li>
-        </ul>
+        <Rules game={game} />
         <button
           type="button"
           className="pw-btn ink"
@@ -661,6 +642,41 @@ export function WordGame({
         </button>
       </dialog>
     </div>
+  );
+}
+
+/** Ejemplos y reglas: en el diálogo de ayuda y, en escritorio, fijos al lado del tablero. */
+function Rules({ game }: { game: Game }) {
+  return (
+    <>
+      <div className="ex">
+        <Example word="PANES" mark={[0, "ok"]} />
+        <p>
+          <b>P</b> está en su lugar.
+        </p>
+        <Example word="TORTA" mark={[2, "near"]} />
+        <p>
+          <b>R</b> está en la palabra, pero en otro lugar.
+        </p>
+        <Example word="MANGO" mark={[3, "miss"]} />
+        <p>
+          <b>G</b> no está en la palabra.
+        </p>
+      </div>
+      <ul>
+        <li>Cada día a las 12:00 a. m. hay una palabra nueva.</li>
+        {game.bonuses.length ? (
+          <li>
+            Acertar suma +{game.pointsPerWin} pts.{" "}
+            {game.bonuses
+              .map((b) => `${b.days} días seguidos dan +${b.points}`)
+              .join(" y ")}
+            .
+          </li>
+        ) : null}
+        <li>Las tildes no cuentan; la Ñ sí es una letra.</li>
+      </ul>
+    </>
   );
 }
 

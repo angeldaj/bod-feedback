@@ -70,7 +70,7 @@ function TierProgress({ card }: { card: ClubCard }) {
 }
 
 /** Tarjeta de la ruleta: progreso hacia la próxima tirada y acceso a girar. Sin ruleta activa no se muestra. */
-function SpinTile() {
+export function SpinTile() {
   const { spins, href } = useClub();
   if (!spins?.wheel) return null;
   const { available, progress } = spins;
