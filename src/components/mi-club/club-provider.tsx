@@ -30,6 +30,7 @@ import type {
   Voucher,
 } from "@/lib/club-api";
 import type { Member } from "@/lib/loyalty-api";
+import type { GamesApi } from "@/lib/games-api";
 import { useClubTheme, type Theme } from "./use-club-theme";
 import { blobToDataUrl, squareAvatar } from "./avatar-image";
 
@@ -84,6 +85,8 @@ type ClubValue = ClubData & {
   /** Raspadito de Navidad: `null` mientras carga, si falla o si no hay promoción. */
   ticketPromo: TicketPromo | null;
   ticketPromoLoaded: boolean;
+  /** Bodingo y Palabra del día (spec 153): backend real o mock según el modo. */
+  games: GamesApi;
   /** Activa un ticket. Lanza `ClubApiError` (código inexistente, ajeno, pausa…) y refresca intentos. */
   activateTicket: (code: string) => Promise<TicketActivation>;
   /** Copia de un voucher que vuela a la pestaña Wallet; `onDone` al aterrizar. */
@@ -501,6 +504,7 @@ export function ClubProvider({
     ticketPromo,
     ticketPromoLoaded,
     activateTicket,
+    games: adapter.games,
     flyToWallet,
     redeem,
     selectDesign,
