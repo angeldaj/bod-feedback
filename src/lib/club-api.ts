@@ -17,8 +17,9 @@
 // contacto con los endpoints del club v2 desde la landing.
 
 import type { Member } from "./loyalty-api";
+import { createLiveGames, createMockGames, type GamesApi } from "./games-api";
 
-const API_BASE_URL =
+export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://app.bod-service.cloud/api";
 
 // ---------------------------------------------------------------------------
@@ -72,7 +73,7 @@ export type CardDesign = {
   unlockLabel: string;
 };
 
-export type VoucherOrigin = "redemption" | "grant" | "spin";
+export type VoucherOrigin = "redemption" | "grant" | "spin" | "bodingo";
 export type GrantReason = "manual" | "segment" | "complaint" | "tier_up" | "ticket";
 export type VoucherKind = "percent" | "amount" | "product";
 export type VoucherStatus = "active" | "used" | "expired" | "cancelled";
@@ -124,8 +125,11 @@ export type ActivityItem =
     }
   | {
       id: string;
-      /** `social`: puntos por un comentario validado en Instagram (spec 087). */
-      type: "redemption" | "grant" | "social";
+      /**
+       * `social`: puntos por un comentario validado en Instagram (spec 087).
+       * `game`: cartones de Bodingo y premios de la Palabra del día (spec 153).
+       */
+      type: "redemption" | "grant" | "social" | "game";
       occurredAt: string;
       title: string;
       detail: string;
@@ -293,7 +297,7 @@ export class ClubApiError extends Error {
 
 export type AuthedRequest = <T>(fn: (accessToken: string) => Promise<T>) => Promise<T>;
 
-async function request<T>(path: string, accessToken: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, accessToken: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -869,6 +873,8 @@ export interface ClubAdapter {
   getTicketPromo(): Promise<TicketPromo>;
   /** Activa el código que el socio raspó en su ticket. */
   activateTicket(code: string): Promise<TicketActivation>;
+  /** Bodingo y Palabra del día (spec 153). */
+  games: GamesApi;
   /** Solo el adaptador mock: simula lo que en producción dispara el backend. */
   demo: ClubDemoActions | null;
 }
@@ -907,6 +913,7 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
     // shortcut: bodega-api aún no tiene el raspadito; sin backend la tarjeta y la pantalla no aparecen. Cablear al publicar su spec.
     getTicketPromo: () => Promise.reject(new ClubApiError("El raspadito aún no está disponible.", 404)),
     activateTicket: () => Promise.reject(new ClubApiError("El raspadito aún no está disponible.", 404)),
+    games: createLiveGames(authed),
     demo: null,
   };
 }
@@ -990,6 +997,24 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
       await delay(null, 650);
       return activateDemoTicket(s(), code);
     },
+    games: createMockGames({
+      firstName: member.firstName,
+      balance: () => s().balance,
+      move(points, title, detail) {
+        const store = s();
+        store.balance += points;
+        store.activity.unshift({ id: `a-game-${Date.now()}`, type: "game", occurredAt: new Date().toISOString(), title, detail, points, category: null });
+      },
+      grantVoucher(title, note) {
+        const store = s();
+        const code = randomCode();
+        store.vouchers.unshift({
+          id: `v-${code}`, origin: "bodingo", grantReason: null, kind: "product", title, valueLabel: "Gratis", category: null, code,
+          qrValue: `LBVCH:${code}`, expiresAt: new Date(Date.now() + 30 * DAY).toISOString(), status: "active", note, usedAt: null, usedAtBranch: null,
+        });
+        store.activity.unshift({ id: `a-${code}`, type: "grant", occurredAt: new Date().toISOString(), title: `Ganaste el Bodingo: ${title.toLowerCase()}`, detail: "Guardado en tu Wallet", points: 0, category: null });
+      },
+    }),
     demo: {
       tierUp: () => demoTierUp(member),
       complaintGift: () => demoComplaintGift(member),

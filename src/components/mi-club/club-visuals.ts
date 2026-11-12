@@ -77,13 +77,23 @@ export const ORIGIN_LABEL = (v: Voucher) =>
     ? "Canje con puntos"
     : v.origin === "spin"
       ? "Premio de la ruleta"
-      : v.grantReason === "ticket"
+      : v.origin === "bodingo"
+        ? "Premio del Bodingo"
+        : v.grantReason === "ticket"
         ? "Raspadito de Navidad"
         : "Regalo de la casa";
 
 /** Etiqueta corta del origen, para el bolsillo de la Wallet. */
 export const ORIGIN_SHORT = (v: Voucher) =>
-  v.origin === "redemption" ? "Canje" : v.origin === "spin" ? "Ruleta" : v.grantReason === "ticket" ? "Raspadito" : "Regalo";
+  v.origin === "redemption"
+    ? "Canje"
+    : v.origin === "spin"
+      ? "Ruleta"
+      : v.origin === "bodingo"
+        ? "Bodingo"
+        : v.grantReason === "ticket"
+          ? "Raspadito"
+          : "Regalo";
 
 export const fmtPts = (n: number) => n.toLocaleString("es-VE");
 export const money = (n: number) => `$${n.toFixed(2).replace(".", ",")}`;
