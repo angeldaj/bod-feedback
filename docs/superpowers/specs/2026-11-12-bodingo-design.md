@@ -32,7 +32,8 @@ cartón completo**; el premio (cena, almuerzo…) se entrega como **voucher
 | Empate | Todos los cartones completados con la misma bola ganan el **premio completo** (un voucher cada uno). |
 | Cartones por socio | Máximo **3** por edición. Generados al azar al comprar; no se cambian. |
 | Ediciones | **Calendario fijo** (domingo 19:00 por defecto) que autogenera la próxima edición copiando una plantilla. Desde NX: editar cada edición, cancelarla ("este domingo no se juega"), crear ediciones extra en días especiales, pausar/cambiar el calendario. |
-| Venta | Abre al publicarse la edición y cierra a `startsAt` (primera bola). |
+| Venta | Abre al publicarse la edición y cierra a `startsAt`. |
+| Arranque | La primera bola sale a `startsAt + 45 s` para dar tiempo a conectarse. En esos 45 s mi-club muestra "Arrancamos en 0:45 · X jugadores en la mesa". |
 | Mínimo de jugadores | Si a `startsAt` no se llega, la edición se **cancela sola** y se devuelven los puntos. |
 | Cartón | 75 bolas, 5×5, columnas B-I-N-G-O, centro libre con el logo de La Bodega. |
 | Ritmo | Segundos entre bolas configurable por edición, default **15 s** (~15 min de juego). |
@@ -43,10 +44,10 @@ cartón completo**; el premio (cena, almuerzo…) se entrega como **voucher
 
 Al pasar a `live`, el servidor sortea la secuencia completa de 75 bolas
 (`crypto.randomInt`) y la guarda, pero **nunca la envía entera**. La bola *n*
-(1-based) se revela cuando `now ≥ startsAt + (n − 1) × intervalo`. Como cartones
+(1-based) se revela cuando `now ≥ startsAt + 45 s + (n − 1) × intervalo`. Como cartones
 y secuencia ya se conocen, se calcula de una vez `winningBallIndex` (primera
 bola con la que algún cartón queda completo) y
-`endsAt = startsAt + (winningBallIndex − 1) × intervalo + 30 s`.
+`endsAt = startsAt + 45 s + (winningBallIndex − 1) × intervalo + 30 s`.
 
 - Sin proceso vivo que cante bolas: un reinicio del servidor no afecta la
   partida, todo se deriva del reloj.
@@ -139,7 +140,7 @@ Ruta `/mi-club/bodingo` + `/club-mock/bodingo`, adaptador en `club-api.ts`
 
 1. **En venta**: premio con foto, cuenta regresiva (con `serverNow`), "X
    jugadores en la mesa", "Comprar cartón · N pts", cartones comprados.
-2. **En vivo**: bola actual grande con su letra (B-12) + las 4 anteriores;
+2. **En vivo**: primeros 45 s con cuenta regresiva "Arrancamos en 0:45" y "X jugadores en la mesa"; luego bola actual grande con su letra (B-12) + las 4 anteriores;
    cartones que se marcan solos con sello; "¡te falta 1!". Espectador: bolas +
    tablero de 75.
 3. **¡Bodingo!**: el ganador ve el botón grande con 30 s de cuenta regresiva y
