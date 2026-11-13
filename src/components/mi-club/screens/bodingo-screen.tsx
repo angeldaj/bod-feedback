@@ -50,6 +50,7 @@ import {
   Tombola,
 } from "../bodingo/physics";
 import { ensureBodingoTextures } from "../bodingo/textures";
+import { TableChat } from "../bodingo/table-chat";
 
 const TZ = "America/Caracas";
 const PRIZE_FALLBACK = "/bodega-club/hero-bodega-club.webp";
@@ -855,6 +856,7 @@ export function BodingoScreen() {
                   />
                 ) : null}
               </div>
+              <TableChat games={games} live players={edition.players} themeClass={`bdg${light ? " bdg-light" : ""} ${fontClass}`} />
             </div>
             <div className="bdg-live-side">{deck}</div>
           </div>
@@ -906,6 +908,9 @@ export function BodingoScreen() {
                     ) : null}
                   </>
                 )
+              ) : null}
+              {sale || edition.phase === "finished" ? (
+                <TableChat games={games} live={false} players={edition.players} themeClass={`bdg${light ? " bdg-light" : ""} ${fontClass}`} />
               ) : null}
               {edition.phase === "cancelled" ? (
                 <div className="bdg-msg">
