@@ -1,13 +1,14 @@
 "use client";
 
-import { createElement, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { AnimatePresence, animate, motion, stagger, useReducedMotion } from "motion/react";
-import { CalendarDays, ChevronRight, CircleAlert, Clock3, Gift, Lock, Radio, RotateCw, Sparkles, Store, Ticket, Wallet, Wheat } from "lucide-react";
+import { CalendarDays, ChevronRight, CircleAlert, Clock3, Gift, Lock, Radio, RotateCw, Sparkles, Store, Ticket, Wallet } from "lucide-react";
 import { ClubApiError, DEMO_TICKET_HINTS, type SpinSegment, type TicketActivation, type TicketPromo, type TicketSecondChance, type Voucher } from "@/lib/club-api";
 import { useClub } from "../club-provider";
 import { Wheel, useWheelSpin } from "../wheel";
-import { WheelIcon, categoryIcon, expiryLabel, voucherKindClass } from "../club-visuals";
+import { WheelIcon, expiryLabel, voucherKindClass } from "../club-visuals";
+import { Art, categoryArt } from "../illustrations";
 import { Skeleton } from "../pieces";
 
 const CODE_LENGTH = 5;
@@ -37,7 +38,7 @@ function Stamps({ current, required, fresh = false }: { current: number; require
             animate={{ scale: 1, rotate: 0, opacity: 1 }}
             transition={{ type: "spring", bounce: 0.45, duration: 0.55, delay: pop ? 0.5 : 0 }}
           >
-            <Wheat aria-hidden="true" />
+            <Art kind="pan" />
           </motion.span>
         );
       })}
@@ -78,6 +79,8 @@ export function RaspaditoTile() {
   const missing = required - current;
   return (
     <div className="tile rasp-tile">
+      <Snow />
+      <Art kind="pan" className="rasp-tile-art" />
       <div className="rasp-tile-top">
         <h3>
           Raspadito <em>de Navidad</em>
@@ -156,6 +159,7 @@ function RaspaditoStage({ promo }: { promo: TicketPromo }) {
             <ScratchCard
               label={`Ticket ${activation.code} · lote ${activation.lot}`}
               result={activation.outcome === "none" ? "Sin premio: tienes una segunda oportunidad en la ruleta." : `Resultado: ${activation.prize?.label ?? ""}.`}
+              celebrate={activation.outcome !== "none" && activation.outcome !== "claimed"}
               onReveal={() => {
                 setRevealed(true);
                 setHeld(null);
@@ -341,11 +345,14 @@ function ScratchCard({
   label,
   foil = "navidad",
   result,
+  celebrate = false,
   children,
   onReveal,
 }: {
   label: string;
   foil?: Foil;
+  /** Lluvia de papelitos al descubrir: solo si hay premio. */
+  celebrate?: boolean;
   /** Lo que se anuncia a lectores de pantalla al descubrir. */
   result: string;
   children: ReactNode;
@@ -355,6 +362,7 @@ function ScratchCard({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prizeRef = useRef<HTMLDivElement>(null);
   const [done, setDone] = useState(false);
+  const [touched, setTouched] = useState(false);
   const s = useRef({ drawing: false, last: null as { x: number; y: number } | null, moves: 0, flakeAt: 0, done: false });
 
   useEffect(() => {
@@ -381,6 +389,7 @@ function ScratchCard({
     if (parts.length && !reduce) {
       animate(parts, { opacity: [0, 1], scale: [0.94, 1] }, { type: "spring", bounce: 0.35, duration: 0.6, delay: stagger(0.06) });
     }
+    if (celebrate && !reduce && canvas) confetti(canvas.getBoundingClientRect());
     window.setTimeout(onReveal, reduce ? 0 : 420);
   }
 
@@ -429,6 +438,7 @@ function ScratchCard({
           aria-label="Capa para raspar. Usa Descubrir todo si prefieres no raspar."
           onPointerDown={(e) => {
             if (s.current.done) return;
+            setTouched(true);
             e.currentTarget.setPointerCapture(e.pointerId);
             s.current.drawing = true;
             s.current.last = point(e);
@@ -438,6 +448,11 @@ function ScratchCard({
           onPointerUp={() => (s.current.drawing = false)}
           onPointerCancel={() => (s.current.drawing = false)}
         />
+        {!touched && !done && !reduce ? (
+          <span className="rasp-hand" aria-hidden="true">
+            <Art kind="coin" />
+          </span>
+        ) : null}
       </div>
       <p className="sr-only" aria-live="polite">
         {done ? result : ""}
@@ -449,11 +464,10 @@ function ScratchCard({
 
 function TicketPrize({ activation }: { activation: TicketActivation }) {
   const { outcome, prize, voucher, claimed } = activation;
-  const PrizeIcon = outcome === "none" ? WheelIcon : categoryIcon(prize?.category);
   return (
     <>
       {outcome === "claimed" ? <span className="rasp-stampmark">Retirado en caja</span> : null}
-      <span className={`rasp-prize-ic${outcome === "none" ? " none" : ""}`}>{createElement(PrizeIcon, { "aria-hidden": true })}</span>
+      <PrizeArt kind={outcome === "none" ? "wheel" : /jam[oó]n/i.test(prize?.label ?? "") ? "pan" : categoryArt(prize?.category)} win={outcome !== "none"} />
       <span className="rasp-kick">{outcome === "none" ? "Sin premio esta vez" : outcome === "claimed" ? "Tu ticket tenía" : "Ganaste"}</span>
       {outcome === "none" ? (
         <span className="rasp-name">Otra oportunidad</span>
@@ -478,9 +492,9 @@ function TicketPrize({ activation }: { activation: TicketActivation }) {
 }
 
 // Papel de cada capa: el ticket impreso (plata) y el ticket virtual del club (oro).
-const FOILS: Record<Foil, { stops: string[]; ink: string; motif: string; lines: [string, string] }> = {
-  navidad: { stops: ["#bdb2a0", "#efe8dc", "#cfc4b2", "#f3ede3", "#b5a994"], ink: "#5b4630", motif: "LA BODEGA ✦", lines: ["RASPA AQUÍ", "TU PREMIO DE NAVIDAD"] },
-  virtual: { stops: ["#c98f3a", "#f6d896", "#dca552", "#fbe7b8", "#b77a2a"], ink: "#4a2a06", motif: "BODEGA CLUB ✦", lines: ["RASPA AQUÍ", "TICKET VIRTUAL BC"] },
+const FOILS: Record<Foil, { stops: string[]; band: string; motif: string; lines: [string, string] }> = {
+  navidad: { stops: ["#bdb2a0", "#efe8dc", "#cfc4b2", "#f3ede3", "#b5a994"], band: "#b3261e", motif: "LA BODEGA ✦", lines: ["RASPA AQUÍ", "TU PREMIO DE NAVIDAD"] },
+  virtual: { stops: ["#c98f3a", "#f6d896", "#dca552", "#fbe7b8", "#b77a2a"], band: "#6f4428", motif: "BODEGA CLUB ✦", lines: ["RASPA AQUÍ", "TICKET VIRTUAL BC"] },
 };
 
 function paintFoil(canvas: HTMLCanvasElement, foil: Foil) {
@@ -512,8 +526,21 @@ function paintFoil(canvas: HTMLCanvasElement, foil: Foil) {
     for (let x = -r.width; x < r.width; x += 116) ctx.fillText(look.motif, x + (Math.round(y / 30) % 2 ? 58 : 0), y);
   }
   ctx.restore();
+  // Copos de nieve sueltos y una cinta de regalo detrás del texto.
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 16; i++) snowflake(ctx, Math.random() * r.width, Math.random() * r.height, 5 + Math.random() * 7);
+  const cy = r.height / 2 + 10;
+  ctx.fillStyle = look.band;
+  ctx.fillRect(r.width / 2 - 9, 0, 18, r.height);
+  ctx.beginPath();
+  ctx.roundRect(r.width / 2 - 150, cy - 44, 300, 76, 14);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+  ctx.fillRect(r.width / 2 - 150, cy - 40, 300, 3);
   ctx.textAlign = "center";
-  ctx.fillStyle = look.ink;
+  ctx.fillStyle = "#fff3e2";
   ctx.font = `700 34px ${family}`;
   ctx.fillText(look.lines[0], r.width / 2, r.height / 2 + 4);
   ctx.font = `600 17px ${family}`;
@@ -533,6 +560,72 @@ function clearedShare(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D) 
     if (d[i] < 40) clear += 1;
   }
   return n ? clear / n : 0;
+}
+
+function snowflake(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
+  ctx.beginPath();
+  for (let k = 0; k < 3; k++) {
+    const a = (k * Math.PI) / 3;
+    ctx.moveTo(x - Math.cos(a) * size, y - Math.sin(a) * size);
+    ctx.lineTo(x + Math.cos(a) * size, y + Math.sin(a) * size);
+  }
+  ctx.stroke();
+}
+
+const CONFETTI = ["#e2492a", "#f6cf6a", "#c73a63", "#7fa65a", "#fff3e2", "#ff8c42"];
+
+// Papelitos que saltan desde el centro de la tarjeta al descubrir un premio.
+function confetti(box: DOMRect) {
+  const x = box.left + box.width / 2;
+  const y = box.top + box.height / 2;
+  for (let i = 0; i < 46; i++) {
+    const f = document.createElement("span");
+    f.className = "rasp-confetti";
+    f.style.left = `${x}px`;
+    f.style.top = `${y}px`;
+    f.style.background = CONFETTI[i % CONFETTI.length];
+    if (i % 3 === 0) f.style.borderRadius = "50%";
+    document.body.appendChild(f);
+    const a = Math.random() * Math.PI * 2;
+    const v = 90 + Math.random() * 170;
+    animate(
+      f,
+      {
+        x: [0, Math.cos(a) * v, Math.cos(a) * v * 1.15],
+        y: [0, Math.sin(a) * v - 60, Math.sin(a) * v + 140],
+        rotate: [0, Math.random() * 720 - 360],
+        opacity: [1, 1, 0],
+      },
+      { duration: 1.3 + Math.random() * 0.5, ease: [0.2, 0.7, 0.4, 1] },
+    ).then(() => f.remove());
+  }
+}
+
+/** Dibujo del premio; si ganó, con rayos de sol girando detrás. */
+function PrizeArt({ kind, win }: { kind: string; win: boolean }) {
+  return (
+    <span className={`rasp-art${win ? " win" : ""}`}>
+      {win ? (
+        <svg className="rasp-rays" viewBox="-50 -50 100 100" aria-hidden="true">
+          {Array.from({ length: 12 }, (_, i) => (
+            <path key={i} d="M0 0 L-5 -50 L5 -50Z" transform={`rotate(${i * 30})`} />
+          ))}
+        </svg>
+      ) : null}
+      <Art kind={kind} />
+    </span>
+  );
+}
+
+/** Copos que caen despacio sobre la tarjeta de Inicio. */
+function Snow() {
+  return (
+    <span className="rasp-snow" aria-hidden="true">
+      {Array.from({ length: 9 }, (_, i) => (
+        <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i * 1.3) % 6}s`, animationDuration: `${6 + (i % 4)}s` }} />
+      ))}
+    </span>
+  );
 }
 
 // Virutas de la capa que caen al raspar: el raspado se siente físico.
@@ -765,7 +858,7 @@ function SecondChance({ chance, entries, onDone }: { chance: TicketSecondChance;
             <h3>
               Ganaste un <em>ticket virtual BC</em>
             </h3>
-            <ScratchCard label={`Ticket virtual ${chance.virtualCode ?? ""}`} foil="virtual" result={`Tu ticket virtual trae: ${chance.prize?.label ?? ""}.`} onReveal={revealed}>
+            <ScratchCard label={`Ticket virtual ${chance.virtualCode ?? ""}`} foil="virtual" celebrate result={`Tu ticket virtual trae: ${chance.prize?.label ?? ""}.`} onReveal={revealed}>
               <VirtualPrize chance={chance} />
             </ScratchCard>
             {phase === "revealed" && chance.voucher ? (
@@ -780,10 +873,9 @@ function SecondChance({ chance, entries, onDone }: { chance: TicketSecondChance;
 
 function VirtualPrize({ chance }: { chance: TicketSecondChance }) {
   const points = chance.prize?.points;
-  const Icon = points ? Sparkles : categoryIcon(chance.prize?.category);
   return (
     <>
-      <span className="rasp-prize-ic">{createElement(Icon, { "aria-hidden": true })}</span>
+      <PrizeArt kind={points ? "coin" : categoryArt(chance.prize?.category)} win />
       <span className="rasp-kick">Tu ticket virtual trae</span>
       {points ? (
         <span className="rasp-name money tab-nums">

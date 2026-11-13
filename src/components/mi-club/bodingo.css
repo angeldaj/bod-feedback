@@ -304,6 +304,89 @@
 .bdg-light .bdg-missing .hot .need i { background: #ff6a3d; }
 .bdg-light .bdg-missing .hot .who small { color: #a6300f; }
 
+/* =====================================================================
+   Panadería: toldo a rayas sobre la mesa y más aire entre bloques.
+   ===================================================================== */
+.bdg { position: relative; gap: 20px; padding-top: 46px; }
+.bdg::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 30px; border-radius: 20px 20px 0 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, #b3261e 0 28px, #f7efe2 28px 56px);
+  /* banda de 16 px + festón de medias lunas que cuelga */
+  -webkit-mask: linear-gradient(#000 0 0) top / 100% 16px no-repeat, radial-gradient(circle 14px at 14px 15px, #000 96%, #0000) 0 0 / 28px 30px repeat-x;
+  mask: linear-gradient(#000 0 0) top / 100% 16px no-repeat, radial-gradient(circle 14px at 14px 15px, #000 96%, #0000) 0 0 / 28px 30px repeat-x;
+}
+.bdg-mesa { padding: 16px 18px; gap: 10px; }
+.bdg-clock { gap: 8px; }
+.bdg-clock div { padding: 12px 4px 8px; border: 1px solid var(--line); }
+.bdg-rules { padding: 0 18px; }
+.bdg-sect-h { align-items: center; }
+.bdg-live-main { gap: 18px; }
+.bdg-live-side { display: flex; flex-direction: column; gap: 22px; }
+
+/* =====================================================================
+   Chat de la mesa (spec 154). Teléfono: hoja inferior + botón flotante.
+   Escritorio: panel fijo en la columna.
+   ===================================================================== */
+/* Contenedor del portal: solo aporta las variables del tema. */
+.bdg.bdg-portal { display: contents; }
+.bdg.bdg-portal::before { content: none; }
+.bdg-chat-fab { position: fixed; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); z-index: 70; display: inline-flex; align-items: center; gap: 8px; min-height: 52px; padding: 0 18px 0 16px; border: 0; border-radius: 999px; background: var(--gold); color: var(--gold-ink); font: inherit; font-weight: 800; font-size: 16px; box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35); cursor: pointer; transition: transform 0.15s var(--ease); }
+.bdg-chat-fab:active { transform: scale(0.96); }
+.bdg-chat-fab svg { width: 21px; height: 21px; }
+.bdg-chat-fab b { position: absolute; top: -6px; right: -4px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px; background: var(--coral); color: #2a0e06; display: grid; place-items: center; font-size: 13px; box-shadow: 0 0 0 3px var(--bg); }
+.bdg-chat-scrim { position: fixed; inset: 0; z-index: 79; background: rgba(20, 8, 5, 0.55); animation: bdg-fade 0.2s ease-out both; }
+
+.bdg-chat { position: fixed; left: 0; right: 0; bottom: 0; z-index: 80; height: min(72vh, 560px); display: flex; flex-direction: column; background: var(--surface); border-radius: 22px 22px 0 0; box-shadow: 0 -18px 40px -12px rgba(0, 0, 0, 0.6); padding-bottom: env(safe-area-inset-bottom, 0px); transform: translateY(105%); visibility: hidden; transition: transform 0.38s var(--ease), visibility 0s linear 0.38s; }
+.bdg-chat[data-open] { transform: none; visibility: visible; transition: transform 0.38s var(--ease); }
+.bdg-chat-h { display: flex; align-items: center; gap: 12px; padding: 16px 18px 12px; border-bottom: 1px dashed var(--line); }
+.bdg-chat-h .wheat { width: 26px; height: 26px; color: var(--gold); flex: none; }
+.bdg-chat-h div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bdg-chat-h h2 { margin: 0; font-family: var(--f-display); font-weight: 400; font-size: 24px; line-height: 1; color: var(--gold-hi); }
+.bdg-chat-h small { display: inline-flex; align-items: center; gap: 6px; color: var(--fg-3); font-size: 13px; font-weight: 600; }
+.bdg-chat-h .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); animation: bdg-blink 1.2s steps(2, start) infinite; }
+.bdg-chat-close { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--raised); color: var(--fg); display: grid; place-items: center; cursor: pointer; }
+.bdg-chat-close svg { width: 19px; height: 19px; }
+
+.bdg-chat-list { list-style: none; margin: 0; padding: 14px 16px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 10px; scrollbar-width: thin; }
+.bdg-chat-empty { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--fg-3); font-size: 15px; text-align: center; max-width: 26ch; }
+.bdg-chat-empty svg { width: 30px; height: 30px; color: var(--gold); opacity: 0.7; }
+
+.bdg-bubble { display: flex; gap: 8px; align-items: flex-end; max-width: 88%; animation: bdg-rise 0.3s var(--ease) both; }
+.bdg-bubble.grouped { margin-top: -6px; }
+.bdg-bubble .av { width: 30px; height: 30px; flex: none; border-radius: 50%; object-fit: cover; display: grid; place-items: center; background: radial-gradient(circle at 34% 28%, #fff1cc 0, #f0c274 35%, #c58f2e 100%); color: #2a1a11; font-family: var(--f-num); font-weight: 800; font-size: 12px; }
+.bdg-bubble .av.ghost { visibility: hidden; }
+.bdg-bubble .b { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 8px 12px 6px; border-radius: 16px 16px 16px 4px; background: var(--raised); min-width: 0; }
+.bdg-bubble .b b { font-size: 13px; color: var(--gold-hi); font-weight: 800; }
+.bdg-bubble .b p { margin: 0; font-size: 15.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.bdg-bubble time { align-self: flex-end; font-size: 11px; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.bdg-bubble.mine { align-self: flex-end; }
+.bdg-bubble.mine .b { background: var(--gold); color: var(--gold-ink); border-radius: 16px 16px 4px 16px; }
+.bdg-bubble.mine time { color: rgba(42, 26, 17, 0.65); }
+@keyframes bdg-rise { from { opacity: 0; transform: translateY(6px); } }
+
+.bdg-chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 14px 12px; border-top: 1px solid var(--line); }
+.bdg-chat-form input { min-width: 0; min-height: 48px; padding: 0 16px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); color: var(--fg); font: inherit; font-size: 16px; }
+.bdg-chat-form input:focus-visible { outline: 3px solid var(--gold-hi); outline-offset: 1px; }
+.bdg-chat-form button { width: 48px; height: 48px; border: 0; border-radius: 50%; background: var(--gold); color: var(--gold-ink); display: grid; place-items: center; cursor: pointer; transition: transform 0.12s var(--ease), opacity 0.2s; }
+.bdg-chat-form button:active:not([disabled]) { transform: scale(0.94); }
+.bdg-chat-form button[disabled] { opacity: 0.45; cursor: not-allowed; }
+.bdg-chat-form button svg { width: 20px; height: 20px; }
+.bdg-chat-msg { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--fg-3); }
+.bdg-chat-msg:empty { display: none; }
+.bdg-chat-block { margin: 0; padding: 14px 18px 16px; border-top: 1px solid var(--line); color: var(--fg-2); font-size: 14.5px; text-align: center; }
+
+@media (min-width: 1024px) {
+  .bdg { padding: 56px 32px 32px; gap: 24px; }
+  .bdg-cols { gap: 36px; }
+  .bdg-col-main { gap: 20px; }
+  .bdg-live { gap: 36px; }
+  .bdg-chat-fab, .bdg-chat-close, .bdg-chat-scrim { display: none; }
+  .bdg-chat { position: static; z-index: auto; height: 460px; transform: none; visibility: visible; transition: none; border-radius: 18px; box-shadow: inset 0 0 0 1px var(--line); }
+}
+.bdg-light::before { background: repeating-linear-gradient(90deg, #b3261e 0 28px, #ecd3ad 28px 56px); }
+.bdg-light .bdg-bubble .b { background: #fff; box-shadow: 0 1px 0 rgba(42, 26, 17, 0.08); }
+.bdg-light .bdg-bubble.mine .b { background: var(--gold); }
+
 @media (prefers-reduced-motion: reduce) {
   .bdg *, .bdg *::before, .bdg *::after, .bdg-overlay * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

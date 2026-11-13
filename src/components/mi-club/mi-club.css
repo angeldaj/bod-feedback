@@ -610,7 +610,23 @@
 .mc2 .wheel-rotor svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .mc2 .wheel-rim { fill: #2a1a11; }
 .mc2 .wheel-rim-hi { fill: none; stroke: rgba(255, 236, 205, 0.16); stroke-width: 2; }
-.mc2 .wheel-stud { fill: #f7dfae; }
+.mc2 .wheel-bulb { fill: #7a5a3a; transition: fill 0.2s; }
+.mc2 .wheel-bulb.a { animation: mc2-bulb 1.4s steps(1) infinite; }
+.mc2 .wheel-bulb.b { animation: mc2-bulb 1.4s steps(1) 0.7s infinite; }
+.mc2 .wheel[data-won] .wheel-bulb { animation-duration: 0.36s; }
+.mc2 .wheel[data-won] .wheel-bulb.b { animation-delay: 0.18s; }
+.mc2 .wheel-gloss { position: absolute; inset: 5%; border-radius: 50%; pointer-events: none; background: radial-gradient(70% 55% at 32% 22%, rgba(255, 255, 255, 0.34), transparent 60%), radial-gradient(90% 90% at 50% 50%, transparent 62%, rgba(40, 18, 6, 0.22)); }
+.mc2 .seg-art-bg { fill: rgba(255, 250, 242, 0.55); }
+.mc2 .seg-tomate .seg-art-bg, .mc2 .seg-cafe .seg-art-bg, .mc2 .seg-frambuesa .seg-art-bg { fill: rgba(255, 250, 242, 0.85); }
+.mc2 .seg-label { fill: var(--seg-ink); font-weight: 700; text-anchor: middle; dominant-baseline: middle; letter-spacing: 0.02em; text-transform: uppercase; }
+.mc2 .seg.win .seg-art { animation: mc2-pop 0.7s var(--ease) 2; transform-box: fill-box; transform-origin: center; }
+.mc2 .art { display: block; overflow: visible; }
+.mc2 .art-steam path { animation: mc2-steam 2.4s ease-in-out infinite; }
+.mc2 .art-steam path:nth-child(2) { animation-delay: 0.5s; }
+.mc2 .art-steam path:nth-child(3) { animation-delay: 1s; }
+.mc2 .art-glint { animation: mc2-glint 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.mc2 .art-bubble { animation: mc2-bubble 2.6s ease-in infinite; }
+.mc2 .art-bubble.b2 { animation-delay: 1.2s; }
 .mc2 .wheel-div { stroke: #fffaf2; stroke-width: 2.5; stroke-opacity: 0.9; }
 .mc2 .seg > path { fill: var(--seg); transition: opacity 0.35s var(--ease); }
 .mc2 .seg g { color: var(--seg-ink); transition: opacity 0.35s var(--ease); }
@@ -657,14 +673,16 @@
 .mc2 .prize-pts h2 { font-family: var(--serif); font-size: 2.6rem; font-weight: 600; line-height: 0.95; color: var(--gold-text); font-variant-numeric: lining-nums tabular-nums; }
 .mc2 .prize-pts p { color: var(--body); }
 .mc2 .prize-ic { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; background: var(--seg); color: var(--seg-ink); flex: none; }
-.mc2 .prize-ic svg { width: 28px; height: 28px; }
+.mc2 .prize-ic svg { width: 44px; height: 44px; }
 .mc2 .prize-vch .prize-cta { justify-self: start; margin-top: 8px; background: rgba(255, 255, 255, 0.7); color: #3a0f1c; box-shadow: none; }
 .mc2 .ruleta-side { display: grid; gap: 22px; align-content: start; }
 .mc2 .seg-chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .mc2 .seg-chips li { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 14px 4px 4px; border-radius: 999px; background: var(--surface); box-shadow: var(--lift); font-weight: 600; font-size: 0.98rem; transition: box-shadow 0.25s var(--ease), transform 0.25s var(--ease); }
 .mc2 .seg-chips li.win { box-shadow: 0 0 0 2px var(--coral-fill), var(--lift); transform: translateY(-2px); }
 .mc2 .seg-chips .sw { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--seg); color: var(--seg-ink); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.08); }
-.mc2 .seg-chips .sw svg { width: 17px; height: 17px; }
+.mc2 .row .ic .art { width: 30px; height: 30px; }
+.mc2 .seg-chips .sw { width: 36px; height: 36px; }
+.mc2 .seg-chips .sw svg { width: 28px; height: 28px; }
 .mc2 .ruleta-side > .link { justify-self: start; gap: 6px; }
 .mc2 .empty b { font-weight: 600; font-size: 1.1rem; color: var(--ink); }
 
@@ -673,6 +691,11 @@
 
 @keyframes mc2-rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @keyframes mc2-swap { from { opacity: 0.35; } }
+@keyframes mc2-bulb { 0% { fill: #fff3c4; filter: drop-shadow(0 0 4px #ffd36b); } 50% { fill: #7a5a3a; filter: none; } }
+@keyframes mc2-pop { 50% { transform: scale(1.22); } }
+@keyframes mc2-steam { 0% { opacity: 0; transform: translateY(4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes mc2-glint { 0%, 100% { opacity: 0.2; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1); } }
+@keyframes mc2-bubble { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-14px); } }
 
 @media (min-width: 1024px) {
   .mc2 .mg-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
@@ -689,6 +712,8 @@
   .mc2 .prize { animation: mc2-fade 0.2s ease-out !important; }
   .mc2 .rm-swap .wheel-rotor { animation: mc2-swap 0.2s ease-out !important; }
   .mc2 .seg-chips li.win { transform: none; }
+  .mc2 .wheel-bulb, .mc2 .seg.win .seg-art, .mc2 .art * { animation: none !important; }
+  .mc2 .wheel-bulb.a { fill: #fff3c4; }
 }
 
 /* Barra inferior con 6 pestañas (Ruleta, spec 077): en teléfonos angostos la etiqueta se compacta para que "Actividad" quepa. */

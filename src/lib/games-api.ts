@@ -114,6 +114,24 @@ export type GuestGuessResult = {
   answer: string | null;
 };
 
+/** Chat de la mesa (spec 154 de bodega-api). */
+export type BodingoChatMessage = {
+  id: string;
+  nameShown: string;
+  avatarUrl: string | null;
+  /** Ya filtrado por el servidor. */
+  body: string;
+  createdAt: string;
+  mine: boolean;
+};
+export type BodingoChat = {
+  editionId: string | null;
+  messages: BodingoChatMessage[];
+  /** Por qué no puede escribir; null si puede. */
+  block: "closed" | "no_card" | "muted" | null;
+};
+export const CHAT_MAX_LENGTH = 140;
+
 /** Lo que una pantalla de juego necesita, venga del backend o del mock. */
 export interface GamesApi {
   getBodingo(): Promise<BodingoState>;
@@ -123,6 +141,8 @@ export interface GamesApi {
     idempotencyKey: string,
   ): Promise<{ card: BodingoCard; replayed: boolean }>;
   claimBodingo(): Promise<{ claimedAt: string }>;
+  getBodingoChat(): Promise<BodingoChat>;
+  sendBodingoChat(body: string): Promise<BodingoChatMessage>;
   getWord(): Promise<WordToday>;
   guessWord(guess: string): Promise<WordGuessResult>;
   /** Solo el mock: arranca una partida para verla completa. */
@@ -158,6 +178,15 @@ export function createLiveGames(authed: AuthedRequest): GamesApi {
       authed((t) =>
         request<{ claimedAt: string }>("/loyalty/me/bodingo/claim", t, {
           method: "POST",
+        }),
+      ),
+    getBodingoChat: () =>
+      authed((t) => request<BodingoChat>("/loyalty/me/bodingo/chat", t)),
+    sendBodingoChat: (body) =>
+      authed((t) =>
+        request<BodingoChatMessage>("/loyalty/me/bodingo/chat", t, {
+          method: "POST",
+          body: JSON.stringify({ body }),
         }),
       ),
     getWord: () =>
@@ -298,6 +327,28 @@ function randomCard(serial: number): BodingoCard {
     refundedAt: null,
   };
 }
+
+const BOT_NAMES = ["Luisa P.", "Carlos R.", "Andreína M.", "José G.", "Mariela T.", "Daniel V.", "Yuli C."];
+const BOT_LINES_SALE = [
+  "¿Alguien más va por el almuerzo para dos? 😋",
+  "Ya compré mi cartón, ¡nos vemos el domingo!",
+  "Suerte a todos en la mesa 🍀",
+  "Este domingo me toca a mí, lo presiento",
+];
+const BOT_LINES_LIVE = [
+  "¡Me falta una! 😱",
+  "Esa bola no me sirvió de nada jajaja",
+  "¡Vamos que se puede!",
+  "Tengo la columna B casi llena",
+  "Cuidado que vengo subiendo 👀",
+  "¡Cántala, cántala!",
+  "Este cartón está dormido hoy 😅",
+];
+const BOT_LINES_END = [
+  "¡Felicidades al ganador! 🎉",
+  "Por poco… el domingo que viene sí",
+  "¡Qué buena partida, mesa!",
+];
 
 function nextSunday7pm(from = new Date()): Date {
   const caracas = new Date(from.getTime() - 4 * 3_600_000);
@@ -511,6 +562,42 @@ export function createMockGames(wallet: MockWallet): GamesApi {
   const delay = <T>(v: T, ms = 220) =>
     new Promise<T>((r) => setTimeout(() => r(v), ms));
 
+  // Mesa simulada: otros socios escriben cada tanto mientras el chat está abierto.
+  let chat: BodingoChatMessage[] = [
+    { id: "c0", nameShown: "Luisa P.", avatarUrl: null, body: "¡Buenas noches, mesa! ¿Listos para el domingo?", createdAt: new Date(Date.now() - 600_000).toISOString(), mine: false },
+    { id: "c1", nameShown: "Carlos R.", avatarUrl: null, body: "Yo con mis 3 cartones, esta vez sí 🍀", createdAt: new Date(Date.now() - 420_000).toISOString(), mine: false },
+  ];
+  let botAt = Date.now();
+  let lastMine = 0;
+  const chatBlock = (): BodingoChat["block"] => {
+    const phase = view().edition?.phase;
+    if (!phase || !["on_sale", "warmup", "drawing", "claim"].includes(phase)) return "closed";
+    return m.cards.length ? null : "no_card";
+  };
+  const botTalk = () => {
+    const phase = view().edition?.phase;
+    const lines =
+      phase === "drawing"
+        ? BOT_LINES_LIVE
+        : phase === "claim" || phase === "finished"
+          ? BOT_LINES_END
+          : BOT_LINES_SALE;
+    if (chatBlock() === "closed" && phase !== "finished") return;
+    if (Date.now() - botAt < (phase === "drawing" ? 5_000 : 9_000)) return;
+    botAt = Date.now();
+    chat = [
+      ...chat,
+      {
+        id: `c${Date.now()}`,
+        nameShown: BOT_NAMES[rand(BOT_NAMES.length)],
+        avatarUrl: null,
+        body: lines[rand(lines.length)],
+        createdAt: new Date().toISOString(),
+        mine: false,
+      },
+    ].slice(-50);
+  };
+
   return {
     getBodingo: () => delay(view(), 120),
     async buyBodingoCard(editionId, key) {
@@ -559,6 +646,35 @@ export function createMockGames(wallet: MockWallet): GamesApi {
         );
       m.claimed = true;
       return delay({ claimedAt: new Date().toISOString() }, 200);
+    },
+    getBodingoChat: () => {
+      botTalk();
+      return delay({ editionId: m.edition.id, messages: chat, block: chatBlock() }, 90);
+    },
+    async sendBodingoChat(raw) {
+      const body = raw.replace(/\s+/g, " ").trim();
+      if (!body || body.length > CHAT_MAX_LENGTH)
+        throw new ClubApiError(`El mensaje debe tener entre 1 y ${CHAT_MAX_LENGTH} caracteres.`, 400, "BODINGO_CHAT_INVALID");
+      const block = chatBlock();
+      if (block)
+        throw new ClubApiError(
+          block === "no_card" ? "Para escribir en la mesa necesitas un cartón." : "El chat de la mesa está cerrado.",
+          409,
+          block === "no_card" ? "BODINGO_CHAT_NO_CARD" : "BODINGO_CHAT_CLOSED",
+        );
+      if (Date.now() - lastMine < 3_000)
+        throw new ClubApiError("Espera un momento antes de enviar otro mensaje.", 429, "BODINGO_CHAT_TOO_FAST");
+      lastMine = Date.now();
+      const message: BodingoChatMessage = {
+        id: `m${lastMine}`,
+        nameShown: wallet.firstName,
+        avatarUrl: null,
+        body,
+        createdAt: new Date(lastMine).toISOString(),
+        mine: true,
+      };
+      chat = [...chat, message].slice(-50);
+      return delay(message, 180);
     },
     getWord: () => delay(wordView()),
     async guessWord(raw) {

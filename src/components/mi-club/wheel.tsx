@@ -2,9 +2,8 @@
 
 import { useCallback, useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
-import { Cake, Citrus, Coffee, Coins, Croissant, Percent, Star, Ticket, TicketX, type LucideIcon } from "lucide-react";
 import type { SpinSegment, SpinWheel } from "@/lib/club-api";
-import { WheelIcon } from "./club-visuals";
+import { Art } from "./illustrations";
 
 // ---------------------------------------------------------------------------
 // Claves de diseño del backend → tokens del frontend (spec 077). Una clave
@@ -14,25 +13,24 @@ import { WheelIcon } from "./club-visuals";
 
 const SEGMENT_COLORS = new Set(["crema", "mostaza", "cafe", "tomate", "oro", "trigo", "frambuesa", "naranja"]);
 
-const SEGMENT_ICONS: Record<string, LucideIcon> = {
-  coin: Coins,
-  coins: Coins,
-  coffee: Coffee,
-  percent: Percent,
-  star: Star,
-  croissant: Croissant,
-  cake: Cake,
-  juice: Citrus,
-  ticket: Ticket,
-  "ticket-x": TicketX,
+// Clave de ícono del backend → dibujo (illustrations.tsx).
+const SEGMENT_ART: Record<string, string> = {
+  coin: "coin",
+  coins: "coin",
+  coffee: "coffee",
+  percent: "percent",
+  star: "star",
+  croissant: "croissant",
+  cake: "cake",
+  juice: "juice",
+  ticket: "ticket",
+  "ticket-x": "ticket-x",
 };
+const segmentArt = (key: string | null | undefined) => (key && SEGMENT_ART[key]) || "wheel";
 
-export const segmentIcon = (key: string): LucideIcon => SEGMENT_ICONS[key] ?? WheelIcon;
-
-/** Ícono de un segmento por su clave (o la ruleta si la clave no se conoce). */
+/** Dibujo de un segmento por su clave (o la ruleta si la clave no se conoce). */
 export function SegmentGlyph({ icon }: { icon: string | null | undefined }) {
-  const Icon = (icon && SEGMENT_ICONS[icon]) || WheelIcon;
-  return <Icon aria-hidden="true" />;
+  return <Art kind={segmentArt(icon)} />;
 }
 export const segmentTone = (color: string) => `seg-${SEGMENT_COLORS.has(color) ? color : "default"}`;
 export const sortedSegments = (wheel: SpinWheel) => [...wheel.segments].sort((a, b) => a.order - b.order);
@@ -53,6 +51,32 @@ function slicePath(a0: number, a1: number): string {
   return `M0 0 L${pt(R, a0)} A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${pt(R, a1)}Z`;
 }
 
+// Bombillos de feria en el aro: se encienden alternados y bailan al ganar.
+const BULBS = 24;
+
+/**
+ * Nombre de la casilla junto al aro, en una o dos líneas, con la letra que
+ * quepa en la cuerda del segmento.
+ */
+function labelLines(label: string, n: number): { lines: string[]; size: number } {
+  const words = label.trim().split(/\s+/);
+  let lines = [label];
+  if (label.length > 10 && words.length > 1) {
+    // Corta en el espacio que deja las dos líneas más parejas.
+    let best = 1;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(" ").length;
+      const b = words.slice(i).join(" ").length;
+      const prev = Math.abs(words.slice(0, best).join(" ").length - words.slice(best).join(" ").length);
+      if (Math.abs(a - b) < prev) best = i;
+    }
+    lines = [words.slice(0, best).join(" "), words.slice(best).join(" ")];
+  }
+  const chord = 2 * R * 0.84 * Math.sin(Math.PI / n);
+  const longest = Math.max(...lines.map((l) => l.length));
+  return { lines, size: Math.min(n > 8 ? 12 : 14, (chord * 0.86) / (longest * 0.62)) };
+}
+
 /** Rotación inicial: el primer segmento centrado bajo el puntero. */
 export const restAngle = (count: number) => -180 / Math.max(count, 1);
 
@@ -71,7 +95,7 @@ export function Wheel({
 }) {
   const n = segments.length;
   const step = 360 / n;
-  const iconSize = n > 8 ? 34 : 44;
+  const artSize = n > 8 ? 42 : 54;
   return (
     <div className={`wheel${mini ? " mini" : ""}`} data-won={winnerId ? "true" : undefined} aria-hidden="true">
       <div className="wheel-rotor" ref={rotorRef} style={{ transform: `rotate(${restAngle(n)}deg)` }}>
@@ -79,14 +103,17 @@ export function Wheel({
           <circle r={R + 22} className="wheel-rim" />
           <circle r={R + 22} className="wheel-rim-hi" />
           {segments.map((seg, i) => {
-            const Icon = segmentIcon(seg.icon);
             const c = (i + 0.5) * step;
             return (
               <g key={seg.id} className={`seg ${segmentTone(seg.color)}${seg.id === winnerId ? " win" : ""}`}>
                 <path d={slicePath(i * step, (i + 1) * step)} />
                 {mini ? null : (
-                  <g transform={`rotate(${c}) translate(0 ${-R * 0.64})`}>
-                    <Icon x={-iconSize / 2} y={-iconSize / 2} width={iconSize} height={iconSize} strokeWidth={1.9} />
+                  <g transform={`rotate(${c})`}>
+                    <g className="seg-art" transform={`translate(0 ${-R * 0.5})`}>
+                      <circle className="seg-art-bg" r={artSize * 0.52} />
+                      <Art kind={segmentArt(seg.icon)} x={-artSize / 2} y={-artSize / 2} width={artSize} height={artSize} />
+                    </g>
+                    <SegLabel label={seg.label} n={n} />
                   </g>
                 )}
               </g>
@@ -98,12 +125,13 @@ export function Wheel({
           })}
           {mini
             ? null
-            : Array.from({ length: n * 2 }, (_, i) => {
-                const [x, y] = xy(R + 11, (i * step) / 2);
-                return <circle key={`s-${i}`} className="wheel-stud" cx={x} cy={y} r="3.6" />;
+            : Array.from({ length: BULBS }, (_, i) => {
+                const [x, y] = xy(R + 11, (i * 360) / BULBS);
+                return <circle key={`s-${i}`} className={`wheel-bulb ${i % 2 ? "b" : "a"}`} cx={x} cy={y} r="4.4" />;
               })}
         </svg>
       </div>
+      {mini ? null : <span className="wheel-gloss" />}
       <span className="wheel-hub">
         <Image src="/logo-bodega.png" alt="" width={48} height={48} />
       </span>
@@ -112,6 +140,19 @@ export function Wheel({
         <circle cx="20" cy="18" r="6" />
       </svg>
     </div>
+  );
+}
+
+function SegLabel({ label, n }: { label: string; n: number }) {
+  const { lines, size } = labelLines(label, n);
+  return (
+    <text className="seg-label" fontSize={size}>
+      {lines.map((l, i) => (
+        <tspan key={i} x="0" y={-R * 0.84 + i * size * 1.05}>
+          {l}
+        </tspan>
+      ))}
+    </text>
   );
 }
 
