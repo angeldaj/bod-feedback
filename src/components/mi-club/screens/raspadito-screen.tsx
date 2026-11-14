@@ -10,6 +10,7 @@ import { Wheel, useWheelSpin } from "../wheel";
 import { WheelIcon, expiryLabel, voucherKindClass } from "../club-visuals";
 import { Art, categoryArt } from "../illustrations";
 import { Skeleton } from "../pieces";
+import { playConfetti } from "../sounds";
 
 const CODE_LENGTH = 5;
 // Alfabeto de los códigos impresos: sin 0, 1, A, I ni O para que no se confundan.
@@ -389,7 +390,10 @@ function ScratchCard({
     if (parts.length && !reduce) {
       animate(parts, { opacity: [0, 1], scale: [0.94, 1] }, { type: "spring", bounce: 0.35, duration: 0.6, delay: stagger(0.06) });
     }
-    if (celebrate && !reduce && canvas) confetti(canvas.getBoundingClientRect());
+    if (celebrate && !reduce && canvas) {
+      confetti(canvas.getBoundingClientRect());
+      playConfetti();
+    }
     window.setTimeout(onReveal, reduce ? 0 : 420);
   }
 

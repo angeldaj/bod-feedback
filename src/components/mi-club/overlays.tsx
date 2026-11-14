@@ -37,6 +37,7 @@ import {
   voucherKindClass,
   WheelIcon,
 } from "./club-visuals";
+import { playConfetti } from "./sounds";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -405,6 +406,7 @@ function SocialWin({ points, title, onClose }: { points: number; title: string; 
 
   useEffect(() => {
     if (reduce) return;
+    playConfetti();
     const controls = animate(0, points, { duration: 1.1, delay: 0.25, ease: EASE, onUpdate: (v) => setShown(Math.round(v)) });
     return () => controls.stop();
   }, [points, reduce]);

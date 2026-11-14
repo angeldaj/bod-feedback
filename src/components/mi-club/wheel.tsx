@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, type RefObject } from "react";
 import Image from "next/image";
 import type { SpinSegment, SpinWheel } from "@/lib/club-api";
 import { Art } from "./illustrations";
+import { playTick } from "./sounds";
 
 // ---------------------------------------------------------------------------
 // Claves de diseño del backend → tokens del frontend (spec 077). Una clave
@@ -201,6 +202,7 @@ export function useWheelSpin({
       // El puntero "pica" con cada divisoria que pasa: la única realimentación táctil en pantalla.
       const slot = Math.floor(deg / step);
       if (ticks && slot !== lastSlot.current) {
+        playTick();
         pointerRef.current?.animate([{ transform: "rotate(-18deg)" }, { transform: "rotate(0deg)" }], {
           duration: 150,
           easing: "cubic-bezier(0.23, 1, 0.32, 1)",
