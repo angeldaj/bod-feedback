@@ -51,6 +51,7 @@ import {
 } from "../bodingo/physics";
 import { ensureBodingoTextures } from "../bodingo/textures";
 import { TableChat } from "../bodingo/table-chat";
+import { playConfetti, playDrumRoll } from "../sounds";
 
 const TZ = "America/Caracas";
 const PRIZE_FALLBACK = "/bodega-club/hero-bodega-club.webp";
@@ -221,6 +222,7 @@ function Stage({
     if (reduce || drawn.length - prev !== 1 || !el || !drum.current) return;
     onLaunch(last);
     drum.current.kick();
+    playDrumRoll(820);
     const from = drum.current.takeBall();
     const r = el.getBoundingClientRect();
     const dx = from.x - (r.left + r.width / 2);
@@ -379,6 +381,7 @@ function WinOverlay({
   useEffect(() => {
     if (stage === "claim") buttonRef.current?.focus();
     if (stage !== "won" || reduce || !hostRef.current) return;
+    playConfetti();
     return startBallRain(hostRef.current, balls.drawn, balls.winning);
   }, [stage, reduce, balls]);
 
