@@ -31,11 +31,13 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const status = campaign.participationStatus;
+  const networks = campaign.networks ?? ['instagram'];
+  const participations = campaign.participations ?? networks.map((network) => ({ network, status, awardedPoints: status === 'completed' ? campaign.points : 0, completedAt: campaign.completedAt }));
+  const awardedTotal = participations.reduce((sum, item) => sum + item.awardedPoints, 0);
 
   async function getCode() {
     setBusy(true);
-    await requestSocialCode(campaign.id);
-    setBusy(false);
+    try { await requestSocialCode(campaign.id); } finally { setBusy(false); }
   }
 
   async function copy() {
@@ -65,7 +67,7 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
               : `Cierra el ${shortDate(campaign.endsAt)}`}
           </small>
         </div>
-        <span className="pill coral sc-pts">+{fmtPts(campaign.points)} pts</span>
+        <span className="pill coral sc-pts">+{fmtPts(campaign.points)} pts{networks.length > 1 ? " / red" : ""}</span>
       </header>
 
       {status !== "completed" && campaign.instructions ? <p className="sc-copy">{campaign.instructions}</p> : null}
@@ -87,30 +89,31 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
               {copied ? "Copiado" : "Copiar"}
             </button>
           </div>
-          <ol className="sc-steps">
-            <li>Abre la publicación y comenta tu código tal cual.</li>
-            <li>Cuando Instagram nos avise, sumamos los puntos. Si dejas esta página abierta, lo verás aquí al instante.</li>
-          </ol>
-          <p className="sc-note">Tu comentario es público: cualquiera verá el código. Úsalo solo tú y no lo compartas antes.</p>
-          {campaign.postUrl ? (
-            <a className="btn btn-pop btn-sm sc-cta" href={campaign.postUrl} target="_blank" rel="noreferrer">
-              Abrir la publicación
-              <ExternalLink aria-hidden="true" />
-            </a>
-          ) : null}
-          <p className="sc-status" role="status">
-            <span className="dot" aria-hidden="true" />
-            Pendiente: aún no recibimos tu comentario.
-          </p>
+          <p className="sc-note">Usa el mismo código en cada red habilitada. Puedes ganar una vez en cada una.</p>
         </>
       ) : null}
+
+      <ul className="sc-networks" aria-label="Participación por red">
+        {participations.map((participation) => {
+          const instagram = participation.network === 'instagram';
+          const name = instagram ? 'Instagram' : 'TikTok';
+          const done = participation.status === 'completed';
+          const url = instagram ? campaign.postUrl : campaign.tiktokUrl;
+          return <li key={participation.network} className="sc-network" data-completed={done}>
+            <div><b>{name}</b><span role="status">{done ? `+${fmtPts(participation.awardedPoints)} pts acreditados` : participation.status === 'closed' ? 'Sin acreditar' : 'Pendiente'}</span></div>
+            {!done && status !== 'closed' && <p>{instagram ? 'Comenta tu código en la publicación.' : 'Comenta tu código en el video de TikTok.'}</p>}
+            {!done && participation.status === 'pending' && <p>Estamos verificando tu comentario. Los puntos aparecerán aquí cuando lo confirmemos.</p>}
+            {!done && status !== 'closed' && url && <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">Abrir {name}<ExternalLink aria-hidden="true" /></a>}
+          </li>;
+        })}
+      </ul>
 
       {status === "completed" ? (
         <p className="sc-done" role="status">
           <PartyPopper aria-hidden="true" />
           <span>
-            ¡Listo! Sumaste <b className="tab-nums">{fmtPts(campaign.points)} pts</b>
-            {campaign.completedAt ? ` el ${shortDate(campaign.completedAt)}` : ""}. Gracias por comentar.
+            ¡Listo! Sumaste <b className="tab-nums">{fmtPts(awardedTotal)} pts</b>
+            {campaign.completedAt ? ` el ${shortDate(campaign.completedAt)}` : ""}. Gracias por participar.
           </span>
         </p>
       ) : null}

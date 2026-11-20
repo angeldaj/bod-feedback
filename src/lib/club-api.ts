@@ -150,6 +150,9 @@ export type ClubActivity = {
 export type SocialParticipation = "available" | "pending" | "completed" | "closed";
 
 export type SocialCampaign = {
+  networks?: ('instagram' | 'tiktok')[];
+  tiktokUrl?: string;
+  participations?: { network: 'instagram' | 'tiktok'; status: SocialParticipation; awardedPoints: number; completedAt: string | null }[];
   id: string;
   title: string;
   instructions: string;

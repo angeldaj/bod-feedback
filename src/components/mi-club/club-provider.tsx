@@ -235,9 +235,14 @@ export function ClubProvider({
       const before = socialRef.current;
       socialRef.current = next;
       setSocialCampaigns(next);
-      return next.filter(
-        (c) => c.participationStatus === "completed" && before.some((b) => b.id === c.id && b.participationStatus === "pending"),
-      );
+      const awarded = (campaign: SocialCampaign) => campaign.participations
+        ? campaign.participations.reduce((sum, item) => sum + item.awardedPoints, 0)
+        : campaign.participationStatus === 'completed' ? campaign.points : 0;
+      return next.flatMap((campaign) => {
+        const previous = before.find((item) => item.id === campaign.id);
+        const delta = previous ? awarded(campaign) - awarded(previous) : 0;
+        return delta > 0 ? [{ ...campaign, points: delta }] : [];
+      });
     } catch {
       return [];
     }

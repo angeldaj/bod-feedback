@@ -1,0 +1,17 @@
+[
+  {
+    "file": "bigshoulders.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/bigshoulders/BigShoulders%5Bopsz%2Cwght%5D.ttf",
+    "sha256": "4b4b24aa6f799aa73cdcd5b6fa840cbcbbb38b81fa9fa82c25126a4530c1ba44"
+  },
+  {
+    "file": "hankengrotesk.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/hankengrotesk/HankenGrotesk%5Bwght%5D.ttf",
+    "sha256": "813b3f8fa0965405669a89b38e51bbefd95eef6b8e20d1cb2d8c10cce062662f"
+  },
+  {
+    "file": "shrikhand.ttf",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/shrikhand/Shrikhand-Regular.ttf",
+    "sha256": "8ba32f6d6a96fb8dbc92fc1acfbc4d2123d5348063d89b2c3dd784e7afcb81af"
+  }
+]

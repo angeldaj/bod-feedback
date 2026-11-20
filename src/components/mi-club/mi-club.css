@@ -748,3 +748,10 @@
 @media (prefers-reduced-motion: reduce) {
   .mc2 .sc-status .dot { animation: none; }
 }
+
+.sc-networks { list-style: none; padding: 0; margin: 16px 0; display: grid; gap: 10px; }
+.sc-network { border-top: 1px solid var(--border, #e4ded5); padding-top: 12px; }
+.sc-network > div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sc-network > div > span { font-size: 12px; }
+.sc-network > p { font-size: 13px; line-height: 1.5; margin: 8px 0; }
+.sc-network[data-completed="true"] > div > span { color: var(--green, #35734b); }
