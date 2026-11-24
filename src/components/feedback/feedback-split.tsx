@@ -313,7 +313,6 @@ export function FeedbackSplit({
                     <IncidentExperience
                       key={prefill?.surveyId ?? "queja"}
                       prefill={prefill}
-                      onSurvey={() => choose("encuesta", true)}
                     />
                   )}
                 </motion.div>

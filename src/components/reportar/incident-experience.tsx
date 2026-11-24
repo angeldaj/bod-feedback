@@ -88,12 +88,9 @@ const PHONE_ERROR =
 
 export function IncidentExperience({
   prefill,
-  onSurvey,
 }: {
   /** Datos traídos desde la encuesta (puente o atajo). */
   prefill?: IncidentPrefill;
-  /** "Cuando puedas, completa la encuesta": cambia al otro formulario. */
-  onSurvey: () => void;
 }) {
   const { member, accessToken } = useMember();
   const { branches, loading: branchesLoading, error: branchesError } = useBranches();
@@ -562,11 +559,6 @@ export function IncidentExperience({
           </p>
         </Item>
         <Item className="flex flex-col items-center gap-3 border-t border-hair-div pt-5">
-          {!prefill?.surveyId && (
-            <Button variant="pop" size="popMd" onClick={onSurvey}>
-              Cuando puedas, completa la encuesta
-            </Button>
-          )}
           <button
             type="button"
             onClick={reset}
