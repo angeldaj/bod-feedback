@@ -169,6 +169,8 @@ export type SocialCampaign = {
 };
 
 export type TikTokVerification = {
+  retryAfterSeconds?: number;
+  nextVerificationAt?: string;
   id: string;
   status: "queued" | "starting" | "running" | "processing" | "succeeded" | "failed" | "unknown";
 };
@@ -289,12 +291,14 @@ export type TicketSecondChance = {
 
 export class ClubApiError extends Error {
   status: number;
+  retryAfterSeconds: number | null;
   /** Código de negocio (`NO_SPINS_AVAILABLE`, `NO_ACTIVE_WHEEL`...), si el backend lo manda. */
   code: string | null;
-  constructor(message: string, status: number, code: string | null = null) {
+  constructor(message: string, status: number, code: string | null = null, retryAfterSeconds: number | null = null) {
     super(message);
     this.name = "ClubApiError";
     this.status = status;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.code = code;
   }
 }
@@ -322,7 +326,8 @@ export async function request<T>(path: string, accessToken: string, init?: Reque
         : `Error ${response.status}`;
     const code =
       body && typeof body === "object" && "code" in body ? String((body as { code: unknown }).code) : null;
-    throw new ClubApiError(message, response.status, code);
+    const retryAfter = body && typeof body === "object" && "retryAfterSeconds" in body && typeof body.retryAfterSeconds === "number" && Number.isFinite(body.retryAfterSeconds) ? body.retryAfterSeconds : null;
+    throw new ClubApiError(message, response.status, code, retryAfter);
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;

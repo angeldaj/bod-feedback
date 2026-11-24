@@ -32,18 +32,25 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [retryAt, setRetryAt] = useState(0);
   const [verificationMessage, setVerificationMessage] = useState("");
   const verification = useRef<AbortController | null>(null);
   useEffect(() => () => verification.current?.abort(), []);
 
+  useEffect(() => {
+    if (!retryAt) return;
+    const timer = setTimeout(() => setRetryAt(0), Math.max(0, retryAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [retryAt]);
+
   async function verifyComment() {
-    if (verification.current) return;
+    if (verification.current || retryAt > Date.now()) return;
     const controller = new AbortController();
     verification.current = controller;
     setVerifying(true);
     setVerificationMessage("Estamos buscando tu código en los comentarios. Puede tardar unos minutos.");
     try {
-      const message = await verifyTikTokComment(campaign.id, controller.signal);
+      const message = await verifyTikTokComment(campaign.id, controller.signal, seconds => { if (!controller.signal.aborted && Number.isFinite(seconds) && seconds > 0) setRetryAt(Date.now() + Math.min(300, seconds) * 1_000); });
       if (!controller.signal.aborted) setVerificationMessage(message);
     } finally {
       if (!controller.signal.aborted) setVerifying(false);
@@ -125,8 +132,8 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
             {instagram && !done && participation.status === 'pending' && <p>Estamos verificando tu comentario. Los puntos aparecerán aquí cuando lo confirmemos.</p>}
             <div className="sc-network-actions">
               {!done && status !== 'closed' && url && <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">Abrir {name}<ExternalLink aria-hidden="true" /></a>}
-              {!instagram && canVerifyTikTok(campaign) && <button type="button" className="btn btn-pop btn-sm" onClick={() => void verifyComment()} disabled={verifying} aria-busy={verifying}>
-                <SearchCheck aria-hidden="true" />{verifying ? "Verificando…" : "Verificar mi comentario"}
+              {!instagram && canVerifyTikTok(campaign) && <button type="button" className="btn btn-pop btn-sm" onClick={() => void verifyComment()} disabled={verifying || retryAt > 0} aria-busy={verifying}>
+                <SearchCheck aria-hidden="true" />{verifying ? "Verificando…" : retryAt ? "Espera para verificar de nuevo" : "Verificar mi comentario"}
               </button>}
             </div>
             {!instagram && (verificationMessage || canVerifyTikTok(campaign)) && <p role="status">{verificationMessage || "Después de comentar tu código, pulsa Verificar mi comentario."}</p>}
