@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { hasPendingInstagram, canVerifyTikTok, waitForTikTokVerification } from "../src/lib/social-verification.ts";
+import { hasPendingInstagram, canVerifyTikTok, waitForTikTokVerification, verificationPollDelay } from "../src/lib/social-verification.ts";
 
 const campaign = { status: "active", code: "BC-ABC234", participationStatus: "pending", networks: ["tiktok"] };
 
@@ -45,4 +45,22 @@ test("abandonar la tarjeta cancela las lecturas pendientes", async () => {
   const pending = waitForTikTokVerification({ id: "j1", status: "queued" }, () => assert.fail("consulta después de cancelar"), controller.signal);
   controller.abort();
   await assert.rejects(pending, { name: "AbortError" });
+});
+
+
+test("el sondeo se espacia mientras extrae y acelera al procesar", () => {
+  assert.deepEqual([0,2,4,6,10].map(i=>verificationPollDelay({id:"j",status:"running"},i)),[2000,4000,8000,15000,15000]);
+  assert.equal(verificationPollDelay({id:"j",status:"processing"},10),2000);
+  assert.equal(verificationPollDelay({id:"j",status:"running",retryAfterSeconds:5},0),5000);
+  assert.equal(verificationPollDelay({id:"j",status:"running",retryAfterSeconds:Infinity},0),2000);
+});
+
+test("un resultado ya acreditado no genera lecturas adicionales", async () => {
+  const result=await waitForTikTokVerification({id:"code1",status:"succeeded"},()=>assert.fail("lectura innecesaria"),new AbortController().signal);
+  assert.equal(result.status,"succeeded");
+});
+
+test("respeta el límite de tiempo sin iniciar otra consulta", async () => {
+  const result=await waitForTikTokVerification({id:"j",status:"running"},()=>assert.fail("lectura tras el plazo"),new AbortController().signal,{maxChecks:60,intervalMs:100,maxWaitMs:1});
+  assert.equal(result,null);
 });

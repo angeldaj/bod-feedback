@@ -94,7 +94,7 @@ type ClubValue = ClubData & {
   flyToWallet: (voucher: Voucher, from: Element | null | undefined, onDone: () => void) => void;
   /** Pide (o recupera) el código de la campaña. Devuelve el código o null si falló. */
   requestSocialCode: (campaignId: string) => Promise<string | null>;
-  verifyTikTokComment: (campaignId: string, signal: AbortSignal) => Promise<string>;
+  verifyTikTokComment: (campaignId: string, signal: AbortSignal, onRetryAfter?: (seconds: number) => void) => Promise<string>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
   selectDesign: (designId: string) => Promise<boolean>;
   /** Foto de perfil del socio (en la demo vive solo en este navegador). */
@@ -316,7 +316,7 @@ export function ClubProvider({
     [adapter, loadSocial, notify],
   );
 
-  const verifyTikTokComment = useCallback(async (campaignId: string, signal: AbortSignal): Promise<string> => {
+  const verifyTikTokComment = useCallback(async (campaignId: string, signal: AbortSignal, onRetryAfter?: (seconds: number) => void): Promise<string> => {
     const pollingSignal = AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]);
     try {
       const initial = await adapter.verifyTikTokComment(campaignId, pollingSignal);
@@ -333,13 +333,15 @@ export function ClubProvider({
       } else if (done) {
         await load();
       }
+      if (!done && job?.nextVerificationAt) onRetryAfter?.(Math.max(0, Math.ceil((Date.parse(job.nextVerificationAt) - Date.now()) / 1_000)));
       if (done) return "¡Comentario verificado! Tus puntos ya están acreditados.";
       if (!job) return "La verificación sigue en curso. Puedes revisar el resultado más tarde.";
       if (job.status === "failed" || job.status === "unknown") return "No pudimos completar la verificación. Intenta de nuevo más tarde.";
-      return "No encontramos tu comentario. Revisa que incluya tu código y vuelve a verificar en un minuto.";
+      return "No encontramos tu comentario. Revisa que incluya tu código y vuelve a verificar más tarde.";
     } catch (error) {
       if (signal.aborted) return "";
       if (pollingSignal.aborted) return "La verificación sigue en curso. Puedes revisar el resultado más tarde.";
+      if (error instanceof club.ClubApiError && error.retryAfterSeconds) onRetryAfter?.(error.retryAfterSeconds);
       return errorMessage(error, "No pudimos verificar tu comentario. Intenta de nuevo más tarde.");
     }
   }, [adapter, load, loadSocial]);

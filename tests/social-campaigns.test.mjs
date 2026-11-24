@@ -26,7 +26,7 @@ const member = { id: "m1", nationality: "V", ci: 12345678, name: "Ana Prueba", w
 async function livePage() {
   const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   await page.addInitScript(() => { localStorage.setItem("bodega-club-refresh-token", "test-refresh"); sessionStorage.setItem("club-intro-seen", "1"); });
-  const state = { posts: 0, reads: 0, statusReads: 0, awarded: false, fail: false, found: false };
+  const state = { posts: 0, reads: 0, statusReads: 0, awarded: false, fail: false, found: false, retryAfterSeconds: null };
   await page.route("**/loyalty/**", async (route) => {
     const path = new URL(route.request().url()).pathname;
     let body;
@@ -39,7 +39,7 @@ async function livePage() {
     else if (path.endsWith("/tiktok-sync") && route.request().method() === "POST") {
       assert.equal(route.request().headers().authorization, "Bearer test-access");
       state.posts++;
-      if (state.fail) { status = 409; body = { message: "Espera un minuto antes de volver a verificar este video." }; }
+      if (state.fail) { status = 409; body = { message: "Espera un minuto antes de volver a verificar este video.", retryAfterSeconds: state.retryAfterSeconds }; }
       else { status = 202; body = { id: "job1", status: "queued" }; }
     } else if (path.endsWith("/tiktok-sync/job1")) {
       assert.equal(route.request().headers().authorization, "Bearer test-access");
@@ -105,4 +105,21 @@ test("la demo permite obtener código y verificar sin llamar a TikTok", async ()
     await card.getByText("+10 pts acreditados", { exact: true }).waitFor({ timeout: 5_000 });
     assert.equal(await card.getByRole("button", { name: "Verificar mi comentario" }).count(), 0);
   } finally { await page.close(); }
+});
+
+
+test("respeta la espera del servidor y no repite llamadas durante el bloqueo", async () => {
+  const {page,state}=await livePage();
+  try {
+    await page.clock.install();
+    state.fail=true;state.retryAfterSeconds=120;
+    await page.getByRole("button",{name:"Verificar mi comentario",exact:true}).click();
+    const blocked=page.getByRole("button",{name:"Espera para verificar de nuevo",exact:true});
+    await blocked.waitFor();
+    assert.equal(await blocked.isDisabled(),true);
+    assert.equal(state.posts,1);
+    await page.clock.fastForward(120_001);
+    assert.equal(await page.getByRole("button",{name:"Verificar mi comentario",exact:true}).isEnabled(),true);
+    assert.equal(state.posts,1);
+  } finally {await page.close();}
 });
