@@ -12,6 +12,7 @@ Alcance aprobado por el usuario el 2026-11-24. Contraparte: bodega-api/specs/168
 - [x] 8 pruebas de lógica.
 - [x] 3 pruebas de navegador sobre build de producción: ausencia de sondeo previo al clic, resultados, demo y bloqueo/desbloqueo con espera del servidor.
 - [x] Lint de archivos afectados y build Next.js correctos.
-- [ ] Desplegar después de la migración/API y configurar webhook de Apify en la API. Revisar coste y latencia reales.
+- [x] Desplegar después de la migración/API y configurar webhook de Apify. Tres pruebas de navegador pasan sobre la landing publicada.
+- [ ] Comparar coste y latencia con el próximo uso real.
 
-Se trabajó en la rama feat/tiktok-sync-optimization, base 3452168. Sin commits, push ni despliegue. Las pruebas SQL dependen de una base aislada sin Docker.
+Se trabajó en la rama feat/tiktok-sync-optimization, base 3452168. Publicado por PR 29, commit de producción 8b09b35. Ocho pruebas SQL de la API pasan en una base temporal vacía del VPS; sin Docker local.
