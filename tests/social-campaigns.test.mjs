@@ -5,17 +5,19 @@ import { before, after, test } from "node:test";
 import { chromium } from "playwright";
 
 const port = 3198;
-const origin = `http://127.0.0.1:${port}`;
+const origin = process.env.SOCIAL_TEST_ORIGIN ?? `http://127.0.0.1:${port}`;
 let server;
 let browser;
 
 before(async () => {
+  if (!process.env.SOCIAL_TEST_ORIGIN) {
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", process.env.SOCIAL_TEST_BUILD ? "start" : "dev", "--hostname", "127.0.0.1", "--port", String(port)], { stdio: "ignore" });
   const deadline = Date.now() + 120_000;
   while (Date.now() < deadline) {
     try { if ((await fetch(origin)).ok) break; } catch {}
     if (server.exitCode !== null) throw new Error(`Next terminó: ${server.exitCode}`);
     await delay(500);
+  }
   }
   browser = await chromium.launch({ headless: true });
 });
