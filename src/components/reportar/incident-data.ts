@@ -22,6 +22,7 @@ export type IncidentState = {
   name: string;
   /** Solo los 10 dígitos nacionales (`4141234567`); el `+58` es fijo. */
   phone: string;
+  whatsappConsent?: boolean;
 };
 
 export const initialIncident: IncidentState = {
@@ -32,6 +33,7 @@ export const initialIncident: IncidentState = {
   description: "",
   name: "",
   phone: "",
+  whatsappConsent: false,
 };
 
 /** Lo que el puente encuesta → queja trae precargado. */

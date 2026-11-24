@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Check, Copy, ExternalLink, MessageCircleHeart, PartyPopper, Ticket } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, Copy, ExternalLink, MessageCircleHeart, PartyPopper, SearchCheck, Ticket } from "lucide-react";
+import { canVerifyTikTok } from "@/lib/social-verification";
 import type { SocialCampaign } from "@/lib/club-api";
 import { useClub } from "./club-provider";
 import { fmtPts, shortDate } from "./club-visuals";
@@ -27,9 +28,28 @@ export function SocialCampaignsSection() {
 }
 
 function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
-  const { requestSocialCode, notify } = useClub();
+  const { requestSocialCode, verifyTikTokComment, notify } = useClub();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const verification = useRef<AbortController | null>(null);
+  useEffect(() => () => verification.current?.abort(), []);
+
+  async function verifyComment() {
+    if (verification.current) return;
+    const controller = new AbortController();
+    verification.current = controller;
+    setVerifying(true);
+    setVerificationMessage("Estamos buscando tu código en los comentarios. Puede tardar unos minutos.");
+    try {
+      const message = await verifyTikTokComment(campaign.id, controller.signal);
+      if (!controller.signal.aborted) setVerificationMessage(message);
+    } finally {
+      if (!controller.signal.aborted) setVerifying(false);
+      verification.current = null;
+    }
+  }
   const status = campaign.participationStatus;
   const networks = campaign.networks ?? ['instagram'];
   const participations = campaign.participations ?? networks.map((network) => ({ network, status, awardedPoints: status === 'completed' ? campaign.points : 0, completedAt: campaign.completedAt }));
@@ -102,8 +122,14 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
           return <li key={participation.network} className="sc-network" data-completed={done}>
             <div><b>{name}</b><span role="status">{done ? `+${fmtPts(participation.awardedPoints)} pts acreditados` : participation.status === 'closed' ? 'Sin acreditar' : 'Pendiente'}</span></div>
             {!done && status !== 'closed' && <p>{instagram ? 'Comenta tu código en la publicación.' : 'Comenta tu código en el video de TikTok.'}</p>}
-            {!done && participation.status === 'pending' && <p>Estamos verificando tu comentario. Los puntos aparecerán aquí cuando lo confirmemos.</p>}
-            {!done && status !== 'closed' && url && <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">Abrir {name}<ExternalLink aria-hidden="true" /></a>}
+            {instagram && !done && participation.status === 'pending' && <p>Estamos verificando tu comentario. Los puntos aparecerán aquí cuando lo confirmemos.</p>}
+            <div className="sc-network-actions">
+              {!done && status !== 'closed' && url && <a className="btn btn-ghost btn-sm" href={url} target="_blank" rel="noreferrer">Abrir {name}<ExternalLink aria-hidden="true" /></a>}
+              {!instagram && canVerifyTikTok(campaign) && <button type="button" className="btn btn-pop btn-sm" onClick={() => void verifyComment()} disabled={verifying} aria-busy={verifying}>
+                <SearchCheck aria-hidden="true" />{verifying ? "Verificando…" : "Verificar mi comentario"}
+              </button>}
+            </div>
+            {!instagram && (verificationMessage || canVerifyTikTok(campaign)) && <p role="status">{verificationMessage || "Después de comentar tu código, pulsa Verificar mi comentario."}</p>}
           </li>;
         })}
       </ul>

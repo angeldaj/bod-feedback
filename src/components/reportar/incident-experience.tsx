@@ -119,6 +119,7 @@ export function IncidentExperience({
   const headingRef = useRef<HTMLHeadingElement | null>(null);
   const phoneRef = useRef<HTMLInputElement | null>(null);
   const memberFilled = useRef(false);
+  const submissionId = useRef<string | null>(null);
 
   const name = INCIDENT_STEPS[step];
   const branchName = branches.find((b) => b.id === state.branchId)?.name ?? "";
@@ -222,7 +223,9 @@ export function IncidentExperience({
     setPhase("sending");
     setSubmitError(null);
     try {
+      submissionId.current ??= crypto.randomUUID();
       const res = await submitIncident(state, media, audio, {
+        submissionId: submissionId.current,
         surveyId: prefill?.surveyId,
         accessToken,
       });
@@ -463,7 +466,7 @@ export function IncidentExperience({
         <StepHeading
           eyebrow="Paso cuatro"
           title="¿Cómo te contactamos?"
-          lead="Déjanos tu WhatsApp para atenderte de inmediato. Un encargado te escribe personalmente, no un robot."
+          lead="Déjanos tu número para que el equipo pueda contactarte. Si lo autorizas, también recibirás por WhatsApp la confirmación y el seguimiento de tu queja."
           headingRef={headingRef}
         />
         <Item className="flex flex-col gap-5">
@@ -487,6 +490,14 @@ export function IncidentExperience({
             hint="Tu WhatsApp es solo para responderte. No lo usamos para publicidad."
             error={errors.phone}
           />
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[15px] leading-relaxed text-body">
+            <input type="checkbox" checked={Boolean(state.whatsappConsent)} disabled={!phoneE164}
+              onChange={(event) => update({ whatsappConsent: event.target.checked })}
+              className="mt-1 size-5 shrink-0 accent-[var(--lb-coral-hi)]" />
+            <span>Quiero recibir por WhatsApp la confirmación y el seguimiento de esta queja.
+              <span className="mt-1 block text-[13px] text-muted-ink">Opcional. Puedes enviar la queja sin autorizar mensajes. No incluye publicidad.</span>
+            </span>
+          </label>
           <BrandTextField
             label="Nombre"
             optional
@@ -510,7 +521,7 @@ export function IncidentExperience({
   // ---- Gracias ----
   function renderDone() {
     if (!result) return null;
-    const withPhone = Boolean(phoneE164);
+    const withPhone = Boolean(phoneE164 && state.whatsappConsent);
     const urgentWithPhone = withPhone && result.priority === "urgent";
     const title = urgentWithPhone ? "Ya estamos en eso" : "Gracias por avisarnos";
     const Case = <strong className="font-semibold text-cream">{result.caseNumber}</strong>;
