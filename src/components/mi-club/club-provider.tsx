@@ -12,6 +12,7 @@ import {
 } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Camera, HeartHandshake, Layers, MessageCircleHeart, ShoppingBag, Ticket, TriangleAlert } from "lucide-react";
+import { hasPendingInstagram, waitForTikTokVerification } from "@/lib/social-verification";
 import { useMember } from "@/lib/member-session";
 import * as club from "@/lib/club-api";
 import type {
@@ -93,6 +94,7 @@ type ClubValue = ClubData & {
   flyToWallet: (voucher: Voucher, from: Element | null | undefined, onDone: () => void) => void;
   /** Pide (o recupera) el código de la campaña. Devuelve el código o null si falló. */
   requestSocialCode: (campaignId: string) => Promise<string | null>;
+  verifyTikTokComment: (campaignId: string, signal: AbortSignal) => Promise<string>;
   redeem: (rewardId: string, from?: Element | null) => Promise<boolean>;
   selectDesign: (designId: string) => Promise<boolean>;
   /** Foto de perfil del socio (en la demo vive solo en este navegador). */
@@ -228,7 +230,7 @@ export function ClubProvider({
   }, [adapter, member]);
 
   // Aparte, como la ruleta: sin campañas (o con el backend 087 aún sin desplegar) el club sigue igual.
-  const loadSocial = useCallback(async () => {
+  const loadSocial = useCallback(async (strict = false) => {
     if (!member) return [];
     try {
       const next = await adapter.listSocialCampaigns();
@@ -243,7 +245,8 @@ export function ClubProvider({
         const delta = previous ? awarded(campaign) - awarded(previous) : 0;
         return delta > 0 ? [{ ...campaign, points: delta }] : [];
       });
-    } catch {
+    } catch (error) {
+      if (strict) throw error;
       return [];
     }
   }, [adapter, member]);
@@ -273,12 +276,12 @@ export function ClubProvider({
     adapter.listInstagramFeed().then(setInstagramFeed, () => setInstagramFeed([]));
   }, [adapter, member]);
 
-  // Con un código pendiente se consulta al volver de Instagram y cada pocos segundos con la pestaña
+  // Con Instagram pendiente se consulta al volver y cada pocos segundos con la pestaña
   // visible (puede comentar desde otro teléfono). Los puntos solo se muestran cuando el backend los confirma.
   useEffect(() => {
     const check = async () => {
       if (document.visibilityState !== "visible") return;
-      if (!socialRef.current.some((c) => c.participationStatus === "pending")) return;
+      if (!socialRef.current.some(hasPendingInstagram)) return;
       const credited = await loadSocial();
       if (credited.length === 0) return;
       const points = credited.reduce((sum, c) => sum + c.points, 0);
@@ -312,6 +315,34 @@ export function ClubProvider({
     },
     [adapter, loadSocial, notify],
   );
+
+  const verifyTikTokComment = useCallback(async (campaignId: string, signal: AbortSignal): Promise<string> => {
+    const pollingSignal = AbortSignal.any([signal, AbortSignal.timeout(5 * 60_000)]);
+    try {
+      const initial = await adapter.verifyTikTokComment(campaignId, pollingSignal);
+      const job = await waitForTikTokVerification(initial, () => adapter.getTikTokVerification(campaignId, initial.id, pollingSignal), pollingSignal);
+      signal.throwIfAborted();
+      const credited = await loadSocial(true);
+      const campaign = socialRef.current.find((item) => item.id === campaignId);
+      const done = campaign?.participations
+        ? campaign.participations.some((item) => item.network === "tiktok" && item.status === "completed")
+        : campaign?.participationStatus === "completed";
+      if (credited.length > 0) {
+        setOverlay({ type: "social", points: credited.reduce((sum, item) => sum + item.points, 0), title: credited[0].title });
+        await load();
+      } else if (done) {
+        await load();
+      }
+      if (done) return "¡Comentario verificado! Tus puntos ya están acreditados.";
+      if (!job) return "La verificación sigue en curso. Puedes revisar el resultado más tarde.";
+      if (job.status === "failed" || job.status === "unknown") return "No pudimos completar la verificación. Intenta de nuevo más tarde.";
+      return "No encontramos tu comentario. Revisa que incluya tu código y vuelve a verificar en un minuto.";
+    } catch (error) {
+      if (signal.aborted) return "";
+      if (pollingSignal.aborted) return "La verificación sigue en curso. Puedes revisar el resultado más tarde.";
+      return errorMessage(error, "No pudimos verificar tu comentario. Intenta de nuevo más tarde.");
+    }
+  }, [adapter, load, loadSocial]);
 
   const spin = useCallback((idempotencyKey: string) => adapter.spin(idempotencyKey), [adapter]);
 
@@ -506,6 +537,7 @@ export function ClubProvider({
     socialCampaigns,
     instagramFeed,
     requestSocialCode,
+    verifyTikTokComment,
     ticketPromo,
     ticketPromoLoaded,
     activateTicket,

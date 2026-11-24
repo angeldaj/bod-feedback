@@ -104,10 +104,11 @@ export async function submitIncident(
   state: IncidentState,
   media: MediaItem[],
   audio: Blob | null,
-  options: { surveyId?: string; accessToken?: string | null } = {},
+  options: { surveyId?: string; accessToken?: string | null; submissionId?: string } = {},
 ): Promise<IncidentResult> {
   if (!state.channel) throw new Error("Cuéntanos cómo nos visitaste.");
   const form = new FormData();
+  if (options.submissionId) form.set("submissionId", options.submissionId);
   form.set("branchId", state.branchId);
   form.set("channel", state.channel);
   if (state.channel === "delivery" && state.orderNumber.trim()) {
@@ -118,6 +119,7 @@ export async function submitIncident(
   if (state.name.trim()) form.set("name", state.name.trim());
   const phone = state.phone ? toE164(state.phone) : null;
   if (phone) form.set("phone", phone);
+  form.set("whatsappConsent", String(Boolean(phone && state.whatsappConsent)));
   if (options.surveyId) form.set("surveyId", options.surveyId);
   for (const item of media) {
     form.append("files", item.file, item.file.name);

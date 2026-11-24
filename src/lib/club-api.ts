@@ -168,6 +168,11 @@ export type SocialCampaign = {
   completedAt: string | null;
 };
 
+export type TikTokVerification = {
+  id: string;
+  status: "queued" | "starting" | "running" | "processing" | "succeeded" | "failed" | "unknown";
+};
+
 export type SocialCampaignCode = {
   campaignId: string;
   code: string;
@@ -585,6 +590,13 @@ function seedStore(member: Member | null): MockStore {
     tickets: { collection: 3, entries: 1, used: new Set(), attemptsLeft: TICKET_MAX_ATTEMPTS, lockedUntil: 0, stock: TICKET_STOCK.map((x) => ({ ...x })) },
     social: [
       {
+        id: "sc-demo-tiktok", title: "Comenta en TikTok",
+        instructions: "Comenta tu código en el video y luego verifica tu comentario.",
+        networks: ["tiktok"], tiktokUrl: "https://www.tiktok.com/@labodega", postUrl: "",
+        points: 10, startsAt: new Date(now - 2 * DAY).toISOString(), endsAt: new Date(now + 12 * DAY).toISOString(),
+        status: "active", participationStatus: "available", code: null, completedAt: null,
+      },
+      {
         id: "sc-demo",
         title: "Comenta tu pan favorito",
         instructions: "Copia tu código y escríbelo en un comentario de la publicación. Cuenta un premio por socio.",
@@ -870,6 +882,8 @@ export interface ClubAdapter {
   listSocialCampaigns(): Promise<SocialCampaign[]>;
   /** Código personal para la campaña. Idempotente: siempre el mismo. */
   requestSocialCode(campaignId: string): Promise<SocialCampaignCode>;
+  verifyTikTokComment(campaignId: string, signal?: AbortSignal): Promise<TikTokVerification>;
+  getTikTokVerification(campaignId: string, jobId: string, signal?: AbortSignal): Promise<TikTokVerification>;
   /** Últimas publicaciones de Instagram; vacío si el backend no tiene conexión. */
   listInstagramFeed(): Promise<InstagramPost[]>;
   /** Raspadito de Navidad: colección, sorteo, intentos y premios que quedan. */
@@ -912,6 +926,8 @@ export function createLiveClubAdapter(authed: AuthedRequest): ClubAdapter {
           method: "POST",
         }),
       ),
+    verifyTikTokComment: (campaignId, signal) => authed((t) => request<TikTokVerification>(`/loyalty/me/social-campaigns/${encodeURIComponent(campaignId)}/tiktok-sync`, t, { method: "POST", signal })),
+    getTikTokVerification: (campaignId, jobId, signal) => authed((t) => request<TikTokVerification>(`/loyalty/me/social-campaigns/${encodeURIComponent(campaignId)}/tiktok-sync/${encodeURIComponent(jobId)}`, t, { signal })),
     listInstagramFeed: () => authed((t) => request<InstagramPost[]>("/loyalty/me/social-campaigns/feed", t)),
     // shortcut: bodega-api aún no tiene el raspadito; sin backend la tarjeta y la pantalla no aparecen. Cablear al publicar su spec.
     getTicketPromo: () => Promise.reject(new ClubApiError("El raspadito aún no está disponible.", 404)),
@@ -992,6 +1008,25 @@ export function createMockClubAdapter(member: Member): ClubAdapter {
         campaign.participationStatus = "pending";
       }
       return delay({ campaignId, code: campaign.code, expiresAt: campaign.endsAt, participationStatus: campaign.participationStatus }, 320);
+    },
+    async verifyTikTokComment(campaignId) {
+      const campaign = s().social.find((c) => c.id === campaignId);
+      if (!campaign || !campaign.code || campaign.status !== "active" || !campaign.networks?.includes("tiktok")) {
+        throw new ClubApiError("Necesitas un código pendiente en una campaña activa de TikTok.", 409);
+      }
+      if (campaign.participationStatus !== "completed") {
+        const now = new Date().toISOString();
+        campaign.participationStatus = "completed";
+        campaign.completedAt = now;
+        s().balance += campaign.points;
+        s().lifetime += campaign.points;
+        s().activity.unshift({ id: `a-tiktok-${campaign.id}`, type: "social", occurredAt: now, title: "Ganaste puntos en TikTok", detail: campaign.title, points: campaign.points, category: null });
+      }
+      return delay({ id: `demo-${campaignId}`, status: "succeeded" as const }, 900);
+    },
+    async getTikTokVerification(campaignId, jobId) {
+      if (jobId !== `demo-${campaignId}` || !s().social.some((c) => c.id === campaignId && c.code)) throw new ClubApiError("Verificación no encontrada.", 404);
+      return { id: jobId, status: "succeeded" };
     },
     listInstagramFeed: () => delay(DEMO_INSTAGRAM, 700),
     getTicketPromo: () => delay(buildTicketPromo(s())),
@@ -1117,7 +1152,7 @@ const DEMO_INSTAGRAM: InstagramPost[] = [
 /** Simula el webhook de Instagram: acredita la campaña con código pendiente. Solo mock. */
 function demoSocialComment(member: Member | null): SocialCampaign | null {
   const s = ensureStore(member);
-  const campaign = s.social.find((c) => c.participationStatus === "pending");
+  const campaign = s.social.find((c) => c.participationStatus === "pending" && (c.networks ?? ["instagram"]).includes("instagram"));
   if (!campaign) return null;
   const now = new Date().toISOString();
   campaign.participationStatus = "completed";

@@ -755,3 +755,6 @@
 .sc-network > div > span { font-size: 12px; }
 .sc-network > p { font-size: 13px; line-height: 1.5; margin: 8px 0; }
 .sc-network[data-completed="true"] > div > span { color: var(--green, #35734b); }
+
+.mc2 .sc-network .sc-network-actions { justify-content: flex-start; align-items: center; gap: 8px; }
+.mc2 .sc-network-actions .btn { min-height: 44px; white-space: normal; }
