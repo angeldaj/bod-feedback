@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, ExternalLink, MessageCircleHeart, PartyPopper, SearchCheck, Ticket } from "lucide-react";
+import { Dialog } from "@base-ui/react/dialog";
+import { Check, Copy, ExternalLink, LoaderCircle, MessageCircleHeart, PartyPopper, SearchCheck, Ticket } from "lucide-react";
 import { canVerifyTikTok } from "@/lib/social-verification";
 import type { SocialCampaign } from "@/lib/club-api";
 import { useClub } from "./club-provider";
@@ -28,11 +29,12 @@ export function SocialCampaignsSection() {
 }
 
 function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
-  const { requestSocialCode, verifyTikTokComment, notify } = useClub();
+  const { requestSocialCode, verifyTikTokComment, notify, themeClass } = useClub();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [retryAt, setRetryAt] = useState(0);
+  const [verificationHidden, setVerificationHidden] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
   const verification = useRef<AbortController | null>(null);
   useEffect(() => () => verification.current?.abort(), []);
@@ -47,6 +49,7 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
     if (verification.current || retryAt > Date.now()) return;
     const controller = new AbortController();
     verification.current = controller;
+    setVerificationHidden(false);
     setVerifying(true);
     setVerificationMessage("Estamos buscando tu código en los comentarios. Puede tardar unos minutos.");
     try {
@@ -80,6 +83,19 @@ function SocialCampaignCard({ campaign }: { campaign: SocialCampaign }) {
 
   return (
     <article className="tile social-card" data-status={status}>
+      <Dialog.Root open={verifying && !verificationHidden} onOpenChange={(open) => { if (!open) setVerificationHidden(true); }}>
+        <Dialog.Portal>
+          <Dialog.Backdrop className={`${themeClass} mc2-backdrop`} />
+          <Dialog.Popup className={`${themeClass} mc2-verification`}>
+            <LoaderCircle className="sc-verification-spinner" aria-hidden="true" />
+            <Dialog.Title render={<h2 />}>Verificando Comentarios</Dialog.Title>
+            <Dialog.Description>
+              Estamos buscando tu código en los comentarios. Puede tardar unos minutos.
+            </Dialog.Description>
+            <Dialog.Close className="btn btn-ghost btn-sm">Ocultar aviso</Dialog.Close>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
       <header className="sc-top">
         <span className="sc-ic" aria-hidden="true">
           <MessageCircleHeart />

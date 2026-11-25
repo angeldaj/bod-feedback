@@ -70,6 +70,13 @@ test("TikTok espera al clic, bloquea duplicados, consulta el trabajo y muestra e
     assert.equal(state.reads, reads, "TikTok pendiente no debe activar sondeo");
     const button = page.getByRole("button", { name: "Verificar mi comentario" });
     await button.click();
+    const overlay = page.getByRole("dialog", { name: "Verificando Comentarios", exact: true });
+    await overlay.waitFor();
+    assert.equal(await overlay.getByText("Estamos buscando tu código en los comentarios. Puede tardar unos minutos.").count(), 1);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+    if (process.env.SOCIAL_TEST_OVERLAY_SCREENSHOT) await page.screenshot({ path: process.env.SOCIAL_TEST_OVERLAY_SCREENSHOT });
+    await overlay.getByRole("button", { name: "Ocultar aviso" }).click();
+    assert.equal(await overlay.count(), 0);
     const busy = page.getByRole("button", { name: "Verificando…" });
     await busy.waitFor();
     assert.equal(await busy.isDisabled(), true);
@@ -83,11 +90,13 @@ test("TikTok espera al clic, bloquea duplicados, consulta el trabajo y muestra e
     state.fail = true;
     await button.click();
     await page.getByText("Espera un minuto antes de volver a verificar este video.", { exact: true }).waitFor();
+    assert.equal(await overlay.count(), 0, "el aviso se cierra al fallar");
     assert.equal(await button.isEnabled(), true);
     state.fail = false;
     state.found = true;
     await button.click();
     await page.getByRole("button", { name: "Ver mi saldo", exact: true }).click({ timeout: 15_000 });
+    assert.equal(await overlay.count(), 0, "el aviso se cierra antes de mostrar los puntos");
     await page.getByText("+10 pts acreditados", { exact: true }).waitFor({ timeout: 15_000 });
     assert.equal(await button.count(), 0);
     assert.equal(state.posts, 3);

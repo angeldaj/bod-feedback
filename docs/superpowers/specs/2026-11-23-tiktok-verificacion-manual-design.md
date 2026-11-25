@@ -59,3 +59,20 @@ Implementado el 2026-11-23. API en `develop`, commit `be1a9da`, incluyendo la in
 La landing muestra la acción solo con código y participación pendiente de TikTok. Consulta el trabajo aceptado con un límite de cinco minutos y cancela las lecturas al abandonar la tarjeta. El saldo y la celebración dependen de la confirmación del backend.
 
 Validación: builds de Next.js y NestJS, exportación OpenAPI y lint sin errores; 272 pruebas de loyalty y 7 pruebas de landing pasan, incluidas dos de navegador y revisión visual móvil. Se omitieron seis pruebas de Postgres porque no hay base aislada configurada. No se ejecutaron migraciones ni despliegues; publicar primero la API.
+
+
+## Overlay de verificación — 2026-11-25
+
+Al pulsar «Verificar mi comentario», Mi Club muestra el overlay
+«Verificando Comentarios» mientras espera la consulta y el procesamiento.
+Usa el diálogo accesible y los temas existentes del club, con indicador de carga
+que respeta movimiento reducido y el aviso de que puede tardar unos minutos.
+«Ocultar aviso» cierra únicamente el diálogo: la consulta continúa y el botón
+sigue bloqueado para impedir duplicados. Al terminar o fallar se retira el overlay
+y se conserva el resultado del flujo existente, incluida la celebración de puntos.
+
+- [x] Overlay ligado al estado real de verificación y reiniciado en cada intento.
+- [x] Cierre manual sin cancelar la verificación y cierre automático al finalizar.
+- [x] TypeScript y lint de los archivos modificados sin errores.
+- [x] Siete pruebas sociales correctas, incluidas las pruebas de navegador.
+- [x] Revisión visual en móvil de 390 px con movimiento reducido, sin desbordamiento.
