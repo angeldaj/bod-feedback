@@ -76,3 +76,8 @@ y se conserva el resultado del flujo existente, incluida la celebración de punt
 - [x] TypeScript y lint de los archivos modificados sin errores.
 - [x] Siete pruebas sociales correctas, incluidas las pruebas de navegador.
 - [x] Revisión visual en móvil de 390 px con movimiento reducido, sin desbordamiento.
+
+
+## Publicación del aviso — 2026-11-25
+
+Overlay publicado en `5b187fa`, conservando la espera entre solicitudes de la versión actual. CI/CD completado correctamente (run 45670502454); contenedor actualizado y sitio disponible. Once pruebas sociales pasaron contra https://labodega-ve.com, con tráfico de socio/TikTok simulado y demo pública. La prueba espera el fin de la animación al comprobar el cierre del diálogo. No se solicitaron verificaciones reales a TikTok.
